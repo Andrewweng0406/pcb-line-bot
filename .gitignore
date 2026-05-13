@@ -1,0 +1,62 @@
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Data & uploads
+data/uploads/*
+!data/uploads/.gitkeep
+logs/
+*.db
+*.sqlite
+*.sqlite3
+quotes.db
+
+# Exports
+exports/*
+!exports/.gitkeep
+
+# Excel/PDF test files
+*.xlsx
+*.pdf
+test_*.xlsx
+
+# Temporary files
+upload_*.jpg
+*.tmp
+
+# AWS
+.aws/
+aws_credentials
+
+# Docker
+.dockerignore
