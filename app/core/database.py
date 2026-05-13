@@ -119,3 +119,45 @@ def save_quote(customer_id: str, parsed: dict, result: dict) -> bool:
     except Exception as e:
         logger.error(f"Error saving quote: {e}")
         return False
+
+
+def get_system_stats() -> dict:
+    """獲取系統統計信息"""
+    try:
+        db = SessionLocal()
+        from datetime import datetime, timedelta
+
+        # 今日報價次數
+        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_count = db.query(func.count(QuoteHistory.id)).filter(
+            QuoteHistory.created_at >= today_start
+        ).scalar() or 0
+
+        # 總報價次數
+        total_count = db.query(func.count(QuoteHistory.id)).scalar() or 0
+
+        # 最後一筆報價時間
+        last_quote = db.query(QuoteHistory).order_by(
+            QuoteHistory.created_at.desc()
+        ).first()
+        last_quote_time = last_quote.created_at if last_quote else None
+
+        # 所有報價的平均價格
+        avg_price = db.query(func.avg(QuoteHistory.total)).scalar() or 0
+
+        db.close()
+
+        return {
+            "today_count": today_count,
+            "total_count": total_count,
+            "last_quote_time": last_quote_time,
+            "avg_price": round(float(avg_price), 0) if avg_price else 0,
+        }
+    except Exception as e:
+        logger.error(f"Error getting system stats: {e}")
+        return {
+            "today_count": 0,
+            "total_count": 0,
+            "last_quote_time": None,
+            "avg_price": 0,
+        }

@@ -4,6 +4,7 @@ from openpyxl.styles import PatternFill
 from openpyxl.styles import Alignment
 
 from datetime import datetime
+import os
 
 
 quote_counter = 1
@@ -79,21 +80,24 @@ def export_quote_excel(parsed, result):
     ws["A18"] = "BVH"
     ws["B18"] = str(parsed.get("bvh"))
 
-    # Price
-    ws["A20"] = "Engineering Fee"
-    ws["B20"] = result.get("engineering_fee")
+    # Price Details
+    ws["A20"] = "Setup Fee (Engineering)"
+    ws["B20"] = result.get("setup_fee", result.get("engineering_fee"))
 
-    ws["A21"] = "Material Cost"
-    ws["B21"] = result.get("material_cost")
+    ws["A21"] = "Board Charge (Material)"
+    ws["B21"] = result.get("board_charge_total", result.get("material_cost"))
 
-    ws["A22"] = "Process Cost"
-    ws["B22"] = result.get("process_cost")
+    ws["A22"] = "Extra Fee (Process)"
+    ws["B22"] = result.get("extra_fee", result.get("process_cost"))
 
     ws["A23"] = "Subtotal"
     ws["B23"] = result.get("subtotal")
 
     ws["A24"] = "Discount"
     ws["B24"] = result.get("discount")
+
+    ws["A25"] = "Delivery Multiplier"
+    ws["B25"] = result.get("delivery_multiplier", 1.0)
 
     ws["A26"] = "TOTAL"
 
@@ -120,6 +124,13 @@ def export_quote_excel(parsed, result):
 
     filename = f'{quote_no}.xlsx'
 
-    wb.save(filename)
+    # 確保 exports 文件夾存在
+    exports_dir = "exports"
+    if not os.path.exists(exports_dir):
+        os.makedirs(exports_dir)
+
+    # 保存到 exports 文件夾
+    filepath = os.path.join(exports_dir, filename)
+    wb.save(filepath)
 
     return filename

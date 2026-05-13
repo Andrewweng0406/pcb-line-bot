@@ -33,7 +33,8 @@ from app.core.database import (
     get_recent_quotes,
     search_quotes,
     get_average_price,
-    save_quote
+    save_quote,
+    get_system_stats
 )
 from app.quote_engine import calculate_quote
 from app.ai_parser import parse_pcb_text
@@ -233,6 +234,123 @@ def handle_message(event):
         user_text = event.message.text.strip()
 
         logger.info(f"Message from {user_id}: {user_text[:50]}")
+
+        # HELP 指令
+        if user_text.lower() in ["help", "幫助", "帮助", "说明", "說明"]:
+            help_text = """📖 PCB 報價機器人 - 使用指南
+
+🔹 基本指令：
+━━━━━━━━━━━━━━━━━━━━━━━
+
+1️⃣ 上傳圖片或描述規格
+   • 傳送 PCB 設計圖（.jpg, .png）
+   • 或用文字描述：「6層，100x100mm，數量9，投料率3」
+
+2️⃣ 回覆詢問
+   • 機器人會問：層數、材料、Pitch、交期等
+   • 直接回覆即可（例：「0.35mm」「7天」）
+
+3️⃣ 查詢報價
+   • 輸入「查詢報價」查看最近的報價記錄
+
+4️⃣ 匯出報價單
+   • 輸入「匯出報價單」下載 Excel 報價單
+
+5️⃣ 開始新案件
+   • 輸入「新案件」、「結束」或「reset」清除當前報價
+
+━━━━━━━━━━━━━━━━━━━━━━━
+📝 報價規格範例：
+
+「6層 FR4 100x100mm 數量9 投料率3
+ Pitch 0.4mm 交期7天 ENIG 10u VIP」
+
+━━━━━━━━━━━━━━━━━━━━━━━
+⏱️ 交期規則：
+• 2-4L：5天  • 6L：6天  • 8-10L：7天
+• 12-14L：8天  • 16-30L：10天
+
+💰 表面處理：
+• ENIG 5u"：3,000  • ENIG 10u"：6,000
+• ENIG 30u"：12,000  • ENIG 50u"：18,000
+
+🔧 額外加工：
+• VIP（樹脂塞孔）：5,000
+• Back Drill：5,000  • 內層 AOI：600/層
+
+━━━━━━━━━━━━━━━━━━━━━━━
+💡 小提示：
+✅ 儘量提供完整規格，報價會更準確
+✅ Pitch、孔到線距、平坦度會影響價格
+✅ 數量 ≥2 時享 9 折優惠
+
+需要幫助嗎？輸入「help」隨時查看說明！"""
+
+            with ApiClient(configuration) as api_client:
+                line_bot_api = MessagingApi(api_client)
+                line_bot_api.reply_message(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[TextMessage(text=help_text)]
+                    )
+                )
+            return
+
+        # STATUS 指令 - 系統狀態面板
+        if user_text.lower() in ["status", "狀態", "状态", "系統狀態", "系统状态"]:
+            stats = get_system_stats()
+
+            last_quote_str = "未有報價"
+            if stats["last_quote_time"]:
+                from datetime import datetime
+                last_quote = stats["last_quote_time"]
+                now = datetime.utcnow()
+                diff = now - last_quote
+
+                if diff.seconds < 60:
+                    time_str = f"{diff.seconds} 秒前"
+                elif diff.seconds < 3600:
+                    time_str = f"{diff.seconds // 60} 分鐘前"
+                elif diff.days == 0:
+                    time_str = f"{diff.seconds // 3600} 小時前"
+                else:
+                    time_str = last_quote.strftime("%Y-%m-%d %H:%M")
+                last_quote_str = time_str
+
+            status_text = f"""📊 PCB 報價機器人 - 系統狀態
+
+━━━━━━━━━━━━━━━━━━━━━━━
+✅ 系統狀態：正常運行
+
+━━━━━━━━━━━━━━━━━━━━━━━
+📈 今日統計：
+• 報價查詢：{stats['today_count']} 次
+• 歷史總數：{stats['total_count']} 次
+• 平均報價：NT$ {stats['avg_price']:,.0f}
+
+━━━━━━━━━━━━━━━━━━━━━━━
+⏱️ 最後活動：
+• 最近報價：{last_quote_str}
+
+━━━━━━━━━━━━━━━━━━━━━━━
+💾 系統信息：
+• 自動備份：每天 00:00
+• 同步頻率：實時
+• 數據保留：永久
+
+━━━━━━━━━━━━━━━━━━━━━━━
+✨ 一切正常，祝你使用愉快！
+有任何問題，輸入 help 查看說明"""
+
+            with ApiClient(configuration) as api_client:
+                line_bot_api = MessagingApi(api_client)
+                line_bot_api.reply_message(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[TextMessage(text=status_text)]
+                    )
+                )
+            return
 
         if user_text == "查詢報價":
             rows = get_recent_quotes()
