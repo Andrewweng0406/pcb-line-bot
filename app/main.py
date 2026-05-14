@@ -155,10 +155,14 @@ def format_quote_reply(parsed: dict, result: dict) -> str:
         for item in result.get("follow_up_questions"):
             follow_text += f"- {item}\n"
 
+    company_section = ""
+    if parsed.get("company_name"):
+        company_section = f"🏭 識別公司：{parsed.get('company_name')}\n\n"
+
     return f"""
 📋 PCB 初步報價
 
-【讀取到的規格】
+{company_section}【讀取到的規格】
 Layer：{parsed.get("layer")}L
 Material：{parsed.get("material")}
 Size：{size_text}
