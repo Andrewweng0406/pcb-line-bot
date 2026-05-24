@@ -39,9 +39,8 @@ def parse_pcb_image(image_path):
 
 只回傳 JSON，不要 markdown，不要解釋。
 
-首先，請從圖片上的絲印（PCB 表面的文字）中識別公司名稱。如果看到清晰的公司名稱文字（例如 Logo、公司標誌、公司名縮寫），請輸出到 company_name 欄位。如果看不到任何公司識別，輸出 null。
-
 判斷規則：
+- company_name: 如果看到 PCB 絲印上的公司名稱、Logo、或公司標誌，請填入公司名稱字串。如果看不到，填 null。
 - Material 如果看到 MEGTRON 6、MEGTRON6，都輸出 "MEGTRON 6"
 - Surface Plating 如果看到 Ni/Au、Au、ENIG、Immersion Gold，都代表 enig = true
 - 如果看到 VIP、Via in Pad、Resin Plug、Plug Via，代表 vip = true
