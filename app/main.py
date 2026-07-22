@@ -60,7 +60,7 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# 註冊 API 路由
+# Register API routes
 app.include_router(api_router)
 
 configuration = Configuration(
@@ -243,7 +243,7 @@ def handle_message(event):
 
         logger.info(f"Message from {user_id}: {user_text[:50]}")
 
-        # HELP 指令
+        # HELP command
         if user_text.lower() in ["help", "幫助", "帮助", "说明", "說明"]:
             help_text = """📖 PCB 報價機器人 - 使用指南
 
@@ -304,7 +304,7 @@ def handle_message(event):
                 )
             return
 
-        # STATUS 指令 - 系統狀態面板
+        # STATUS command - system status panel
         if user_text.lower() in ["status", "狀態", "状态", "系統狀態", "系统状态"]:
             stats = get_system_stats()
 

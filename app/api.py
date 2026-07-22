@@ -12,7 +12,7 @@ from sqlalchemy import desc, and_
 router = APIRouter(prefix="/api", tags=["api"])
 
 # ============================================================================
-# 報價相關 API
+# Quote-related API
 # ============================================================================
 
 @router.get("/quotes")
@@ -24,12 +24,12 @@ def get_quotes(
     search: str = Query(None),
     limit: int = Query(100)
 ):
-    """獲取報價列表，支援篩選和搜尋"""
+    """Get the quote list with filtering and search support."""
     try:
         db = SessionLocal()
         query = db.query(QuoteHistory)
 
-        # 日期篩選
+        # Date filters
         if start_date:
             start = datetime.fromisoformat(start_date)
             query = query.filter(QuoteHistory.created_at >= start)
@@ -37,15 +37,15 @@ def get_quotes(
             end = datetime.fromisoformat(end_date)
             query = query.filter(QuoteHistory.created_at <= end)
 
-        # 層數篩選
+        # Layer filter
         if layer:
             query = query.filter(QuoteHistory.layer == layer)
 
-        # 材料篩選
+        # Material filter
         if material:
             query = query.filter(QuoteHistory.material.ilike(f"%{material}%"))
 
-        # 搜尋（報價編號或客戶ID）
+        # Search by quote number or customer ID
         if search:
             query = query.filter(
                 QuoteHistory.customer_id.ilike(f"%{search}%")
@@ -77,7 +77,7 @@ def get_quotes(
 
 @router.get("/quotes/{quote_id}")
 def get_quote(quote_id: int):
-    """獲取單一報價詳情"""
+    """Get details for a single quote."""
     try:
         db = SessionLocal()
         quote = db.query(QuoteHistory).filter(QuoteHistory.id == quote_id).first()
@@ -107,7 +107,7 @@ def get_quote(quote_id: int):
 
 @router.patch("/quotes/{quote_id}")
 def update_quote(quote_id: int, data: dict):
-    """更新報價（價格、狀態、備註等）"""
+    """Update a quote, such as price, status, or notes."""
     try:
         db = SessionLocal()
         quote = db.query(QuoteHistory).filter(QuoteHistory.id == quote_id).first()
@@ -115,7 +115,7 @@ def update_quote(quote_id: int, data: dict):
         if not quote:
             raise HTTPException(status_code=404, detail="報價不存在")
 
-        # 更新允許的欄位
+        # Update allowed fields
         if "total" in data:
             quote.total = data["total"]
 
@@ -131,7 +131,7 @@ def update_quote(quote_id: int, data: dict):
 
 @router.delete("/quotes/{quote_id}")
 def delete_quote(quote_id: int):
-    """刪除報價"""
+    """Delete a quote."""
     try:
         db = SessionLocal()
         quote = db.query(QuoteHistory).filter(QuoteHistory.id == quote_id).first()
@@ -151,7 +151,7 @@ def delete_quote(quote_id: int):
 
 
 # ============================================================================
-# 統計相關 API
+# Statistics-related API
 # ============================================================================
 
 @router.get("/stats/summary")
@@ -159,11 +159,11 @@ def get_stats_summary(
     start_date: str = Query(None),
     end_date: str = Query(None)
 ):
-    """獲取統計摘要"""
+    """Get the statistics summary."""
     try:
         db = SessionLocal()
 
-        # 基本統計
+        # Basic statistics
         query = db.query(QuoteHistory)
 
         if start_date:
@@ -192,7 +192,7 @@ def get_stats_summary(
 
 @router.get("/stats/by-layer")
 def get_stats_by_layer():
-    """按層數統計"""
+    """Group statistics by layer."""
     try:
         db = SessionLocal()
         quotes = db.query(QuoteHistory).all()
@@ -218,7 +218,7 @@ def get_stats_by_layer():
 
 @router.get("/stats/by-material")
 def get_stats_by_material():
-    """按材料統計"""
+    """Group statistics by material."""
     try:
         db = SessionLocal()
         quotes = db.query(QuoteHistory).all()
