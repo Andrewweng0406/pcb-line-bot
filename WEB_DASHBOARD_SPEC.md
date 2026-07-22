@@ -1,191 +1,191 @@
-# PCB Quote Bot - Web 管理界面需求文檔
+# PCB Quote Bot - Web Admin Interface Requirements
 
-## 項目概述
-為 PCB 報價機器人創建 Web 管理界面，讓客戶和內部用戶可以查看、管理、下載報價。
+## Project Overview
+Create a web admin interface for the PCB quote bot so customers and internal users can view, manage, and download quotes.
 
-## 頁面設計
+## Page Design
 
-### 1. 登入頁面
-- 用戶名/郵箱 + 密碼登入
-- 或簡單的 API key 認證
+### 1. Login Page
+- Username/email + password login
+- Or simple API key authentication
 
-### 2. 儀表板首頁
-展示統計數據卡片：
-- 🔹 總報價數：今日/本月/全部
-- 🔹 平均報價額
-- 🔹 最近活動時間軸
-- 🔹 快捷導航按鈕
+### 2. Dashboard Home
+Display statistics cards:
+- 🔹 Total quote count: today/this month/all time
+- 🔹 Average quote amount
+- 🔹 Recent activity timeline
+- 🔹 Quick navigation buttons
 
-### 3. 報價歷史列表頁面
-**表格列：**
-- 報價編號（PCB-20260526-001）
-- 公司名稱
-- 層數 (Layer)
-- 材料 (Material)
-- 尺寸 (Size)
-- 數量 (Qty)
-- 總價 (Total)
-- 狀態 (待審核/已批准/已下單)
-- 建立日期
-- 操作 (查看/編輯/下載Excel)
+### 3. Quote History List Page
+**Table columns:**
+- Quote number (PCB-20260526-001)
+- Company name
+- Layer
+- Material
+- Size
+- Qty
+- Total
+- Status (pending review/approved/ordered)
+- Created date
+- Actions (view/edit/download Excel)
 
-**篩選功能：**
-- 按日期範圍
-- 按層數
-- 按材料
-- 按公司名
-- 按狀態
+**Filters:**
+- By date range
+- By layer
+- By material
+- By company name
+- By status
 
-**搜尋：** 報價編號、公司名稱
+**Search:** Quote number, company name
 
-### 4. 報價詳情頁面
-顯示完整報價資訊：
+### 4. Quote Detail Page
+Display complete quote information:
 ```
-報價編號: PCB-20260526-001
-狀態: [待審核 / 已批准 / 已下單]
+Quote number: PCB-20260526-001
+Status: [Pending review / Approved / Ordered]
 
-【客戶信息】
-公司名稱: XXX Corp
-聯繫方式: (如果有)
+[Customer Information]
+Company name: XXX Corp
+Contact method: (if available)
 
-【規格信息】
-層數: 22L
-材料: FR4
-尺寸: 700.16 x 565 mm
-數量: 3 pcs
-投料率: 1.0
+[Specification Information]
+Layer: 22L
+Material: FR4
+Size: 700.16 x 565 mm
+Qty: 3 pcs
+Issue ratio: 1.0
 
-【製程】
+[Process]
 ENIG: Yes / No
-ENIG厚度: 20 u"
+ENIG thickness: 20 u"
 VIP: Yes / No
 Impedance: Yes / No
-背鑽: Yes / No
+Back Drill: Yes / No
 
-【計價明細】
-面積: 613.17 sq.inch
-基礎工程費: 80,000
-單位板材費: 65 NT$/in²
-板材費: 119,567
-額外費用: 5,000
-小計: 204,567
-折扣: ×0.9
-最終價格: 184,110
+[Pricing Details]
+Area: 613.17 sq.inch
+Base setup fee: 80,000
+Unit board charge: 65 NT$/in²
+Board charge: 119,567
+Extra fees: 5,000
+Subtotal: 204,567
+Discount: ×0.9
+Final price: 184,110
 ```
 
-**功能：**
-- 編輯報價（價格、狀態、備註）
-- 添加內部備註
-- 標記狀態（待審核→已批准→已下單）
-- 下載 Excel
-- 分享給客戶（生成唯讀連結）
-- 刪除報價
+**Features:**
+- Edit quote (price, status, notes)
+- Add internal notes
+- Mark status (pending review -> approved -> ordered)
+- Download Excel
+- Share with customers (generate read-only link)
+- Delete quote
 
-### 5. 客戶管理頁面
-**客戶列表：**
-- 公司名
-- 聯繫人
-- 聯繫電話/郵箱
-- 總報價數
-- 最後報價日期
-- 操作 (查看/編輯/刪除)
+### 5. Customer Management Page
+**Customer list:**
+- Company name
+- Contact person
+- Contact phone/email
+- Total quote count
+- Last quote date
+- Actions (view/edit/delete)
 
-**新增客戶表單：**
-- 公司名
-- 聯繫人
-- 電話
-- 郵箱
-- 常用規格 (JSON)
+**New customer form:**
+- Company name
+- Contact person
+- Phone
+- Email
+- Common specifications (JSON)
 
-### 6. 統計報告頁面
-- 日期範圍選擇器
-- 統計圖表：
-  - 報價趨勢線圖 (日/周/月)
-  - 按層數分佈柱狀圖
-  - 按材料分佈圓餅圖
-  - 按狀態分佈
-- 下載報告按鈕 (CSV/PDF)
+### 6. Statistics Report Page
+- Date range picker
+- Statistics charts:
+  - Quote trend line chart (day/week/month)
+  - Bar chart by layer distribution
+  - Pie chart by material distribution
+  - Distribution by status
+- Download report button (CSV/PDF)
 
-## API 端點需求
+## API Endpoint Requirements
 
-應用需要提供以下 REST API：
+The app needs to provide the following REST APIs:
 
-### 認證
+### Authentication
 ```
 POST /api/auth/login
   body: { username, password }
   return: { token, user }
 ```
 
-### 報價相關
+### Quote-Related
 ```
 GET /api/quotes
   query: { startDate?, endDate?, layer?, material?, status?, search? }
   return: [ { id, quoteNo, companyName, layer, material, size, qty, total, status, createdAt } ]
 
 GET /api/quotes/{id}
-  return: { 完整報價信息 }
+  return: { complete quote information }
 
 PATCH /api/quotes/{id}
   body: { total?, status?, notes? }
-  return: { 更新後的報價 }
+  return: { updated quote }
 
 DELETE /api/quotes/{id}
   return: { success }
 
 GET /api/quotes/{id}/download-excel
-  return: Excel 檔案
+  return: Excel file
 
 GET /api/quotes/stats/summary
   query: { startDate?, endDate? }
   return: { totalCount, avgPrice, todayCount, etc. }
 ```
 
-### 客戶相關
+### Customer-Related
 ```
 GET /api/customers
   return: [ { id, name, contact, email, phone, totalQuotes, lastQuoteDate } ]
 
 POST /api/customers
   body: { name, contact, email, phone, commonSpecs }
-  return: { 新客戶 }
+  return: { new customer }
 
 PATCH /api/customers/{id}
   body: { name?, contact?, email?, phone? }
-  return: { 更新後的客戶 }
+  return: { updated customer }
 
 DELETE /api/customers/{id}
   return: { success }
 ```
 
-## 技術堆棧建議
-- **前端框架：** React / Next.js / Vue
-- **UI 組件庫：** shadcn/ui, Tailwind CSS, Material-UI
-- **圖表庫：** Chart.js, Recharts
-- **表格：** TanStack Table (React Table)
-- **日期選擇器：** React DatePicker
-- **狀態管理：** React Context / Zustand
+## Recommended Tech Stack
+- **Frontend framework:** React / Next.js / Vue
+- **UI component library:** shadcn/ui, Tailwind CSS, Material-UI
+- **Chart library:** Chart.js, Recharts
+- **Tables:** TanStack Table (React Table)
+- **Date picker:** React DatePicker
+- **State management:** React Context / Zustand
 
-## 設計風格
-- 現代、簡潔的企業級 UI
-- 亮色主題（可選深色模式）
-- 響應式設計（移動/平板/桌面）
-- 主色：藍色 (#3B82F6)
-- 輔助色：綠色（成功）、紅色（危險）、黃色（警告）
+## Design Style
+- Modern, clean enterprise UI
+- Light theme with optional dark mode
+- Responsive design for mobile/tablet/desktop
+- Primary color: blue (#3B82F6)
+- Supporting colors: green (success), red (danger), yellow (warning)
 
-## 優先級
-1. **MVP（第一版）**
-   - 報價列表 + 詳情頁
-   - 基本篩選搜尋
-   - 下載 Excel
-   - 登入頁
+## Priority
+1. **MVP (first version)**
+   - Quote list + detail page
+   - Basic filtering and search
+   - Excel download
+   - Login page
 
 2. **V1.1**
-   - 客戶管理
-   - 編輯功能
-   - 狀態管理
+   - Customer management
+   - Editing features
+   - Status management
 
 3. **V1.2**
-   - 統計報告
-   - 分享功能
-   - 深色模式
+   - Statistics reports
+   - Sharing features
+   - Dark mode

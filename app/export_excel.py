@@ -124,12 +124,12 @@ def export_quote_excel(parsed, result):
 
     filename = f'{quote_no}.xlsx'
 
-    # 確保 exports 文件夾存在
+    # Ensure the exports directory exists
     exports_dir = "exports"
     if not os.path.exists(exports_dir):
         os.makedirs(exports_dir)
 
-    # 保存到 exports 文件夾
+    # Save to the exports directory
     filepath = os.path.join(exports_dir, filename)
     wb.save(filepath)
 

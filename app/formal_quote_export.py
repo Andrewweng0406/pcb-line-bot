@@ -9,12 +9,12 @@ def export_formal_quote(parsed, result):
     wb = load_workbook(template_path)
     ws = wb.active
 
-    # 基本資料
+    # Basic information
     ws["C5"] = "ProbeLeader CO., LTD."
     ws["C6"] = "AI Quote System"
     ws["C7"] = datetime.now().strftime("%Y/%m/%d")
 
-    # 規格
+    # Specifications
     ws["F10"] = parsed.get("layer")
 
     if parsed.get("length_mm") and parsed.get("width_mm"):
@@ -49,12 +49,12 @@ def export_formal_quote(parsed, result):
 
     ws["F19"] = " / ".join(comment)
 
-    # 價格
+    # Pricing
     ws["J14"] = parsed.get("qty")
     ws["K14"] = "pcs/batch"
     ws["L14"] = f'NT${result.get("unit_price")} / pc'
 
-    # 交期
+    # Delivery lead time
     if result.get("delivery_days"):
         ws["N14"] = result.get("delivery_days")
         ws["O14"] = "working days"

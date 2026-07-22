@@ -122,27 +122,27 @@ def save_quote(customer_id: str, parsed: dict, result: dict) -> bool:
 
 
 def get_system_stats() -> dict:
-    """獲取系統統計信息"""
+    """Get system statistics."""
     try:
         db = SessionLocal()
         from datetime import datetime, timedelta
 
-        # 今日報價次數
+        # Today's quote count
         today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
         today_count = db.query(func.count(QuoteHistory.id)).filter(
             QuoteHistory.created_at >= today_start
         ).scalar() or 0
 
-        # 總報價次數
+        # Total quote count
         total_count = db.query(func.count(QuoteHistory.id)).scalar() or 0
 
-        # 最後一筆報價時間
+        # Most recent quote time
         last_quote = db.query(QuoteHistory).order_by(
             QuoteHistory.created_at.desc()
         ).first()
         last_quote_time = last_quote.created_at if last_quote else None
 
-        # 所有報價的平均價格
+        # Average price across all quotes
         avg_price = db.query(func.avg(QuoteHistory.total)).scalar() or 0
 
         db.close()
