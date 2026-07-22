@@ -1,15 +1,17 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from datetime import datetime, timedelta
-from app.core.database import (
-    QuoteHistory,
-    SessionLocal,
-    get_recent_quotes,
-    search_quotes,
-    get_system_stats
-)
-from sqlalchemy import desc, and_
+import app.core.database as db
+from app.web import get_current_user_optional
+from sqlalchemy import desc
 
 router = APIRouter(prefix="/api", tags=["api"])
+
+
+def require_user(user=Depends(get_current_user_optional)):
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return user
+
 
 # ============================================================================
 # Quote-related API
@@ -22,41 +24,45 @@ def get_quotes(
     layer: int = Query(None),
     material: str = Query(None),
     search: str = Query(None),
-    limit: int = Query(100)
+    limit: int = Query(100),
+    user=Depends(require_user),
 ):
     """Get the quote list with filtering and search support."""
     try:
-        db = SessionLocal()
-        query = db.query(QuoteHistory)
+        session = db.SessionLocal()
+        query = session.query(db.QuoteHistory)
 
         # Date filters
         if start_date:
             start = datetime.fromisoformat(start_date)
-            query = query.filter(QuoteHistory.created_at >= start)
+            query = query.filter(db.QuoteHistory.created_at >= start)
         if end_date:
             end = datetime.fromisoformat(end_date)
-            query = query.filter(QuoteHistory.created_at <= end)
+            query = query.filter(db.QuoteHistory.created_at <= end)
 
         # Layer filter
         if layer:
-            query = query.filter(QuoteHistory.layer == layer)
+            query = query.filter(db.QuoteHistory.layer == layer)
 
         # Material filter
         if material:
-            query = query.filter(QuoteHistory.material.ilike(f"%{material}%"))
+            query = query.filter(db.QuoteHistory.material.ilike(f"%{material}%"))
 
-        # Search by quote number or customer ID
+        # Search by the submitting channel (LINE user id / "web:<user_id>")
         if search:
             query = query.filter(
-                QuoteHistory.customer_id.ilike(f"%{search}%")
+                db.QuoteHistory.source_channel_id.ilike(f"%{search}%")
             )
 
-        quotes = query.order_by(desc(QuoteHistory.created_at)).limit(limit).all()
+        quotes = query.order_by(desc(db.QuoteHistory.created_at)).limit(limit).all()
 
         result = [
             {
                 "id": q.id,
+                "quote_no": q.quote_no,
+                "source_channel_id": q.source_channel_id,
                 "customer_id": q.customer_id,
+                "status": q.status,
                 "layer": q.layer,
                 "material": q.material,
                 "length_mm": q.length_mm,
@@ -69,26 +75,30 @@ def get_quotes(
             for q in quotes
         ]
 
-        db.close()
+        session.close()
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/quotes/{quote_id}")
-def get_quote(quote_id: int):
+def get_quote(quote_id: int, user=Depends(require_user)):
     """Get details for a single quote."""
     try:
-        db = SessionLocal()
-        quote = db.query(QuoteHistory).filter(QuoteHistory.id == quote_id).first()
-        db.close()
+        session = db.SessionLocal()
+        quote = session.query(db.QuoteHistory).filter(db.QuoteHistory.id == quote_id).first()
+        session.close()
 
         if not quote:
             raise HTTPException(status_code=404, detail="報價不存在")
 
         return {
             "id": quote.id,
+            "quote_no": quote.quote_no,
+            "source_channel_id": quote.source_channel_id,
             "customer_id": quote.customer_id,
+            "status": quote.status,
+            "notes": quote.notes,
             "layer": quote.layer,
             "material": quote.material,
             "length_mm": quote.length_mm,
@@ -106,11 +116,11 @@ def get_quote(quote_id: int):
 
 
 @router.patch("/quotes/{quote_id}")
-def update_quote(quote_id: int, data: dict):
+def update_quote(quote_id: int, data: dict, user=Depends(require_user)):
     """Update a quote, such as price, status, or notes."""
     try:
-        db = SessionLocal()
-        quote = db.query(QuoteHistory).filter(QuoteHistory.id == quote_id).first()
+        session = db.SessionLocal()
+        quote = session.query(db.QuoteHistory).filter(db.QuoteHistory.id == quote_id).first()
 
         if not quote:
             raise HTTPException(status_code=404, detail="報價不存在")
@@ -118,9 +128,14 @@ def update_quote(quote_id: int, data: dict):
         # Update allowed fields
         if "total" in data:
             quote.total = data["total"]
+        if "status" in data:
+            quote.status = data["status"]
+        if "notes" in data:
+            quote.notes = data["notes"]
+        quote.updated_by_user_id = user.id
 
-        db.commit()
-        db.close()
+        session.commit()
+        session.close()
 
         return {"status": "success", "message": "報價已更新"}
     except HTTPException:
@@ -130,18 +145,18 @@ def update_quote(quote_id: int, data: dict):
 
 
 @router.delete("/quotes/{quote_id}")
-def delete_quote(quote_id: int):
+def delete_quote(quote_id: int, user=Depends(require_user)):
     """Delete a quote."""
     try:
-        db = SessionLocal()
-        quote = db.query(QuoteHistory).filter(QuoteHistory.id == quote_id).first()
+        session = db.SessionLocal()
+        quote = session.query(db.QuoteHistory).filter(db.QuoteHistory.id == quote_id).first()
 
         if not quote:
             raise HTTPException(status_code=404, detail="報價不存在")
 
-        db.delete(quote)
-        db.commit()
-        db.close()
+        session.delete(quote)
+        session.commit()
+        session.close()
 
         return {"status": "success", "message": "報價已刪除"}
     except HTTPException:
@@ -157,21 +172,22 @@ def delete_quote(quote_id: int):
 @router.get("/stats/summary")
 def get_stats_summary(
     start_date: str = Query(None),
-    end_date: str = Query(None)
+    end_date: str = Query(None),
+    user=Depends(require_user),
 ):
     """Get the statistics summary."""
     try:
-        db = SessionLocal()
+        session = db.SessionLocal()
 
         # Basic statistics
-        query = db.query(QuoteHistory)
+        query = session.query(db.QuoteHistory)
 
         if start_date:
             start = datetime.fromisoformat(start_date)
-            query = query.filter(QuoteHistory.created_at >= start)
+            query = query.filter(db.QuoteHistory.created_at >= start)
         if end_date:
             end = datetime.fromisoformat(end_date)
-            query = query.filter(QuoteHistory.created_at <= end)
+            query = query.filter(db.QuoteHistory.created_at <= end)
 
         quotes = query.all()
 
@@ -179,7 +195,7 @@ def get_stats_summary(
         total_amount = sum(q.total for q in quotes) if quotes else 0
         avg_price = total_amount / total_count if total_count > 0 else 0
 
-        db.close()
+        session.close()
 
         return {
             "total_count": total_count,
@@ -191,52 +207,18 @@ def get_stats_summary(
 
 
 @router.get("/stats/by-layer")
-def get_stats_by_layer():
+def get_stats_by_layer(user=Depends(require_user)):
     """Group statistics by layer."""
     try:
-        db = SessionLocal()
-        quotes = db.query(QuoteHistory).all()
-
-        stats = {}
-        for q in quotes:
-            layer = q.layer
-            if layer not in stats:
-                stats[layer] = {"count": 0, "total": 0}
-            stats[layer]["count"] += 1
-            stats[layer]["total"] += q.total
-
-        result = [
-            {"layer": k, "count": v["count"], "total": round(v["total"], 2)}
-            for k, v in sorted(stats.items())
-        ]
-
-        db.close()
-        return result
+        return db.get_stats_by_layer()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/stats/by-material")
-def get_stats_by_material():
+def get_stats_by_material(user=Depends(require_user)):
     """Group statistics by material."""
     try:
-        db = SessionLocal()
-        quotes = db.query(QuoteHistory).all()
-
-        stats = {}
-        for q in quotes:
-            material = q.material or "Unknown"
-            if material not in stats:
-                stats[material] = {"count": 0, "total": 0}
-            stats[material]["count"] += 1
-            stats[material]["total"] += q.total
-
-        result = [
-            {"material": k, "count": v["count"], "total": round(v["total"], 2)}
-            for k, v in sorted(stats.items())
-        ]
-
-        db.close()
-        return result
+        return db.get_stats_by_material()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
