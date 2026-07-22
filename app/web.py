@@ -1,16 +1,20 @@
+import uuid
 from typing import Optional
 
-from fastapi import APIRouter, Cookie, Depends, Form, Request
+from fastapi import APIRouter, Cookie, Depends, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 import app.core.database as db
+from app.ai_parser import parse_pcb_text
 from app.core.auth import (
     create_session_token,
     read_session_token,
     verify_password,
 )
 from app.core.logging import get_logger
+from app.core.storage import file_storage
+from app.image_parser import parse_pcb_image
 from app.quote_engine import calculate_quote
 
 logger = get_logger(__name__)
@@ -172,3 +176,44 @@ def create_quote(
     )
 
     return RedirectResponse(url="/quotes", status_code=303)
+
+
+@router.post("/quotes/new/ai-assist", response_class=HTMLResponse)
+async def ai_assist(
+    request: Request,
+    spec_text: str = Form(""),
+    photo: Optional[UploadFile] = File(None),
+    user=Depends(get_current_user_optional),
+):
+    if user is None:
+        return RedirectResponse(url="/login", status_code=303)
+
+    parsed = {}
+    ai_error = None
+    try:
+        if photo is not None and photo.filename:
+            image_path = f"data/uploads/web_{uuid.uuid4().hex}.jpg"
+            with open(image_path, "wb") as f:
+                f.write(await photo.read())
+            try:
+                parsed = parse_pcb_image(image_path)
+            finally:
+                file_storage.cleanup(image_path)
+        elif spec_text.strip():
+            parsed = parse_pcb_text(spec_text)
+
+        # ai_parser/image_parser emit "thickness" (see app/ai_parser.py's
+        # JSON schema) but quote_engine.calculate_quote() and this form both
+        # key board thickness as "thickness_mm" — normalize so an AI-filled
+        # value actually lands in the form field.
+        if "thickness" in parsed and "thickness_mm" not in parsed:
+            parsed["thickness_mm"] = parsed.pop("thickness")
+    except Exception as e:
+        logger.error(f"AI assist failed: {e}")
+        ai_error = "AI 解析失敗，請手動填寫規格"
+        parsed = {}
+
+    return templates.TemplateResponse(
+        "_quote_form_fields.html",
+        {"request": request, "form": parsed, "ai_error": ai_error},
+    )
