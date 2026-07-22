@@ -9,6 +9,9 @@ class Settings(BaseSettings):
     APP_VERSION: str = "2.0.0"
     DEBUG: bool = os.getenv("DEBUG", "False").lower() == "true"
 
+    # Web session signing key — set a real random value via env var in production
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "dev-secret-change-me")
+
     # LINE Bot
     LINE_CHANNEL_ACCESS_TOKEN: str = os.getenv("LINE_CHANNEL_ACCESS_TOKEN", "")
     LINE_CHANNEL_SECRET: str = os.getenv("LINE_CHANNEL_SECRET", "")
