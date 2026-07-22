@@ -42,6 +42,7 @@ from app.image_parser import parse_pcb_image
 from app.export_excel import export_quote_excel
 from app.formal_quote_export import export_formal_quote
 from app.api import router as api_router
+from app.web import router as web_router
 
 logger = get_logger(__name__)
 
@@ -62,6 +63,7 @@ app = FastAPI(
 
 # Register API routes
 app.include_router(api_router)
+app.include_router(web_router)
 
 configuration = Configuration(
     access_token=settings.LINE_CHANNEL_ACCESS_TOKEN
