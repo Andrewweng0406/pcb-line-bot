@@ -357,3 +357,42 @@ def quote_export_formal(quote_id: int, user=Depends(get_current_user_optional)):
 
     filename = _os.path.basename(output_path)
     return RedirectResponse(url=f"/download/exports/{filename}", status_code=303)
+
+
+@router.get("/customers", response_class=HTMLResponse)
+def customers_list(request: Request, user=Depends(get_current_user_optional)):
+    if user is None:
+        return RedirectResponse(url="/login", status_code=303)
+
+    query_db = db.SessionLocal()
+    customers = query_db.query(db.Customer).order_by(db.Customer.company_name).all()
+    query_db.close()
+
+    return templates.TemplateResponse(
+        "customers.html", {"request": request, "user": user, "customers": customers}
+    )
+
+
+@router.post("/customers")
+def customers_create(
+    company_name: str = Form(...),
+    contact: str = Form(""),
+    phone: str = Form(""),
+    email: str = Form(""),
+    user=Depends(get_current_user_optional),
+):
+    if user is None:
+        return RedirectResponse(url="/login", status_code=303)
+
+    query_db = db.SessionLocal()
+    customer = db.Customer(
+        company_name=company_name,
+        contact=contact or None,
+        phone=phone or None,
+        email=email or None,
+    )
+    query_db.add(customer)
+    query_db.commit()
+    query_db.close()
+
+    return RedirectResponse(url="/customers", status_code=303)

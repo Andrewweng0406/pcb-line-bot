@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}客戶管理 - PCB 報價系統{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-6">客戶管理</h1>
+
+<form method="post" action="/customers" class="bg-white rounded-xl shadow p-4 mb-6 flex flex-wrap gap-3 items-end">
+    <div>
+        <label class="block text-xs text-slate-500 mb-1">公司名稱</label>
+        <input type="text" name="company_name" required class="border border-slate-300 rounded-lg px-3 py-1.5 text-sm">
+    </div>
+    <div>
+        <label class="block text-xs text-slate-500 mb-1">聯絡人</label>
+        <input type="text" name="contact" class="border border-slate-300 rounded-lg px-3 py-1.5 text-sm">
+    </div>
+    <div>
+        <label class="block text-xs text-slate-500 mb-1">電話</label>
+        <input type="text" name="phone" class="border border-slate-300 rounded-lg px-3 py-1.5 text-sm">
+    </div>
+    <div>
+        <label class="block text-xs text-slate-500 mb-1">Email</label>
+        <input type="email" name="email" class="border border-slate-300 rounded-lg px-3 py-1.5 text-sm">
+    </div>
+    <button type="submit" class="bg-blue-600 text-white rounded-lg px-4 py-1.5 text-sm font-medium hover:bg-blue-700">
+        新增客戶
+    </button>
+</form>
+
+<div class="bg-white rounded-xl shadow overflow-x-auto">
+    <table class="w-full text-sm">
+        <thead class="bg-slate-100 text-slate-600 text-left">
+            <tr>
+                <th class="px-4 py-2">公司名稱</th>
+                <th class="px-4 py-2">聯絡人</th>
+                <th class="px-4 py-2">電話</th>
+                <th class="px-4 py-2">Email</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in customers %}
+            <tr class="border-t border-slate-100">
+                <td class="px-4 py-2">{{ c.company_name }}</td>
+                <td class="px-4 py-2">{{ c.contact or "-" }}</td>
+                <td class="px-4 py-2">{{ c.phone or "-" }}</td>
+                <td class="px-4 py-2">{{ c.email or "-" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
