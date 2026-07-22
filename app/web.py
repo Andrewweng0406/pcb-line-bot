@@ -1,7 +1,7 @@
 import uuid
 from typing import Optional
 
-from fastapi import APIRouter, Cookie, Depends, File, Form, Request, UploadFile
+from fastapi import APIRouter, Cookie, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
@@ -14,8 +14,12 @@ from app.core.auth import (
 )
 from app.core.logging import get_logger
 from app.core.storage import file_storage
+from app.export_excel import export_quote_excel
+from app.formal_quote_export import export_formal_quote
 from app.image_parser import parse_pcb_image
 from app.quote_engine import calculate_quote
+
+STATUS_LABELS = {"pending": "待審核", "approved": "已批准", "ordered": "已下單"}
 
 logger = get_logger(__name__)
 
@@ -264,3 +268,92 @@ def quotes_list(
             },
         },
     )
+
+
+@router.get("/quotes/{quote_id}", response_class=HTMLResponse)
+def quote_detail(request: Request, quote_id: int, user=Depends(get_current_user_optional)):
+    if user is None:
+        return RedirectResponse(url="/login", status_code=303)
+
+    from sqlalchemy.orm import joinedload
+
+    query_db = db.SessionLocal()
+    quote = (
+        query_db.query(db.QuoteHistory)
+        .options(
+            joinedload(db.QuoteHistory.customer),
+            joinedload(db.QuoteHistory.created_by),
+            joinedload(db.QuoteHistory.updated_by),
+        )
+        .filter(db.QuoteHistory.id == quote_id)
+        .first()
+    )
+    query_db.close()
+
+    if quote is None:
+        raise HTTPException(status_code=404, detail="Quote not found")
+
+    return templates.TemplateResponse(
+        "quote_detail.html",
+        {"request": request, "user": user, "quote": quote, "status_labels": STATUS_LABELS},
+    )
+
+
+@router.post("/quotes/{quote_id}/update")
+def update_quote(
+    quote_id: int,
+    status: str = Form(...),
+    notes: str = Form(""),
+    user=Depends(get_current_user_optional),
+):
+    if user is None:
+        return RedirectResponse(url="/login", status_code=303)
+
+    query_db = db.SessionLocal()
+    quote = query_db.query(db.QuoteHistory).filter(db.QuoteHistory.id == quote_id).first()
+    if quote is None:
+        query_db.close()
+        raise HTTPException(status_code=404, detail="Quote not found")
+
+    quote.status = status
+    quote.notes = notes
+    quote.updated_by_user_id = user.id
+    query_db.commit()
+    query_db.close()
+
+    return RedirectResponse(url=f"/quotes/{quote_id}", status_code=303)
+
+
+@router.get("/quotes/{quote_id}/export/excel")
+def quote_export_excel(quote_id: int, user=Depends(get_current_user_optional)):
+    if user is None:
+        return RedirectResponse(url="/login", status_code=303)
+
+    query_db = db.SessionLocal()
+    quote = query_db.query(db.QuoteHistory).filter(db.QuoteHistory.id == quote_id).first()
+    query_db.close()
+
+    if quote is None or not quote.spec_json or not quote.breakdown_json:
+        raise HTTPException(status_code=404, detail="Quote not found or missing spec data")
+
+    filename = export_quote_excel(quote.spec_json, quote.breakdown_json)
+    return RedirectResponse(url=f"/download/exports/{filename}", status_code=303)
+
+
+@router.get("/quotes/{quote_id}/export/formal")
+def quote_export_formal(quote_id: int, user=Depends(get_current_user_optional)):
+    if user is None:
+        return RedirectResponse(url="/login", status_code=303)
+
+    query_db = db.SessionLocal()
+    quote = query_db.query(db.QuoteHistory).filter(db.QuoteHistory.id == quote_id).first()
+    query_db.close()
+
+    if quote is None or not quote.spec_json or not quote.breakdown_json:
+        raise HTTPException(status_code=404, detail="Quote not found or missing spec data")
+
+    output_path = export_formal_quote(quote.spec_json, quote.breakdown_json)
+    import os as _os
+
+    filename = _os.path.basename(output_path)
+    return RedirectResponse(url=f"/download/exports/{filename}", status_code=303)
