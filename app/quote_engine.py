@@ -1,11 +1,11 @@
 # quote_engine_v2.py
-# 完整符合客戶報價規則的版本
+# Version that fully matches the customer's quotation rules
 
 # ============================================================================
-# 基礎費用表 (根據客戶 Excel)
+# Base fee tables (based on the customer's Excel file)
 # ============================================================================
 
-# 按層數的基礎工程費 (Setup Fee)
+# Base setup fee by layer count
 SETUP_FEE_TABLE = {
     2: 15000,
     4: 20000,
@@ -34,7 +34,7 @@ SETUP_FEE_TABLE = {
     50: 350000,
 }
 
-# 按層數的 Board Charge (NT$ / in²)
+# Board charge by layer count (NT$ / in²)
 BOARD_CHARGE_TABLE = {
     2: 15,
     4: 20,
@@ -64,11 +64,11 @@ BOARD_CHARGE_TABLE = {
 }
 
 # ============================================================================
-# 額外費用函數
+# Extra fee functions
 # ============================================================================
 
 def get_enig_fee(enig_thickness_uinch=None):
-    """獲得 ENIG 鍍金費用"""
+    """Get the ENIG plating fee."""
     if enig_thickness_uinch is None:
         return 0
 
@@ -85,7 +85,7 @@ def get_enig_fee(enig_thickness_uinch=None):
 
 
 def get_trace_to_hole_multiplier(trace_to_hole_mil=None):
-    """孔到線距加費倍數 (Trace to Hole)"""
+    """Get the trace-to-hole surcharge multiplier."""
     if trace_to_hole_mil is None:
         return 1.0, "未提供孔到線距"
 
@@ -100,7 +100,7 @@ def get_trace_to_hole_multiplier(trace_to_hole_mil=None):
 
 
 def get_pitch_multiplier(pitch_mm=None):
-    """Pitch 加費倍數"""
+    """Get the pitch surcharge multiplier."""
     if pitch_mm is None:
         return 1.0, "未提供 Pitch"
 
@@ -117,11 +117,11 @@ def get_pitch_multiplier(pitch_mm=None):
 
 
 def get_flatness_multiplier(flatness_unit=None):
-    """平坦度加費倍數 (Flatness)"""
+    """Get the flatness surcharge multiplier."""
     if flatness_unit is None:
         return 1.0, "未提供平坦度"
 
-    # flatness_unit: "5/1000" 或 "2/1000"
+    # flatness_unit: "5/1000" or "2/1000"
     if "2" in str(flatness_unit):
         return 1.4, "2/1000 (+40%)"
     elif "5" in str(flatness_unit):
@@ -131,7 +131,7 @@ def get_flatness_multiplier(flatness_unit=None):
 
 
 def get_aspect_ratio_multiplier(aspect_ratio=None):
-    """縱深比加費倍數 (Aspect Ratio)"""
+    """Get the aspect ratio surcharge multiplier."""
     if aspect_ratio is None:
         return 1.0, "未計算縱深比"
 
@@ -148,7 +148,7 @@ def get_aspect_ratio_multiplier(aspect_ratio=None):
 
 
 def get_thickness_multiplier(thickness_mm=None):
-    """板厚加費倍數 (Thickness)"""
+    """Get the thickness surcharge multiplier."""
     if thickness_mm is None:
         return 1.0, "未提供板厚"
 
@@ -165,7 +165,7 @@ def get_thickness_multiplier(thickness_mm=None):
 
 
 def get_aoi_fee(internal_layer_count=None):
-    """內層 AOI 費用 (NT$ per layer)"""
+    """Get the inner-layer AOI fee (NT$ per layer)."""
     if internal_layer_count is None or internal_layer_count <= 0:
         return 0
 
@@ -173,7 +173,7 @@ def get_aoi_fee(internal_layer_count=None):
 
 
 def get_press_multiplier(press_count=None):
-    """壓合加費倍數 (Press Count)"""
+    """Get the lamination surcharge multiplier."""
     if press_count is None:
         return 1.0, "單次壓合"
 
@@ -186,16 +186,16 @@ def get_press_multiplier(press_count=None):
 
 
 def get_quantity_discount(qty):
-    """數量折扣"""
+    """Get the quantity discount."""
     qty = int(qty)
     if qty >= 2:
-        return 0.9  # Re-Order 打 9 折
+        return 0.9  # 10% discount for re-orders
     else:
         return 1.0
 
 
 def get_delivery_days_by_layer(layer):
-    """按層數決定最快交期"""
+    """Determine the fastest delivery lead time by layer count."""
     layer = int(layer)
     if layer <= 4:
         return 5
@@ -210,30 +210,30 @@ def get_delivery_days_by_layer(layer):
 
 
 def get_delivery_multiplier(requested_days, actual_min_days):
-    """交貨天數加費倍數"""
+    """Get the delivery lead-time surcharge multiplier."""
     if requested_days is None:
         return 1.0, "標準交期"
 
     requested_days = int(requested_days)
 
     if requested_days < actual_min_days:
-        # 比最快交期還快，不可能，返回最快的
+        # Requested lead time is faster than the minimum; return the fastest available.
         return 1.0, f"加急交期 {actual_min_days} 天"
 
     elif requested_days == actual_min_days:
         return 1.0, f"標準交期 {actual_min_days} 天"
     else:
-        # 可以放寬交期，暫時不給折扣（客戶表中沒有定義）
+        # Longer lead times are allowed, but no discount is defined in the customer's table.
         return 1.0, f"放寬交期 {requested_days} 天"
 
 
 # ============================================================================
-# 主計算函數
+# Main calculation function
 # ============================================================================
 
 def calculate_quote(data):
     """
-    完整的報價計算，符合客戶 Excel 規則
+    Complete quote calculation that follows the customer's Excel rules.
 
     Input: {
         'layer': 6,
@@ -261,7 +261,7 @@ def calculate_quote(data):
     follow_up = []
 
     # ========================================================================
-    # 1. 驗證必需欄位
+    # 1. Validate required fields
     # ========================================================================
     required = ["layer", "qty"]
     missing = [f for f in required if data.get(f) is None]
@@ -283,7 +283,7 @@ def calculate_quote(data):
         }
 
     # ========================================================================
-    # 2. 投料率計算
+    # 2. Issue ratio calculation
     # ========================================================================
     issue_ratio = float(data.get("issue_ratio") or 1.0)
     production_qty = qty * issue_ratio
@@ -292,7 +292,7 @@ def calculate_quote(data):
         explanations.append(f"投料率: {issue_ratio} (投料 {int(production_qty)} 片)")
 
     # ========================================================================
-    # 3. 尺寸與面積計算
+    # 3. Size and area calculation
     # ========================================================================
     if data.get("length_mm") and data.get("width_mm"):
         length_mm = float(data["length_mm"])
@@ -309,13 +309,13 @@ def calculate_quote(data):
         }
 
     # ========================================================================
-    # 4. 基礎工程費 (Setup Fee)
+    # 4. Base setup fee
     # ========================================================================
     setup_fee = SETUP_FEE_TABLE[layer]
     explanations.append(f"基礎工程費 ({layer}L): {setup_fee:,}")
 
     # ========================================================================
-    # 5. Board Charge (單位面積費用)
+    # 5. Board charge (unit area cost)
     # ========================================================================
     board_charge_per_inch = BOARD_CHARGE_TABLE.get(layer, 35)
     board_charge_total = area_inch * board_charge_per_inch * production_qty
@@ -325,35 +325,35 @@ def calculate_quote(data):
     )
 
     # ========================================================================
-    # 6. 規格加費倍數（應用於工程費和材料費）
+    # 6. Specification surcharge multipliers applied to setup and material fees
     # ========================================================================
     multiplier = 1.0
     details = []
 
-    # Pitch 加費
+    # Pitch surcharge
     pitch_mult, pitch_desc = get_pitch_multiplier(data.get("pitch_mm"))
     if pitch_mult > 1:
         multiplier *= pitch_mult
         details.append(pitch_desc)
         warnings.append(f"⚠️ {pitch_desc}")
 
-    # 孔到線距加費
+    # Trace-to-hole surcharge
     tth_mult, tth_desc = get_trace_to_hole_multiplier(data.get("trace_to_hole_mil"))
     if tth_mult > 1:
         multiplier *= tth_mult
         details.append(tth_desc)
         warnings.append(f"⚠️ {tth_desc}")
 
-    # 平坦度加費
+    # Flatness surcharge
     flat_mult, flat_desc = get_flatness_multiplier(data.get("flatness"))
     if flat_mult > 1:
         multiplier *= flat_mult
         details.append(flat_desc)
 
-    # 縱深比加費
+    # Aspect ratio surcharge
     ar = data.get("aspect_ratio")
     if ar is None and data.get("hole_size_mil") and data.get("thickness_mm"):
-        # 自動計算縱深比: 板厚 / 孔徑
+        # Automatically calculate aspect ratio: board thickness / hole diameter
         hole_mm = float(data["hole_size_mil"]) * 0.0254
         ar = float(data["thickness_mm"]) / hole_mm
 
@@ -363,7 +363,7 @@ def calculate_quote(data):
         details.append(ar_desc)
         warnings.append(f"⚠️ {ar_desc}")
 
-    # 板厚加費
+    # Thickness surcharge
     thick_mult, thick_desc = get_thickness_multiplier(data.get("thickness_mm"))
     if thick_mult > 1:
         multiplier *= thick_mult
@@ -373,35 +373,35 @@ def calculate_quote(data):
         explanations.append(f"規格加費倍數: {' × '.join(str(m) for m in [p for p in [pitch_mult, tth_mult, flat_mult, ar_mult, thick_mult] if p > 1])} = ×{multiplier:.2f}")
 
     # ========================================================================
-    # 7. 材料費（Board Charge + 規格加費）
+    # 7. Material cost (board charge + specification surcharges)
     # ========================================================================
     material_cost = board_charge_total * multiplier
 
     # ========================================================================
-    # 8. 額外加工費用
+    # 8. Extra processing fees
     # ========================================================================
     extra_fee = 0
 
-    # ENIG 鍍金
+    # ENIG plating
     if data.get("enig"):
         enig_fee = get_enig_fee(data.get("enig_thickness_uinch"))
         extra_fee += enig_fee
         explanations.append(f"ENIG 鍍金: {enig_fee:,}")
 
-    # 樹脂塞孔 (VIP)
+    # Via-in-pad resin plugging (VIP)
     if data.get("vip"):
         extra_fee += 5000
         explanations.append("樹脂塞孔 (VIP): 5,000")
         warnings.append("⚠️ VIP 製程，需確認塞孔要求")
 
-    # 背鑽
+    # Back drilling
     if data.get("back_drill"):
         back_drill_fee = int(data.get("back_drill_fee", 5000))
         extra_fee += back_drill_fee
         explanations.append(f"背鑽: {back_drill_fee:,}")
         warnings.append("⚠️ 背鑽製程，需注意對位精度")
 
-    # 內層 AOI
+    # Inner-layer AOI
     internal_layers = int(data.get("internal_layers", 0))
     if internal_layers > 0:
         aoi_fee = get_aoi_fee(internal_layers)
@@ -409,7 +409,7 @@ def calculate_quote(data):
         explanations.append(f"內層 AOI ({internal_layers} 層): {aoi_fee:,}")
 
     # ========================================================================
-    # 9. 壓合加費
+    # 9. Lamination surcharge
     # ========================================================================
     press_mult, press_desc = get_press_multiplier(data.get("press_count"))
     if press_mult > 1:
@@ -418,19 +418,19 @@ def calculate_quote(data):
         warnings.append(f"⚠️ {press_desc}")
 
     # ========================================================================
-    # 10. 小計（工程費 + 材料費 + 加工費）
+    # 10. Subtotal (setup fee + material cost + processing fees)
     # ========================================================================
     subtotal = setup_fee + material_cost + extra_fee
 
     # ========================================================================
-    # 11. 數量折扣
+    # 11. Quantity discount
     # ========================================================================
     discount = get_quantity_discount(qty)
     if discount < 1:
         explanations.append(f"數量折扣: ×{discount} (Re-Order)")
 
     # ========================================================================
-    # 12. 交貨天數加費
+    # 12. Delivery lead-time surcharge
     # ========================================================================
     min_delivery_days = get_delivery_days_by_layer(layer)
     delivery_mult, delivery_desc = get_delivery_multiplier(
@@ -438,13 +438,13 @@ def calculate_quote(data):
     )
 
     # ========================================================================
-    # 13. 最終報價
+    # 13. Final quote
     # ========================================================================
     total = subtotal * discount * delivery_mult
     unit_price = total / qty
 
     # ========================================================================
-    # 14. 後續詢問
+    # 14. Follow-up questions
     # ========================================================================
     if data.get("pitch_mm") is None:
         follow_up.append("請問 Pitch 是多少 mm？")
@@ -462,7 +462,7 @@ def calculate_quote(data):
         follow_up.append("請問表面處理是 ENIG 還是其他？")
 
     # ========================================================================
-    # 15. 返回結果
+    # 15. Return result
     # ========================================================================
     return {
         "status": "success",
