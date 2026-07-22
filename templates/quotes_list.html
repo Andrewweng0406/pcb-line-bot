@@ -52,7 +52,7 @@
                 <td class="px-4 py-2">{{ q.layer }}L</td>
                 <td class="px-4 py-2">{{ q.material or "-" }}</td>
                 <td class="px-4 py-2">{{ "{:,.0f}".format(q.total or 0) }}</td>
-                <td class="px-4 py-2">{{ q.status or "pending" }}</td>
+                <td class="px-4 py-2">{{ status_labels.get(q.status, q.status) }}</td>
                 <td class="px-4 py-2">{{ q.created_by.email if q.created_by else "-" }}</td>
                 <td class="px-4 py-2">{{ q.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
             </tr>

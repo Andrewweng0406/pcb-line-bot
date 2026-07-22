@@ -25,6 +25,7 @@ def test_quotes_list_shows_all_quotes(temp_db):
     assert response.status_code == 200
     assert "FR4" in response.text
     assert "Megtron6" in response.text
+    assert "待審核" in response.text  # status shown as its Chinese label, not "pending"
 
 
 def test_quotes_list_filters_by_layer(temp_db):

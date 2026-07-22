@@ -59,3 +59,30 @@ def test_submitting_invalid_quote_shows_error(temp_db):
     )
     assert response.status_code == 400
     assert "暫不支持" in response.text
+
+
+def test_submitting_quote_with_blank_optional_fields_succeeds(temp_db):
+    """A real browser submits empty text inputs as "" rather than omitting
+    them, which used to 422 the request (Optional[float] Form fields can't
+    parse ""). This reproduces exactly that shape.
+    """
+    client = _logged_in_client(temp_db)
+
+    response = client.post(
+        "/quotes/new",
+        data={
+            "layer": 6,
+            "qty": 9,
+            "material": "FR4",
+            "length_mm": 100,
+            "width_mm": 100,
+            "issue_ratio": 1.0,
+            "enig_thickness_uinch": "",
+            "thickness_mm": "",
+            "pitch_mm": "",
+            "delivery_days": "",
+            "company_name": "",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 303

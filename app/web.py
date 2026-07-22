@@ -98,24 +98,35 @@ def new_quote_page(request: Request, user=Depends(get_current_user_optional)):
     )
 
 
+def _optional_float(value: str) -> Optional[float]:
+    # A browser submits an empty text input as "" (not omitted), which
+    # FastAPI/Pydantic won't coerce to a plain Optional[float] Form field —
+    # it 422s. Take the field as a raw string and convert by hand instead.
+    return float(value) if value and value.strip() else None
+
+
+def _optional_int(value: str) -> Optional[int]:
+    return int(value) if value and value.strip() else None
+
+
 @router.post("/quotes/new")
 def create_quote(
     request: Request,
     layer: int = Form(...),
     qty: int = Form(...),
     material: str = Form(""),
-    length_mm: Optional[float] = Form(None),
-    width_mm: Optional[float] = Form(None),
+    length_mm: str = Form(""),
+    width_mm: str = Form(""),
     issue_ratio: float = Form(1.0),
     enig: Optional[str] = Form(None),
-    enig_thickness_uinch: Optional[float] = Form(None),
+    enig_thickness_uinch: str = Form(""),
     vip: Optional[str] = Form(None),
     impedance: Optional[str] = Form(None),
     back_drill: Optional[str] = Form(None),
     bvh: Optional[str] = Form(None),
-    thickness_mm: Optional[float] = Form(None),
-    pitch_mm: Optional[float] = Form(None),
-    delivery_days: Optional[int] = Form(None),
+    thickness_mm: str = Form(""),
+    pitch_mm: str = Form(""),
+    delivery_days: str = Form(""),
     company_name: str = Form(""),
     user=Depends(get_current_user_optional),
 ):
@@ -126,18 +137,18 @@ def create_quote(
         "layer": layer,
         "qty": qty,
         "material": material or None,
-        "length_mm": length_mm,
-        "width_mm": width_mm,
+        "length_mm": _optional_float(length_mm),
+        "width_mm": _optional_float(width_mm),
         "issue_ratio": issue_ratio,
         "enig": enig is not None,
-        "enig_thickness_uinch": enig_thickness_uinch,
+        "enig_thickness_uinch": _optional_float(enig_thickness_uinch),
         "vip": vip is not None,
         "impedance": impedance is not None,
         "back_drill": back_drill is not None,
         "bvh": bvh is not None,
-        "thickness_mm": thickness_mm,
-        "pitch_mm": pitch_mm,
-        "delivery_days": delivery_days,
+        "thickness_mm": _optional_float(thickness_mm),
+        "pitch_mm": _optional_float(pitch_mm),
+        "delivery_days": _optional_int(delivery_days),
         "company_name": company_name or None,
     }
 
@@ -260,6 +271,7 @@ def quotes_list(
             "request": request,
             "user": user,
             "quotes": quotes,
+            "status_labels": STATUS_LABELS,
             "filters": {
                 "status": status or "",
                 "layer": layer or "",
