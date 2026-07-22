@@ -1,6 +1,6 @@
 # Web Quote Dashboard Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add an internal, login-protected web app to `pcb_line_bot` that lets staff create, browse, edit, and track PCB quotes, reusing the existing `quote_engine`/`ai_parser`/`image_parser`, while the LINE bot keeps working unchanged as a secondary channel.
 
@@ -28,7 +28,7 @@
 **Interfaces:**
 - Produces: `settings.SECRET_KEY: str` (used by Task 2's `app/core/auth.py`).
 
-- [ ] **Step 1: Add new dependencies**
+- [x] **Step 1: Add new dependencies**
 
 Append to `requirements.txt`:
 
@@ -41,7 +41,7 @@ pytest==8.3.4
 httpx==0.28.1
 ```
 
-- [ ] **Step 2: Add `SECRET_KEY` setting**
+- [x] **Step 2: Add `SECRET_KEY` setting**
 
 In `app/core/config.py`, inside `class Settings(BaseSettings):`, after the `DEBUG` line, add:
 
@@ -50,12 +50,12 @@ In `app/core/config.py`, inside `class Settings(BaseSettings):`, after the `DEBU
     SECRET_KEY: str = os.getenv("SECRET_KEY", "dev-secret-change-me")
 ```
 
-- [ ] **Step 3: Install dependencies**
+- [x] **Step 3: Install dependencies**
 
 Run: `pip install -r requirements.txt`
 Expected: all packages install without error.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add requirements.txt app/core/config.py
@@ -75,7 +75,7 @@ git commit -m "Add web dashboard dependencies and session secret setting"
 - Consumes: `settings.SECRET_KEY` (Task 1).
 - Produces: `hash_password(password: str) -> str`, `verify_password(password: str, password_hash: str) -> bool`, `create_session_token(user_id: int) -> str`, `read_session_token(token: str) -> int | None`. These four are used by Task 3 (`scripts/create_user.py`) and Task 5 (`app/web.py`).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/__init__.py` (empty).
 
@@ -114,12 +114,12 @@ def test_read_session_token_rejects_garbage():
     assert read_session_token("not-a-real-token") is None
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pytest tests/test_auth.py -v`
 Expected: FAIL with `ModuleNotFoundError: No module named 'app.core.auth'`
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Create `app/core/auth.py`:
 
@@ -161,12 +161,12 @@ def read_session_token(token: str) -> Optional[int]:
     return data.get("user_id")
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pytest tests/test_auth.py -v`
 Expected: 5 passed
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/core/auth.py tests/__init__.py tests/test_auth.py
@@ -189,7 +189,7 @@ git commit -m "Add password hashing and session token helpers"
   `get_stats_by_layer() -> list[dict]` and `get_stats_by_material() -> list[dict]` — new shared helpers (moved out of `app/api.py` in Task 13, but defined here so both `app/api.py` and `app/web.py` can import them without duplicating the aggregation loop).
   These are used by Task 4 (`scripts/create_user.py`), Task 5 onward (`app/web.py`), and Task 13 (`app/api.py`).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/conftest.py`:
 
@@ -326,12 +326,12 @@ def test_get_stats_by_material_groups_correctly(temp_db):
     assert stats["FR4"]["count"] == 2
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pytest tests/test_database.py -v`
 Expected: FAIL — `AttributeError: module 'app.core.database' has no attribute 'User'` (and similar for `Customer`, `get_stats_by_layer`, etc.)
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 In `app/core/database.py`, replace the imports at the top with:
 
@@ -541,12 +541,12 @@ Update `get_recent_quotes` and `search_quotes`' return tuples — they currently
 select from a `QuoteHistory` whose columns are unchanged for `layer`,
 `material`, `total`, `created_at`, so no change needed there.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pytest tests/test_database.py -v`
 Expected: 7 passed
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/core/database.py tests/conftest.py tests/test_database.py
@@ -565,7 +565,7 @@ git commit -m "Add User/Customer models and extend QuoteHistory for the web dash
 - Consumes: `app.core.database.{init_db, SessionLocal, User}`, `app.core.auth.hash_password`.
 - Produces: `create_user(email: str, password: str) -> None` (importable, used by the test and by the `__main__` CLI entry point).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/test_create_user_script.py`:
 
@@ -597,12 +597,12 @@ def test_create_user_is_idempotent(temp_db):
     db.close()
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pytest tests/test_create_user_script.py -v`
 Expected: FAIL with `ModuleNotFoundError: No module named 'create_user'`
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Create `scripts/create_user.py`:
 
@@ -643,12 +643,12 @@ if __name__ == "__main__":
     create_user(sys.argv[1], sys.argv[2])
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pytest tests/test_create_user_script.py -v`
 Expected: 2 passed
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add scripts/create_user.py tests/test_create_user_script.py
@@ -669,7 +669,7 @@ git commit -m "Add CLI script to create web login accounts"
 - Consumes: `app.core.auth.{verify_password, create_session_token, read_session_token}`, `app.core.database.{SessionLocal, User}`.
 - Produces: `router` (FastAPI `APIRouter`, mounted in Task 15), `get_current_user_optional(session: Optional[str]) -> Optional[User]` dependency (used by every page task from here on), `SESSION_COOKIE_NAME = "session"`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/test_web_auth.py`:
 
@@ -747,7 +747,7 @@ def test_logout_clears_session(temp_db):
     assert response.status_code == 303
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pytest tests/test_web_auth.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'app.web'` (once Task 15 mounts it) or 404 on `/login` until the router exists and is mounted. Mount the router now (temporarily, fully, since Task 15 just adds the remaining includes) by adding the two lines below to `app/main.py` as part of this task, so the test can pass:
@@ -760,7 +760,7 @@ from app.web import router as web_router  # noqa: E402
 app.include_router(web_router)
 ```
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Create `templates/base.html`:
 
@@ -907,12 +907,12 @@ def dashboard(
 
 (The dashboard route body is filled in for real in Task 6 — this task only needs it to prove login/redirect behavior.)
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pytest tests/test_web_auth.py -v`
 Expected: 5 passed
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/web.py app/main.py templates/base.html templates/login.html tests/test_web_auth.py
@@ -931,7 +931,7 @@ git commit -m "Add web login/logout and session-cookie auth dependency"
 **Interfaces:**
 - Consumes: `app.core.database.get_system_stats() -> dict` (existing function).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/test_web_dashboard.py`:
 
@@ -962,12 +962,12 @@ def test_dashboard_shows_stats(temp_db):
     assert "報價" in response.text
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pytest tests/test_web_dashboard.py -v`
 Expected: FAIL — `jinja2.exceptions.TemplateNotFound: dashboard.html` (route still renders `base.html` directly from Task 5, no stats context, template missing)
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 In `app/web.py`, add the import `from app.core.database import get_system_stats` and replace the `dashboard` route body:
 
@@ -1016,12 +1016,12 @@ Create `templates/dashboard.html`:
 {% endblock %}
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pytest tests/test_web_dashboard.py -v`
 Expected: 1 passed
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/web.py templates/dashboard.html tests/test_web_dashboard.py
@@ -1042,7 +1042,7 @@ git commit -m "Add dashboard home page with stat cards"
 - Consumes: `app.quote_engine.calculate_quote(data: dict) -> dict`, `app.core.database.{save_quote, Customer, SessionLocal}`.
 - Produces: `GET/POST /quotes/new` route. `templates/_quote_form_fields.html` is a partial reused by Task 8's AI-assist endpoint.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/test_web_quote_new.py`:
 
@@ -1110,12 +1110,12 @@ def test_submitting_invalid_quote_shows_error(temp_db):
     assert "暫不支持" in response.text
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pytest tests/test_web_quote_new.py -v`
 Expected: FAIL — 404 on `/quotes/new` (route doesn't exist yet)
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 In `app/web.py`, add imports:
 
@@ -1338,12 +1338,12 @@ Create `templates/quote_new.html`:
 {% endblock %}
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pytest tests/test_web_quote_new.py -v`
 Expected: 3 passed
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/web.py templates/quote_new.html templates/_quote_form_fields.html tests/test_web_quote_new.py
@@ -1362,7 +1362,7 @@ git commit -m "Add structured new-quote form and submission handling"
 - Consumes: `app.ai_parser.parse_pcb_text(text: str) -> dict`, `app.image_parser.parse_pcb_image(path: str) -> dict`, `app.core.storage.file_storage.cleanup(path: str)`.
 - Produces: `POST /quotes/new/ai-assist`, returning the `_quote_form_fields.html` partial.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/test_web_ai_assist.py`:
 
@@ -1416,12 +1416,12 @@ def test_ai_assist_handles_parser_failure_gracefully(temp_db, monkeypatch):
     assert "AI 解析失敗" in response.text
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pytest tests/test_web_ai_assist.py -v`
 Expected: FAIL — 404 on `/quotes/new/ai-assist`
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 In `app/web.py`, add imports:
 
@@ -1478,12 +1478,12 @@ async def ai_assist(
     )
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pytest tests/test_web_ai_assist.py -v`
 Expected: 2 passed
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/web.py tests/test_web_ai_assist.py
@@ -1502,7 +1502,7 @@ git commit -m "Add AI-assist endpoint for pasted spec text and PCB photos"
 **Interfaces:**
 - Consumes: `app.core.database.{SessionLocal, QuoteHistory, Customer}`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/test_web_quotes_list.py`:
 
@@ -1547,12 +1547,12 @@ def test_quotes_list_filters_by_layer(temp_db):
     assert "Megtron6" not in response.text
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pytest tests/test_web_quotes_list.py -v`
 Expected: FAIL — 404 on `/quotes`
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 In `app/web.py`, add import `from app.core.database import QuoteHistory` (extend the existing `database` import line) and add:
 
@@ -1666,12 +1666,12 @@ Create `templates/quotes_list.html`:
 {% endblock %}
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pytest tests/test_web_quotes_list.py -v`
 Expected: 2 passed
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/web.py templates/quotes_list.html tests/test_web_quotes_list.py
@@ -1690,7 +1690,7 @@ git commit -m "Add quotes list page with layer/material/customer/status filters"
 **Interfaces:**
 - Consumes: `app.export_excel.export_quote_excel(spec: dict, result: dict) -> str`, `app.formal_quote_export.export_formal_quote(spec: dict, result: dict) -> str` (both existing, return a filename/path already used by `app/main.py`'s LINE flow).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/test_web_quote_detail.py`:
 
@@ -1777,12 +1777,12 @@ def test_quote_missing_spec_json_renders_without_error(temp_db):
     assert response.status_code == 200
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pytest tests/test_web_quote_detail.py -v`
 Expected: FAIL — 404 on `/quotes/{id}` (route doesn't exist yet)
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 In `app/web.py`, add imports:
 
@@ -1946,12 +1946,12 @@ Create `templates/quote_detail.html`:
 {% endblock %}
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pytest tests/test_web_quote_detail.py -v`
 Expected: 4 passed
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/web.py templates/quote_detail.html tests/test_web_quote_detail.py
@@ -1967,7 +1967,7 @@ git commit -m "Add quote detail page with status/notes editing and export links"
 - Create: `templates/customers.html`
 - Test: `tests/test_web_customers.py`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/test_web_customers.py`:
 
@@ -2005,12 +2005,12 @@ def test_customers_list_and_create(temp_db):
     assert "Jane" in response.text
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pytest tests/test_web_customers.py -v`
 Expected: FAIL — 404 on `/customers`
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 In `app/web.py`, add:
 
@@ -2111,12 +2111,12 @@ Create `templates/customers.html`:
 {% endblock %}
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pytest tests/test_web_customers.py -v`
 Expected: 1 passed
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/web.py templates/customers.html tests/test_web_customers.py
@@ -2135,7 +2135,7 @@ git commit -m "Add customer list and creation page"
 **Interfaces:**
 - Consumes: `app.core.database.{get_stats_by_layer, get_stats_by_material}` (added in Task 3).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/test_web_stats.py`:
 
@@ -2167,12 +2167,12 @@ def test_stats_page_loads_with_chart_data(temp_db):
     assert "chart.js" in response.text.lower() or "Chart.js" in response.text
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pytest tests/test_web_stats.py -v`
 Expected: FAIL — 404 on `/stats`
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 In `app/web.py`, add import `from app.core.database import get_stats_by_layer, get_stats_by_material` (extend the existing import) and add:
 
@@ -2239,12 +2239,12 @@ Create `templates/stats.html`:
 {% endblock %}
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pytest tests/test_web_stats.py -v`
 Expected: 1 passed
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/web.py templates/stats.html tests/test_web_stats.py
@@ -2262,7 +2262,7 @@ git commit -m "Add stats page with layer/material distribution charts"
 **Interfaces:**
 - Consumes: `app.web.get_current_user_optional` dependency.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/test_api_auth.py`:
 
@@ -2295,12 +2295,12 @@ def test_api_works_when_logged_in(temp_db):
     assert response.status_code == 200
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pytest tests/test_api_auth.py -v`
 Expected: FAIL — `test_api_requires_login` gets 200 instead of 401 (no auth guard yet)
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 In `app/api.py`, add near the top:
 
@@ -2363,17 +2363,17 @@ def update_quote(quote_id: int, data: dict, user: User = Depends(require_user)):
         raise HTTPException(status_code=500, detail=str(e))
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pytest tests/test_api_auth.py -v`
 Expected: 2 passed
 
-- [ ] **Step 5: Run the full test suite to check for regressions**
+- [x] **Step 5: Run the full test suite to check for regressions**
 
 Run: `pytest -v`
 Expected: all tests pass
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/api.py tests/test_api_auth.py
@@ -2390,7 +2390,7 @@ git commit -m "Require login on the JSON API and record who updates a quote"
 **Interfaces:**
 - Consumes: `app.quote_engine.calculate_quote`, `app.core.database.save_quote`.
 
-- [ ] **Step 1: Write the test**
+- [x] **Step 1: Write the test**
 
 Create `tests/test_quote_parity.py`:
 
@@ -2429,12 +2429,12 @@ def test_same_spec_produces_same_total_regardless_of_channel(temp_db):
     db.close()
 ```
 
-- [ ] **Step 2: Run test to verify it passes**
+- [x] **Step 2: Run test to verify it passes**
 
 Run: `pytest tests/test_quote_parity.py -v`
 Expected: 1 passed (this test should pass immediately — it's a regression guard, not new behavior)
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add tests/test_quote_parity.py
@@ -2450,12 +2450,12 @@ git commit -m "Add regression test guarding LINE/web quote calculation parity"
 
 **Interfaces:** none new — this task is verification only.
 
-- [ ] **Step 1: Run the full automated test suite**
+- [x] **Step 1: Run the full automated test suite**
 
 Run: `pytest -v`
 Expected: all tests pass, no warnings about missing templates/static files.
 
-- [ ] **Step 2: Manual smoke test locally**
+- [x] **Step 2: Manual smoke test locally**
 
 ```bash
 cp .env.example .env  # if not already present
@@ -2472,7 +2472,7 @@ Then in a browser:
 5. Visit `/stats`, confirm the two charts render.
 6. Log out, confirm every page redirects to `/login`.
 
-- [ ] **Step 3: Commit final plan checkbox updates**
+- [x] **Step 3: Commit final plan checkbox updates**
 
 ```bash
 git add docs/superpowers/plans/2026-07-22-web-quote-dashboard.md
