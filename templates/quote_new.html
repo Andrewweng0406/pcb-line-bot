@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}新增報價 - PCB 報價系統{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-6">新增報價</h1>
+
+{% if error %}
+<p class="text-red-600 text-sm mb-4">{{ error }}</p>
+{% endif %}
+
+<div class="bg-white rounded-xl shadow p-6 mb-6">
+    <h2 class="font-medium mb-3">AI 輔助填單</h2>
+    <div class="flex gap-3 items-end">
+        <div class="flex-1">
+            <label class="block text-sm text-slate-600 mb-1">貼上規格文字</label>
+            <textarea
+                id="ai-spec-text"
+                name="spec_text"
+                rows="2"
+                class="w-full border border-slate-300 rounded-lg px-3 py-2"
+                placeholder="例如：6層 FR4 100x100mm 數量9 ENIG 10u"
+            ></textarea>
+        </div>
+        <button
+            type="button"
+            hx-post="/quotes/new/ai-assist"
+            hx-include="#ai-spec-text"
+            hx-target="#quote-form-fields"
+            hx-swap="innerHTML"
+            class="bg-slate-800 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-slate-900"
+        >
+            AI 解析並帶入表單
+        </button>
+    </div>
+</div>
+
+<form method="post" action="/quotes/new" class="bg-white rounded-xl shadow p-6">
+    <div id="quote-form-fields">
+        {% include "_quote_form_fields.html" %}
+    </div>
+    <button type="submit" class="mt-6 bg-blue-600 text-white rounded-lg px-6 py-2 font-medium hover:bg-blue-700">
+        計算並儲存報價
+    </button>
+</form>
+{% endblock %}

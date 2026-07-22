@@ -11,6 +11,7 @@ from app.core.auth import (
     verify_password,
 )
 from app.core.logging import get_logger
+from app.quote_engine import calculate_quote
 
 logger = get_logger(__name__)
 
@@ -78,3 +79,96 @@ def dashboard(request: Request, user=Depends(get_current_user_optional)):
     return templates.TemplateResponse(
         "dashboard.html", {"request": request, "user": user, "stats": stats}
     )
+
+
+@router.get("/quotes/new", response_class=HTMLResponse)
+def new_quote_page(request: Request, user=Depends(get_current_user_optional)):
+    if user is None:
+        return RedirectResponse(url="/login", status_code=303)
+    return templates.TemplateResponse(
+        "quote_new.html", {"request": request, "user": user, "error": None, "form": {}}
+    )
+
+
+@router.post("/quotes/new")
+def create_quote(
+    request: Request,
+    layer: int = Form(...),
+    qty: int = Form(...),
+    material: str = Form(""),
+    length_mm: Optional[float] = Form(None),
+    width_mm: Optional[float] = Form(None),
+    issue_ratio: float = Form(1.0),
+    enig: Optional[str] = Form(None),
+    enig_thickness_uinch: Optional[float] = Form(None),
+    vip: Optional[str] = Form(None),
+    impedance: Optional[str] = Form(None),
+    back_drill: Optional[str] = Form(None),
+    bvh: Optional[str] = Form(None),
+    thickness_mm: Optional[float] = Form(None),
+    pitch_mm: Optional[float] = Form(None),
+    delivery_days: Optional[int] = Form(None),
+    company_name: str = Form(""),
+    user=Depends(get_current_user_optional),
+):
+    if user is None:
+        return RedirectResponse(url="/login", status_code=303)
+
+    parsed = {
+        "layer": layer,
+        "qty": qty,
+        "material": material or None,
+        "length_mm": length_mm,
+        "width_mm": width_mm,
+        "issue_ratio": issue_ratio,
+        "enig": enig is not None,
+        "enig_thickness_uinch": enig_thickness_uinch,
+        "vip": vip is not None,
+        "impedance": impedance is not None,
+        "back_drill": back_drill is not None,
+        "bvh": bvh is not None,
+        "thickness_mm": thickness_mm,
+        "pitch_mm": pitch_mm,
+        "delivery_days": delivery_days,
+        "company_name": company_name or None,
+    }
+
+    result = calculate_quote(parsed)
+
+    if result.get("status") != "success":
+        return templates.TemplateResponse(
+            "quote_new.html",
+            {
+                "request": request,
+                "user": user,
+                "error": result.get("message"),
+                "form": parsed,
+            },
+            status_code=400,
+        )
+
+    customer_id = None
+    if company_name:
+        query_db = db.SessionLocal()
+        customer = (
+            query_db.query(db.Customer)
+            .filter(db.Customer.company_name == company_name)
+            .first()
+        )
+        if customer is None:
+            customer = db.Customer(company_name=company_name)
+            query_db.add(customer)
+            query_db.commit()
+            query_db.refresh(customer)
+        customer_id = customer.id
+        query_db.close()
+
+    db.save_quote(
+        source_channel_id=f"web:{user.id}",
+        parsed=parsed,
+        result=result,
+        customer_id=customer_id,
+        created_by_user_id=user.id,
+    )
+
+    return RedirectResponse(url="/quotes", status_code=303)

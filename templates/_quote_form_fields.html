@@ -1,0 +1,66 @@
+{% if ai_error %}
+<p class="text-amber-600 text-sm mb-3">{{ ai_error }}</p>
+{% endif %}
+<div class="grid grid-cols-2 gap-4">
+    <div>
+        <label class="block text-sm text-slate-600 mb-1">層數 (Layer)</label>
+        <input type="number" name="layer" required value="{{ form.layer or '' }}" class="w-full border border-slate-300 rounded-lg px-3 py-2">
+    </div>
+    <div>
+        <label class="block text-sm text-slate-600 mb-1">數量 (Qty)</label>
+        <input type="number" name="qty" required value="{{ form.qty or '' }}" class="w-full border border-slate-300 rounded-lg px-3 py-2">
+    </div>
+    <div>
+        <label class="block text-sm text-slate-600 mb-1">材料 (Material)</label>
+        <input type="text" name="material" value="{{ form.material or '' }}" class="w-full border border-slate-300 rounded-lg px-3 py-2">
+    </div>
+    <div>
+        <label class="block text-sm text-slate-600 mb-1">客戶公司名稱</label>
+        <input type="text" name="company_name" value="{{ form.company_name or '' }}" class="w-full border border-slate-300 rounded-lg px-3 py-2">
+    </div>
+    <div>
+        <label class="block text-sm text-slate-600 mb-1">長 (mm)</label>
+        <input type="number" step="0.01" name="length_mm" value="{{ form.length_mm or '' }}" class="w-full border border-slate-300 rounded-lg px-3 py-2">
+    </div>
+    <div>
+        <label class="block text-sm text-slate-600 mb-1">寬 (mm)</label>
+        <input type="number" step="0.01" name="width_mm" value="{{ form.width_mm or '' }}" class="w-full border border-slate-300 rounded-lg px-3 py-2">
+    </div>
+    <div>
+        <label class="block text-sm text-slate-600 mb-1">投料率</label>
+        <input type="number" step="0.01" name="issue_ratio" value="{{ form.issue_ratio or 1.0 }}" class="w-full border border-slate-300 rounded-lg px-3 py-2">
+    </div>
+    <div>
+        <label class="block text-sm text-slate-600 mb-1">交期 (天)</label>
+        <input type="number" name="delivery_days" value="{{ form.delivery_days or '' }}" class="w-full border border-slate-300 rounded-lg px-3 py-2">
+    </div>
+    <div>
+        <label class="block text-sm text-slate-600 mb-1">Pitch (mm)</label>
+        <input type="number" step="0.01" name="pitch_mm" value="{{ form.pitch_mm or '' }}" class="w-full border border-slate-300 rounded-lg px-3 py-2">
+    </div>
+    <div>
+        <label class="block text-sm text-slate-600 mb-1">板厚 (mm)</label>
+        <input type="number" step="0.01" name="thickness_mm" value="{{ form.thickness_mm or '' }}" class="w-full border border-slate-300 rounded-lg px-3 py-2">
+    </div>
+    <div>
+        <label class="block text-sm text-slate-600 mb-1">ENIG 厚度 (u")</label>
+        <input type="number" step="0.01" name="enig_thickness_uinch" value="{{ form.enig_thickness_uinch or '' }}" class="w-full border border-slate-300 rounded-lg px-3 py-2">
+    </div>
+</div>
+<div class="grid grid-cols-4 gap-4 mt-4">
+    <label class="flex items-center gap-2 text-sm">
+        <input type="checkbox" name="enig" {% if form.enig %}checked{% endif %}> ENIG
+    </label>
+    <label class="flex items-center gap-2 text-sm">
+        <input type="checkbox" name="vip" {% if form.vip %}checked{% endif %}> VIP
+    </label>
+    <label class="flex items-center gap-2 text-sm">
+        <input type="checkbox" name="impedance" {% if form.impedance %}checked{% endif %}> Impedance
+    </label>
+    <label class="flex items-center gap-2 text-sm">
+        <input type="checkbox" name="back_drill" {% if form.back_drill %}checked{% endif %}> Back Drill
+    </label>
+    <label class="flex items-center gap-2 text-sm">
+        <input type="checkbox" name="bvh" {% if form.bvh %}checked{% endif %}> BVH
+    </label>
+</div>
