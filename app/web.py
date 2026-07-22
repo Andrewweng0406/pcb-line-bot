@@ -396,3 +396,19 @@ def customers_create(
     query_db.close()
 
     return RedirectResponse(url="/customers", status_code=303)
+
+
+@router.get("/stats", response_class=HTMLResponse)
+def stats_page(request: Request, user=Depends(get_current_user_optional)):
+    if user is None:
+        return RedirectResponse(url="/login", status_code=303)
+
+    return templates.TemplateResponse(
+        "stats.html",
+        {
+            "request": request,
+            "user": user,
+            "by_layer": db.get_stats_by_layer(),
+            "by_material": db.get_stats_by_material(),
+        },
+    )
