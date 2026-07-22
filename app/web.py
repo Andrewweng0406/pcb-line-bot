@@ -217,3 +217,50 @@ async def ai_assist(
         "_quote_form_fields.html",
         {"request": request, "form": parsed, "ai_error": ai_error},
     )
+
+
+@router.get("/quotes", response_class=HTMLResponse)
+def quotes_list(
+    request: Request,
+    status: Optional[str] = None,
+    layer: Optional[int] = None,
+    material: Optional[str] = None,
+    customer: Optional[str] = None,
+    user=Depends(get_current_user_optional),
+):
+    if user is None:
+        return RedirectResponse(url="/login", status_code=303)
+
+    from sqlalchemy.orm import joinedload
+
+    query_db = db.SessionLocal()
+    query = query_db.query(db.QuoteHistory).options(
+        joinedload(db.QuoteHistory.customer), joinedload(db.QuoteHistory.created_by)
+    )
+    if status:
+        query = query.filter(db.QuoteHistory.status == status)
+    if layer:
+        query = query.filter(db.QuoteHistory.layer == layer)
+    if material:
+        query = query.filter(db.QuoteHistory.material.ilike(f"%{material}%"))
+    if customer:
+        query = query.join(db.Customer).filter(
+            db.Customer.company_name.ilike(f"%{customer}%")
+        )
+    quotes = query.order_by(db.QuoteHistory.created_at.desc()).limit(200).all()
+    query_db.close()
+
+    return templates.TemplateResponse(
+        "quotes_list.html",
+        {
+            "request": request,
+            "user": user,
+            "quotes": quotes,
+            "filters": {
+                "status": status or "",
+                "layer": layer or "",
+                "material": material or "",
+                "customer": customer or "",
+            },
+        },
+    )
