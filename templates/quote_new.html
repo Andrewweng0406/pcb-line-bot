@@ -9,9 +9,9 @@
 
 <div class="bg-white rounded-xl shadow p-6 mb-6">
     <h2 class="font-medium mb-3">AI 輔助填單</h2>
-    <div class="flex gap-3 items-end">
+    <div class="flex flex-col sm:flex-row gap-3 sm:items-end">
         <div class="flex-1">
-            <label class="block text-sm text-slate-600 mb-1">貼上規格文字</label>
+            <label class="block text-sm text-slate-600 mb-1 whitespace-nowrap">貼上規格文字</label>
             <textarea
                 id="ai-spec-text"
                 name="spec_text"
@@ -21,8 +21,8 @@
             ></textarea>
         </div>
         <div>
-            <label class="block text-sm text-slate-600 mb-1">或上傳 PCB 圖片</label>
-            <input type="file" id="ai-photo" name="photo" accept="image/*" class="text-sm">
+            <label class="block text-sm text-slate-600 mb-1 whitespace-nowrap">或上傳 PCB 圖片</label>
+            <input type="file" id="ai-photo" name="photo" accept="image/*" class="text-sm w-full">
         </div>
         <button
             type="button"
@@ -31,7 +31,7 @@
             hx-encoding="multipart/form-data"
             hx-target="#quote-form-fields"
             hx-swap="innerHTML"
-            class="bg-slate-800 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-slate-900"
+            class="bg-slate-800 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-slate-900 whitespace-nowrap"
         >
             AI 解析並帶入表單
         </button>

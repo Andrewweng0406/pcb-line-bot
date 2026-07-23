@@ -7,17 +7,37 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
     <script src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js" defer></script>
+    <style>[x-cloak] { display: none !important; }</style>
 </head>
 <body class="bg-slate-50 text-slate-900 min-h-screen">
     {% if user %}
-    <nav class="bg-white border-b border-slate-200 px-6 py-3 flex items-center gap-6">
-        <a href="/" class="font-semibold text-blue-600">PCB 報價系統</a>
-        <a href="/quotes/new" class="text-sm text-slate-600 hover:text-blue-600">新增報價</a>
-        <a href="/quotes" class="text-sm text-slate-600 hover:text-blue-600">報價列表</a>
-        <a href="/customers" class="text-sm text-slate-600 hover:text-blue-600">客戶管理</a>
-        <a href="/stats" class="text-sm text-slate-600 hover:text-blue-600">統計報告</a>
-        <span class="ml-auto text-sm text-slate-500">{{ user.email }}</span>
-        <a href="/logout" class="text-sm text-red-500 hover:text-red-700">登出</a>
+    <nav class="bg-white border-b border-slate-200 px-4 sm:px-6 py-3" x-data="{ open: false }">
+        <div class="flex items-center gap-4">
+            <a href="/" class="font-semibold text-blue-600 whitespace-nowrap">PCB 報價系統</a>
+            <div class="hidden md:flex items-center gap-6 flex-1">
+                <a href="/quotes/new" class="text-sm text-slate-600 hover:text-blue-600 whitespace-nowrap">新增報價</a>
+                <a href="/quotes" class="text-sm text-slate-600 hover:text-blue-600 whitespace-nowrap">報價列表</a>
+                <a href="/customers" class="text-sm text-slate-600 hover:text-blue-600 whitespace-nowrap">客戶管理</a>
+                <a href="/stats" class="text-sm text-slate-600 hover:text-blue-600 whitespace-nowrap">統計報告</a>
+                <span class="ml-auto text-sm text-slate-500 whitespace-nowrap">{{ user.email }}</span>
+                <a href="/logout" class="text-sm text-red-500 hover:text-red-700 whitespace-nowrap">登出</a>
+            </div>
+            <button
+                type="button"
+                @click="open = !open"
+                class="md:hidden ml-auto text-slate-600 border border-slate-300 rounded-lg px-3 py-1.5 text-sm"
+            >
+                選單
+            </button>
+        </div>
+        <div x-show="open" x-cloak class="md:hidden flex flex-col gap-3 mt-3 pb-1">
+            <a href="/quotes/new" class="text-sm text-slate-600 hover:text-blue-600">新增報價</a>
+            <a href="/quotes" class="text-sm text-slate-600 hover:text-blue-600">報價列表</a>
+            <a href="/customers" class="text-sm text-slate-600 hover:text-blue-600">客戶管理</a>
+            <a href="/stats" class="text-sm text-slate-600 hover:text-blue-600">統計報告</a>
+            <span class="text-sm text-slate-500 border-t border-slate-100 pt-3">{{ user.email }}</span>
+            <a href="/logout" class="text-sm text-red-500 hover:text-red-700">登出</a>
+        </div>
     </nav>
     {% endif %}
     <main class="max-w-6xl mx-auto p-6">
