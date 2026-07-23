@@ -45,6 +45,9 @@ quotes.db
 exports/*
 !exports/.gitkeep
 
+# Database backups (contain real user data — never commit)
+backups/
+
 # Excel/PDF test files
 *.xlsx
 *.pdf
