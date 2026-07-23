@@ -20,10 +20,15 @@
                 placeholder="例如：6層 FR4 100x100mm 數量9 ENIG 10u"
             ></textarea>
         </div>
+        <div>
+            <label class="block text-sm text-slate-600 mb-1">或上傳 PCB 圖片</label>
+            <input type="file" id="ai-photo" name="photo" accept="image/*" class="text-sm">
+        </div>
         <button
             type="button"
             hx-post="/quotes/new/ai-assist"
-            hx-include="#ai-spec-text"
+            hx-include="#ai-spec-text, #ai-photo"
+            hx-encoding="multipart/form-data"
             hx-target="#quote-form-fields"
             hx-swap="innerHTML"
             class="bg-slate-800 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-slate-900"
