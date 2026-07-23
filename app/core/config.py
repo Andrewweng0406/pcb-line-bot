@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     # Web session signing key — set a real random value via env var in production
     SECRET_KEY: str = os.getenv("SECRET_KEY", "dev-secret-change-me")
 
+    # Shared code required to self-register a web login account
+    INVITE_CODE: str = os.getenv("INVITE_CODE", "dev-invite-change-me")
+
     # LINE Bot
     LINE_CHANNEL_ACCESS_TOKEN: str = os.getenv("LINE_CHANNEL_ACCESS_TOKEN", "")
     LINE_CHANNEL_SECRET: str = os.getenv("LINE_CHANNEL_SECRET", "")

@@ -9,9 +9,11 @@ import app.core.database as db
 from app.ai_parser import parse_pcb_text
 from app.core.auth import (
     create_session_token,
+    hash_password,
     read_session_token,
     verify_password,
 )
+from app.core.config import settings
 from app.core.logging import get_logger
 from app.core.storage import file_storage
 from app.export_excel import export_quote_excel
@@ -63,6 +65,51 @@ def login_submit(request: Request, email: str = Form(...), password: str = Form(
             {"request": request, "error": "帳號或密碼錯誤"},
             status_code=401,
         )
+
+    token = create_session_token(user.id)
+    response = RedirectResponse(url="/", status_code=303)
+    response.set_cookie(
+        SESSION_COOKIE_NAME, token, httponly=True, max_age=60 * 60 * 24 * 7
+    )
+    return response
+
+
+@router.get("/register", response_class=HTMLResponse)
+def register_page(request: Request):
+    return templates.TemplateResponse(
+        "register.html", {"request": request, "error": None, "email": ""}
+    )
+
+
+@router.post("/register")
+def register_submit(
+    request: Request,
+    email: str = Form(...),
+    password: str = Form(...),
+    invite_code: str = Form(...),
+):
+    if invite_code != settings.INVITE_CODE:
+        return templates.TemplateResponse(
+            "register.html",
+            {"request": request, "error": "邀請碼錯誤", "email": email},
+            status_code=400,
+        )
+
+    query_db = db.SessionLocal()
+    existing = query_db.query(db.User).filter(db.User.email == email).first()
+    if existing is not None:
+        query_db.close()
+        return templates.TemplateResponse(
+            "register.html",
+            {"request": request, "error": "此帳號已被註冊", "email": email},
+            status_code=400,
+        )
+
+    user = db.User(email=email, password_hash=hash_password(password))
+    query_db.add(user)
+    query_db.commit()
+    query_db.refresh(user)
+    query_db.close()
 
     token = create_session_token(user.id)
     response = RedirectResponse(url="/", status_code=303)
