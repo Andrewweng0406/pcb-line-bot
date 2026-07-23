@@ -1,30 +1,31 @@
 {% extends "base.html" %}
 {% block title %}註冊 - PCB 報價系統{% endblock %}
 {% block content %}
-<div class="max-w-sm mx-auto mt-24 bg-white rounded-xl shadow p-8">
-    <h1 class="text-xl font-semibold mb-6 text-center">建立帳號</h1>
+<div class="max-w-sm mx-auto mt-24 card p-8">
+    <h1 class="text-xl text-center" style="color: var(--copper-dark)">建立帳號</h1>
+    {% include "_trace_divider.html" %}
     {% if error %}
-    <p class="text-red-600 text-sm mb-4">{{ error }}</p>
+    <p class="text-sm mb-4" style="color: var(--copper-dark)">{{ error }}</p>
     {% endif %}
     <form method="post" action="/register" class="space-y-4">
         <div>
-            <label class="block text-sm text-slate-600 mb-1">帳號 (Email)</label>
-            <input type="email" name="email" value="{{ email or '' }}" required class="w-full border border-slate-300 rounded-lg px-3 py-2">
+            <label class="block text-sm mb-1" style="color: var(--ink-muted)">帳號 (Email)</label>
+            <input type="email" name="email" value="{{ email or '' }}" required class="w-full border rounded-lg px-3 py-2" style="border-color: var(--border)">
         </div>
         <div>
-            <label class="block text-sm text-slate-600 mb-1">密碼</label>
-            <input type="password" name="password" required class="w-full border border-slate-300 rounded-lg px-3 py-2">
+            <label class="block text-sm mb-1" style="color: var(--ink-muted)">密碼</label>
+            <input type="password" name="password" required class="w-full border rounded-lg px-3 py-2" style="border-color: var(--border)">
         </div>
         <div>
-            <label class="block text-sm text-slate-600 mb-1">邀請碼</label>
-            <input type="text" name="invite_code" required class="w-full border border-slate-300 rounded-lg px-3 py-2">
+            <label class="block text-sm mb-1" style="color: var(--ink-muted)">邀請碼</label>
+            <input type="text" name="invite_code" required class="w-full border rounded-lg px-3 py-2 font-data" style="border-color: var(--border)">
         </div>
-        <button type="submit" class="w-full bg-blue-600 text-white rounded-lg py-2 font-medium hover:bg-blue-700">
+        <button type="submit" class="w-full btn-primary py-2">
             註冊
         </button>
     </form>
-    <p class="text-sm text-slate-500 text-center mt-4">
-        已經有帳號？<a href="/login" class="text-blue-600">登入</a>
+    <p class="text-sm text-center mt-4" style="color: var(--ink-muted)">
+        已經有帳號？<a href="/login" class="link-circuit">登入</a>
     </p>
 </div>
 {% endblock %}

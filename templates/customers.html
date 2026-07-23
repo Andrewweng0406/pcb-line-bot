@@ -1,33 +1,33 @@
 {% extends "base.html" %}
 {% block title %}客戶管理 - PCB 報價系統{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-semibold mb-6">客戶管理</h1>
+<h1 class="text-2xl mb-6">客戶管理</h1>
 
-<form method="post" action="/customers" class="bg-white rounded-xl shadow p-4 mb-6 flex flex-wrap gap-3 items-end">
+<form method="post" action="/customers" class="card p-4 mb-6 flex flex-wrap gap-3 items-end">
     <div>
-        <label class="block text-xs text-slate-500 mb-1">公司名稱</label>
-        <input type="text" name="company_name" required class="border border-slate-300 rounded-lg px-3 py-1.5 text-sm">
+        <label class="block text-xs mb-1" style="color: var(--ink-muted)">公司名稱</label>
+        <input type="text" name="company_name" required class="border rounded-lg px-3 py-1.5 text-sm" style="border-color: var(--border)">
     </div>
     <div>
-        <label class="block text-xs text-slate-500 mb-1">聯絡人</label>
-        <input type="text" name="contact" class="border border-slate-300 rounded-lg px-3 py-1.5 text-sm">
+        <label class="block text-xs mb-1" style="color: var(--ink-muted)">聯絡人</label>
+        <input type="text" name="contact" class="border rounded-lg px-3 py-1.5 text-sm" style="border-color: var(--border)">
     </div>
     <div>
-        <label class="block text-xs text-slate-500 mb-1">電話</label>
-        <input type="text" name="phone" class="border border-slate-300 rounded-lg px-3 py-1.5 text-sm">
+        <label class="block text-xs mb-1" style="color: var(--ink-muted)">電話</label>
+        <input type="text" name="phone" class="border rounded-lg px-3 py-1.5 text-sm font-data" style="border-color: var(--border)">
     </div>
     <div>
-        <label class="block text-xs text-slate-500 mb-1">Email</label>
-        <input type="email" name="email" class="border border-slate-300 rounded-lg px-3 py-1.5 text-sm">
+        <label class="block text-xs mb-1" style="color: var(--ink-muted)">Email</label>
+        <input type="email" name="email" class="border rounded-lg px-3 py-1.5 text-sm font-data" style="border-color: var(--border)">
     </div>
-    <button type="submit" class="bg-blue-600 text-white rounded-lg px-4 py-1.5 text-sm font-medium hover:bg-blue-700">
+    <button type="submit" class="btn-primary px-4 py-1.5 text-sm">
         新增客戶
     </button>
 </form>
 
-<div class="bg-white rounded-xl shadow overflow-x-auto">
+<div class="card overflow-x-auto">
     <table class="w-full text-sm whitespace-nowrap">
-        <thead class="bg-slate-100 text-slate-600 text-left">
+        <thead style="background: var(--bg); color: var(--ink-muted)" class="text-left">
             <tr>
                 <th class="px-4 py-2">公司名稱</th>
                 <th class="px-4 py-2">聯絡人</th>
@@ -37,11 +37,11 @@
         </thead>
         <tbody>
             {% for c in customers %}
-            <tr class="border-t border-slate-100">
+            <tr style="border-top: 1px solid var(--border)">
                 <td class="px-4 py-2">{{ c.company_name }}</td>
                 <td class="px-4 py-2">{{ c.contact or "-" }}</td>
-                <td class="px-4 py-2">{{ c.phone or "-" }}</td>
-                <td class="px-4 py-2">{{ c.email or "-" }}</td>
+                <td class="px-4 py-2 font-data">{{ c.phone or "-" }}</td>
+                <td class="px-4 py-2 font-data">{{ c.email or "-" }}</td>
             </tr>
             {% endfor %}
         </tbody>

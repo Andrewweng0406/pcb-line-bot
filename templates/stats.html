@@ -1,16 +1,16 @@
 {% extends "base.html" %}
 {% block title %}統計報告 - PCB 報價系統{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-semibold mb-6">統計報告</h1>
+<h1 class="text-2xl mb-6">統計報告</h1>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-    <div class="bg-white rounded-xl shadow p-6">
+    <div class="card p-6">
         <h2 class="font-medium mb-3">層數分佈</h2>
         <canvas id="layerChart"></canvas>
     </div>
-    <div class="bg-white rounded-xl shadow p-6">
+    <div class="card p-6">
         <h2 class="font-medium mb-3">材料分佈</h2>
         <canvas id="materialChart"></canvas>
     </div>
@@ -24,7 +24,7 @@
         type: "bar",
         data: {
             labels: byLayer.map(r => r.layer + "L"),
-            datasets: [{ label: "報價數", data: byLayer.map(r => r.count), backgroundColor: "#3B82F6" }],
+            datasets: [{ label: "報價數", data: byLayer.map(r => r.count), backgroundColor: "#B5651D" }],
         },
     });
 
@@ -32,7 +32,7 @@
         type: "pie",
         data: {
             labels: byMaterial.map(r => r.material),
-            datasets: [{ data: byMaterial.map(r => r.count), backgroundColor: ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6"] }],
+            datasets: [{ data: byMaterial.map(r => r.count), backgroundColor: ["#B5651D", "#A6832E", "#1E4373", "#3F7D4C", "#8F4E16"] }],
         },
     });
 </script>

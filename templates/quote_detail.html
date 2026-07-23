@@ -1,29 +1,32 @@
 {% extends "base.html" %}
 {% block title %}報價詳情 - PCB 報價系統{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-semibold mb-2">報價詳情：{{ quote.quote_no or quote.id }}</h1>
-<p class="text-sm text-slate-500 mb-6">
+<h1 class="text-2xl mb-2">
+    報價詳情：<span class="font-data">{{ quote.quote_no or quote.id }}</span>
+    <span class="badge badge-{{ quote.status or 'pending' }} align-middle ml-2">{{ status_labels.get(quote.status, quote.status) }}</span>
+</h1>
+<p class="text-sm mb-6 font-data" style="color: var(--ink-muted)">
     建立者：{{ quote.created_by.email if quote.created_by else "-" }} ·
     最後修改：{{ quote.updated_by.email if quote.updated_by else "-" }}
 </p>
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-    <div class="bg-white rounded-xl shadow p-6">
+    <div class="card p-6">
         <h2 class="font-medium mb-3">規格資訊</h2>
         <p>客戶：{{ quote.customer.company_name if quote.customer else "-" }}</p>
-        <p>層數：{{ quote.layer }}L</p>
+        <p class="font-data">層數：{{ quote.layer }}L</p>
         <p>材料：{{ quote.material or "-" }}</p>
-        <p>尺寸：{{ quote.length_mm or "-" }} x {{ quote.width_mm or "-" }} mm</p>
-        <p>數量：{{ quote.qty }} pcs</p>
-        <p>投料率：{{ quote.issue_ratio }}</p>
+        <p class="font-data">尺寸：{{ quote.length_mm or "-" }} x {{ quote.width_mm or "-" }} mm</p>
+        <p class="font-data">數量：{{ quote.qty }} pcs</p>
+        <p class="font-data">投料率：{{ quote.issue_ratio }}</p>
     </div>
 
-    <div class="bg-white rounded-xl shadow p-6">
+    <div class="card p-6">
         <h2 class="font-medium mb-3">計價結果</h2>
-        <p>總價：NT$ {{ "{:,.0f}".format(quote.total or 0) }}</p>
-        <p>單片價格：NT$ {{ "{:,.2f}".format(quote.unit_price or 0) }}</p>
+        <p class="font-data text-lg" style="color: var(--copper-dark)">總價：NT$ {{ "{:,.0f}".format(quote.total or 0) }}</p>
+        <p class="font-data">單片價格：NT$ {{ "{:,.2f}".format(quote.unit_price or 0) }}</p>
         {% if quote.breakdown_json and quote.breakdown_json.explanations %}
-        <div class="mt-3 text-sm text-slate-600">
+        <div class="mt-3 text-sm font-data" style="color: var(--ink-muted)">
             {% for line in quote.breakdown_json.explanations %}
             <p>- {{ line }}</p>
             {% endfor %}
@@ -32,26 +35,28 @@
     </div>
 </div>
 
-<div class="bg-white rounded-xl shadow p-6 mt-6">
+{% include "_trace_divider.html" %}
+
+<div class="card p-6">
     <h2 class="font-medium mb-3">狀態與備註</h2>
     <form method="post" action="/quotes/{{ quote.id }}/update" class="space-y-3">
-        <select name="status" class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+        <select name="status" class="border rounded-lg px-3 py-2 text-sm" style="border-color: var(--border)">
             {% for value, label in status_labels.items() %}
             <option value="{{ value }}" {% if quote.status == value %}selected{% endif %}>{{ label }}</option>
             {% endfor %}
         </select>
-        <textarea name="notes" rows="3" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" placeholder="內部備註">{{ quote.notes or "" }}</textarea>
-        <button type="submit" class="bg-blue-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-blue-700">
+        <textarea name="notes" rows="3" class="w-full border rounded-lg px-3 py-2 text-sm" style="border-color: var(--border)" placeholder="內部備註">{{ quote.notes or "" }}</textarea>
+        <button type="submit" class="btn-primary px-4 py-2 text-sm">
             儲存
         </button>
     </form>
 </div>
 
 <div class="mt-6 flex flex-wrap gap-3">
-    <a href="/quotes/{{ quote.id }}/export/excel" class="bg-white border border-slate-300 rounded-lg px-4 py-2 text-sm font-medium hover:bg-slate-100 whitespace-nowrap">
+    <a href="/quotes/{{ quote.id }}/export/excel" class="btn-secondary px-4 py-2 text-sm whitespace-nowrap">
         下載 Excel
     </a>
-    <a href="/quotes/{{ quote.id }}/export/formal" class="bg-white border border-slate-300 rounded-lg px-4 py-2 text-sm font-medium hover:bg-slate-100 whitespace-nowrap">
+    <a href="/quotes/{{ quote.id }}/export/formal" class="btn-secondary px-4 py-2 text-sm whitespace-nowrap">
         產生正式報價單
     </a>
 </div>

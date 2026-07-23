@@ -1,38 +1,38 @@
 {% extends "base.html" %}
 {% block title %}報價列表 - PCB 報價系統{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-semibold mb-6">報價列表</h1>
+<h1 class="text-2xl mb-6">報價列表</h1>
 
-<form method="get" action="/quotes" class="bg-white rounded-xl shadow p-4 mb-6 flex flex-wrap gap-3 items-end">
+<form method="get" action="/quotes" class="card p-4 mb-6 flex flex-wrap gap-3 items-end">
     <div>
-        <label class="block text-xs text-slate-500 mb-1">層數</label>
-        <input type="number" name="layer" value="{{ filters.layer }}" class="border border-slate-300 rounded-lg px-3 py-1.5 text-sm">
+        <label class="block text-xs mb-1" style="color: var(--ink-muted)">層數</label>
+        <input type="number" name="layer" value="{{ filters.layer }}" class="border rounded-lg px-3 py-1.5 text-sm" style="border-color: var(--border)">
     </div>
     <div>
-        <label class="block text-xs text-slate-500 mb-1">材料</label>
-        <input type="text" name="material" value="{{ filters.material }}" class="border border-slate-300 rounded-lg px-3 py-1.5 text-sm">
+        <label class="block text-xs mb-1" style="color: var(--ink-muted)">材料</label>
+        <input type="text" name="material" value="{{ filters.material }}" class="border rounded-lg px-3 py-1.5 text-sm" style="border-color: var(--border)">
     </div>
     <div>
-        <label class="block text-xs text-slate-500 mb-1">客戶</label>
-        <input type="text" name="customer" value="{{ filters.customer }}" class="border border-slate-300 rounded-lg px-3 py-1.5 text-sm">
+        <label class="block text-xs mb-1" style="color: var(--ink-muted)">客戶</label>
+        <input type="text" name="customer" value="{{ filters.customer }}" class="border rounded-lg px-3 py-1.5 text-sm" style="border-color: var(--border)">
     </div>
     <div>
-        <label class="block text-xs text-slate-500 mb-1">狀態</label>
-        <select name="status" class="border border-slate-300 rounded-lg px-3 py-1.5 text-sm">
+        <label class="block text-xs mb-1" style="color: var(--ink-muted)">狀態</label>
+        <select name="status" class="border rounded-lg px-3 py-1.5 text-sm" style="border-color: var(--border)">
             <option value="" {% if not filters.status %}selected{% endif %}>全部</option>
             <option value="pending" {% if filters.status == "pending" %}selected{% endif %}>待審核</option>
             <option value="approved" {% if filters.status == "approved" %}selected{% endif %}>已批准</option>
             <option value="ordered" {% if filters.status == "ordered" %}selected{% endif %}>已下單</option>
         </select>
     </div>
-    <button type="submit" class="bg-slate-800 text-white rounded-lg px-4 py-1.5 text-sm font-medium hover:bg-slate-900">
+    <button type="submit" class="btn-primary px-4 py-1.5 text-sm">
         篩選
     </button>
 </form>
 
-<div class="bg-white rounded-xl shadow overflow-x-auto">
+<div class="card overflow-x-auto">
     <table class="w-full text-sm whitespace-nowrap">
-        <thead class="bg-slate-100 text-slate-600 text-left">
+        <thead style="background: var(--bg); color: var(--ink-muted)" class="text-left">
             <tr>
                 <th class="px-4 py-2">編號</th>
                 <th class="px-4 py-2">客戶</th>
@@ -46,15 +46,17 @@
         </thead>
         <tbody>
             {% for q in quotes %}
-            <tr class="border-t border-slate-100 hover:bg-slate-50">
-                <td class="px-4 py-2"><a href="/quotes/{{ q.id }}" class="text-blue-600">{{ q.quote_no or q.id }}</a></td>
+            <tr style="border-top: 1px solid var(--border)">
+                <td class="px-4 py-2 font-data"><a href="/quotes/{{ q.id }}" class="link-circuit">{{ q.quote_no or q.id }}</a></td>
                 <td class="px-4 py-2">{{ q.customer.company_name if q.customer else "-" }}</td>
-                <td class="px-4 py-2">{{ q.layer }}L</td>
+                <td class="px-4 py-2 font-data">{{ q.layer }}L</td>
                 <td class="px-4 py-2">{{ q.material or "-" }}</td>
-                <td class="px-4 py-2">{{ "{:,.0f}".format(q.total or 0) }}</td>
-                <td class="px-4 py-2">{{ status_labels.get(q.status, q.status) }}</td>
+                <td class="px-4 py-2 font-data">{{ "{:,.0f}".format(q.total or 0) }}</td>
+                <td class="px-4 py-2">
+                    <span class="badge badge-{{ q.status or 'pending' }}">{{ status_labels.get(q.status, q.status) }}</span>
+                </td>
                 <td class="px-4 py-2">{{ q.created_by.email if q.created_by else "-" }}</td>
-                <td class="px-4 py-2">{{ q.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+                <td class="px-4 py-2 font-data">{{ q.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
             </tr>
             {% endfor %}
         </tbody>

@@ -1,26 +1,27 @@
 {% extends "base.html" %}
 {% block title %}儀表板 - PCB 報價系統{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-semibold mb-6">儀表板</h1>
+<h1 class="text-2xl mb-6">儀表板</h1>
 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-    <div class="bg-white rounded-xl shadow p-6">
-        <p class="text-sm text-slate-500">今日報價數</p>
-        <p class="text-3xl font-bold text-blue-600">{{ stats.today_count }}</p>
+    <div class="card p-6">
+        <p class="text-sm" style="color: var(--ink-muted)">今日報價數</p>
+        <p class="text-3xl font-data" style="color: var(--copper-dark)">{{ stats.today_count }}</p>
     </div>
-    <div class="bg-white rounded-xl shadow p-6">
-        <p class="text-sm text-slate-500">歷史總報價數</p>
-        <p class="text-3xl font-bold text-blue-600">{{ stats.total_count }}</p>
+    <div class="card p-6">
+        <p class="text-sm" style="color: var(--ink-muted)">歷史總報價數</p>
+        <p class="text-3xl font-data" style="color: var(--copper-dark)">{{ stats.total_count }}</p>
     </div>
-    <div class="bg-white rounded-xl shadow p-6">
-        <p class="text-sm text-slate-500">平均報價金額</p>
-        <p class="text-3xl font-bold text-blue-600">NT$ {{ "{:,.0f}".format(stats.avg_price) }}</p>
+    <div class="card p-6">
+        <p class="text-sm" style="color: var(--ink-muted)">平均報價金額</p>
+        <p class="text-3xl font-data" style="color: var(--copper-dark)">NT$ {{ "{:,.0f}".format(stats.avg_price) }}</p>
     </div>
 </div>
-<div class="mt-8 flex flex-wrap gap-3">
-    <a href="/quotes/new" class="bg-blue-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-blue-700 whitespace-nowrap">
+{% include "_trace_divider.html" %}
+<div class="flex flex-wrap gap-3">
+    <a href="/quotes/new" class="btn-primary px-4 py-2 text-sm whitespace-nowrap">
         + 新增報價
     </a>
-    <a href="/quotes" class="bg-white border border-slate-300 rounded-lg px-4 py-2 text-sm font-medium hover:bg-slate-100 whitespace-nowrap">
+    <a href="/quotes" class="btn-secondary px-4 py-2 text-sm whitespace-nowrap">
         查看報價列表
     </a>
 </div>

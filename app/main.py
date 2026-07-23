@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import os
 import uuid
@@ -64,6 +65,7 @@ app = FastAPI(
 # Register API routes
 app.include_router(api_router)
 app.include_router(web_router)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 configuration = Configuration(
     access_token=settings.LINE_CHANNEL_ACCESS_TOKEN

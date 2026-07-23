@@ -1,0 +1,117 @@
+/* Design tokens — PCB fabrication vernacular: copper traces, ENIG gold
+   plating, schematic blue, fiberglass-substrate paper background. Chosen
+   deliberately over a generic light-SaaS blue-gradient look. */
+:root {
+    --bg: #F6F7F5;
+    --surface: #FFFFFF;
+    --border: #DDE1DC;
+    --ink: #16181C;
+    --ink-muted: #5B6259;
+    --copper: #B5651D;
+    --copper-dark: #8F4E16;
+    --gold: #A6832E;
+    --circuit-blue: #1E4373;
+    --circuit-blue-dark: #163258;
+    --good: #3F7D4C;
+}
+
+body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+}
+
+/* Numbers, currency, quote codes, and English spec terms (Layer/ENIG/mm)
+   read as engineering data, not prose — set in monospace throughout. */
+.font-data,
+input[type="number"],
+input[name="quote_no"] {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+h1, h2, h3 {
+    font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+    font-weight: 700;
+}
+
+a, button {
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+input[type="checkbox"] {
+    accent-color: var(--copper);
+}
+
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--copper);
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 2px rgba(22, 24, 28, 0.04);
+}
+
+.btn-primary {
+    background: var(--copper);
+    color: #FFFFFF;
+    font-weight: 500;
+    border-radius: 0.5rem;
+}
+.btn-primary:hover { background: var(--copper-dark); }
+
+.btn-secondary {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--ink);
+    font-weight: 500;
+    border-radius: 0.5rem;
+}
+.btn-secondary:hover { background: var(--bg); }
+
+.link-circuit {
+    color: var(--circuit-blue);
+}
+.link-circuit:hover { color: var(--circuit-blue-dark); }
+
+/* Status badges — styled like a component's silkscreened marking, not a
+   generic rounded pill in a random saturated color. */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.15rem 0.6rem;
+    border-radius: 0.25rem;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+.badge-pending {
+    color: var(--gold);
+    border-color: var(--gold);
+    background: rgba(166, 131, 46, 0.08);
+}
+.badge-approved {
+    color: #FFFFFF;
+    background: var(--good);
+}
+.badge-ordered {
+    color: #FFFFFF;
+    background: var(--circuit-blue);
+}
+
+/* Signature element: a circuit-trace divider (right-angle steps + via
+   dots) in place of a plain <hr>/border between major sections. */
+.trace-divider {
+    display: block;
+    width: 100%;
+    height: 16px;
+    margin: 1.5rem 0;
+}
+.trace-divider path {
+    fill: none;
+    stroke: var(--border);
+    stroke-width: 2;
+}
+.trace-divider circle {
+    fill: var(--copper);
+}
