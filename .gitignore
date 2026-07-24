@@ -60,6 +60,3 @@ upload_*.jpg
 # AWS
 .aws/
 aws_credentials
-
-# Docker
-.dockerignore
