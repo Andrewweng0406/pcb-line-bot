@@ -1,9 +1,15 @@
 # PCB Quote Bot v2.0
 
-AI-powered PCB quote bot integrated with LINE, with support for text and image recognition.
+AI-powered PCB quoting, available as both an internal login-protected web
+dashboard and a LINE bot, with support for text and image recognition. Both
+channels share the same quote engine, AI parser, and database — a quote
+created from either one shows up in the same history.
 
 ## Features
 
+- ✅ Internal web dashboard (login/self-registration, quote creation with
+  AI-assisted form filling, quote list/detail/status tracking, customer
+  management, stats charts) — see [Web Dashboard](#web-dashboard) below
 - ✅ Real-time PCB quote calculation
 - ✅ Text specification parsing with OpenAI
 - ✅ PCB image recognition and parsing
@@ -13,7 +19,7 @@ AI-powered PCB quote bot integrated with LINE, with support for text and image r
 - ✅ User memory storage with Redis support
 - ✅ S3 file storage support
 - ✅ Complete error handling and logging
-- ✅ Ready for Docker and AWS Fargate
+- ✅ Ready for Docker, AWS Fargate, and Railway
 
 ## Tech Stack
 
@@ -88,11 +94,55 @@ ngrok http 8000
 # Example: https://xxxx.ngrok-free.app/callback
 ```
 
+## Web Dashboard
+
+The web dashboard is the primary way staff create and manage quotes day to
+day; the LINE bot remains available as a secondary channel (e.g. sending a
+photo in from the field). Both call the same `quote_engine.calculate_quote()`.
+
+### First-time setup
+
+```bash
+# Initialize the database (if not already done above)
+python -c "from app.core.database import init_db; init_db()"
+
+# Create the first login account
+python scripts/create_user.py owner@example.com your-password
+
+# Start the app (same command as above)
+uvicorn app.main:app --reload --port 8000
+```
+
+Visit `http://localhost:8000/login`. Additional staff can either be created
+the same way (`scripts/create_user.py`) or self-register at `/register` using
+the shared `INVITE_CODE` (see Environment Variables) — registration is gated
+by that code rather than left open, since the dashboard may be reachable on
+a public URL.
+
+### Pages
+
+| Path | Purpose |
+|------|---------|
+| `/login`, `/register` | Session-cookie auth; registration requires `INVITE_CODE` |
+| `/` | Dashboard — today/total quote counts, average price |
+| `/quotes/new` | Create a quote: paste spec text or upload a PCB photo for AI-assisted autofill, then review/submit the structured form |
+| `/quotes` | List with filters (date, layer, material, customer, status) |
+| `/quotes/{id}` | Full spec/price breakdown; edit status and notes; download Excel or a formal quote document |
+| `/customers` | Customer list and creation |
+| `/stats` | Layer/material distribution charts |
+
+The JSON API under `/api/*` (`app/api.py`) requires the same login session
+and is used internally by the dashboard's stats aggregation.
+
 ## Environment Variables
 
 See `.env.example` for details. Main variables:
 
 ```env
+# Web dashboard
+SECRET_KEY=a-real-random-value-in-production
+INVITE_CODE=a-shared-code-to-hand-out-for-self-registration
+
 # LINE Bot
 LINE_CHANNEL_ACCESS_TOKEN=xxx
 LINE_CHANNEL_SECRET=xxx
@@ -122,8 +172,10 @@ PUBLIC_BASE_URL=http://localhost:8000
 ### Health check
 ```
 GET /health
-GET /
 ```
+
+Note: `GET /` is the web dashboard's home page (see [Web Dashboard](#web-dashboard)),
+not a health check — it redirects to `/login` when logged out.
 
 ### Quote
 ```
@@ -187,20 +239,67 @@ aws cloudformation create-stack \
 # Use the ALB DNS name to configure the webhook
 ```
 
+## Deploying to Railway
+
+Used for an internal pilot deployment, kept deliberately separate from the
+AWS production database (see [Deploying to AWS](#deploying-to-aws) above) —
+the LINE bot and its real quote history stay on Fargate/RDS untouched.
+
+```bash
+# One-time setup
+railway init --name pcb-quote-bot
+railway add --database postgres
+railway add --service web
+railway domain --service web
+
+# Env vars on the `web` service (see Environment Variables above for what
+# each one does)
+railway variable set SECRET_KEY=<random-value> --service web
+railway variable set INVITE_CODE=<shared-code> --service web
+railway variable set OPENAI_API_KEY=<key> --service web
+railway variable set 'DATABASE_URL=${{Postgres.DATABASE_URL}}' --service web
+railway variable set 'PUBLIC_BASE_URL=https://${{RAILWAY_PUBLIC_DOMAIN}}' --service web
+railway variable set DEBUG=False --service web
+
+# Persistent volume so exported Excel/formal-quote files survive redeploys
+# (the container filesystem is otherwise wiped on every deploy)
+railway volume add --mount-path /app/exports --service web
+
+# Deploy (manual — no GitHub auto-deploy is configured, so this must be
+# re-run after every code change meant to reach the pilot)
+railway up --service web
+
+# Create the first login account against the deployed Postgres
+DATABASE_URL=<DATABASE_PUBLIC_URL from `railway variable list --service Postgres`> \
+  python scripts/create_user.py owner@example.com your-password
+
+# Take a manual data snapshot before risky changes (see scripts/backup_db.py)
+DATABASE_URL=<DATABASE_PUBLIC_URL> python scripts/backup_db.py
+```
+
 ## Project Structure
 
 ```
 pcb_line_bot/
 ├── app/                    # Application
-│   ├── core/              # Core modules (config, database, memory, storage)
-│   ├── main.py            # FastAPI application
+│   ├── core/              # Core modules (config, database, auth, memory, storage)
+│   ├── main.py            # FastAPI application (LINE webhook + app setup)
+│   ├── web.py             # Web dashboard routes (login/register, quotes, customers, stats)
+│   ├── api.py             # Login-protected JSON API used by the dashboard
 │   ├── quote_engine.py    # Quote calculation engine
 │   ├── ai_parser.py       # Text parsing (OpenAI)
 │   ├── image_parser.py    # Image parsing (OpenAI Vision)
 │   └── export_*.py        # File export
+├── templates/              # Jinja2 templates for the web dashboard
+├── static/                 # CSS for the web dashboard
+├── scripts/
+│   ├── create_user.py     # Create a web login account
+│   └── backup_db.py       # Manual JSON snapshot of all tables
+├── tests/                  # pytest suite
 ├── aws/                    # AWS deployment configuration
 │   ├── cloudformation.yaml # CloudFormation template
 │   └── DEPLOYMENT.md      # Deployment guide
+├── docs/superpowers/       # Design specs and implementation plans
 ├── data/                   # Data directory
 │   └── uploads/           # Uploaded images
 ├── logs/                   # Application logs

@@ -74,16 +74,6 @@ configuration = Configuration(
 handler = WebhookHandler(settings.LINE_CHANNEL_SECRET)
 
 
-@app.get("/")
-def home():
-    logger.info("Home endpoint accessed")
-    return {
-        "message": f"{settings.APP_NAME} Running",
-        "version": settings.APP_VERSION,
-        "status": "healthy"
-    }
-
-
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
