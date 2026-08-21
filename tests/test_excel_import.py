@@ -71,6 +71,7 @@ def test_confirm_import_commits_valid_rows_and_customer(temp_db):
 
     quote = db.query(temp_db.QuoteHistory).first()
     assert quote.source_channel == "excel_import"
+    assert quote.quote_no.startswith("PCB-")
     assert quote.layer == 6
     assert quote.qty == 10
     assert quote.total == 1234

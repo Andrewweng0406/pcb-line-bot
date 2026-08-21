@@ -206,6 +206,7 @@ def confirm_import(session, db_module, file_bytes: bytes, mapping: dict = None, 
             customer_id = customer.id
 
         quote = db_module.QuoteHistory(
+            quote_no=db_module._generate_quote_no(session),
             source_channel_id="excel_import",
             source_channel="excel_import",
             product_type="pcb",
