@@ -190,8 +190,24 @@ def create_quote(
     impedance: Optional[str] = Form(None),
     back_drill: Optional[str] = Form(None),
     bvh: Optional[str] = Form(None),
+    hard_gold: Optional[str] = Form(None),
+    countersunk: Optional[str] = Form(None),
+    counterbored: Optional[str] = Form(None),
+    inspection_report_required: Optional[str] = Form(None),
     thickness_mm: str = Form(""),
     pitch_mm: str = Form(""),
+    surface_finish: str = Form(""),
+    copper_weight: str = Form(""),
+    copper_outer_oz: str = Form(""),
+    copper_inner_oz: str = Form(""),
+    min_hole_mil: str = Form(""),
+    line_space_mil: str = Form(""),
+    hole_land_mil: str = Form(""),
+    aspect_ratio: str = Form(""),
+    warpage_mil_per_inch: str = Form(""),
+    legend_color: str = Form(""),
+    solder_mask_color: str = Form(""),
+    special_requirements: str = Form(""),
     delivery_days: str = Form(""),
     company_name: str = Form(""),
     user=Depends(get_current_user_optional),
@@ -212,11 +228,35 @@ def create_quote(
         "impedance": impedance is not None,
         "back_drill": back_drill is not None,
         "bvh": bvh is not None,
+        "hard_gold": hard_gold is not None,
+        "countersunk": countersunk is not None,
+        "counterbored": counterbored is not None,
+        "inspection_report_required": inspection_report_required is not None,
         "thickness_mm": _optional_float(thickness_mm),
         "pitch_mm": _optional_float(pitch_mm),
+        "surface_finish": surface_finish or ("Hard Gold" if hard_gold is not None else None),
+        "copper_weight": copper_weight or None,
+        "copper_outer_oz": _optional_float(copper_outer_oz),
+        "copper_inner_oz": _optional_float(copper_inner_oz),
+        "min_hole_mil": _optional_float(min_hole_mil),
+        "line_space_mil": _optional_float(line_space_mil),
+        "hole_land_mil": _optional_float(hole_land_mil),
+        "aspect_ratio": _optional_float(aspect_ratio),
+        "warpage_mil_per_inch": _optional_float(warpage_mil_per_inch),
+        "legend_color": legend_color or None,
+        "solder_mask_color": solder_mask_color or None,
+        "special_requirements": special_requirements or None,
         "delivery_days": _optional_int(delivery_days),
         "company_name": company_name or None,
     }
+    if not parsed["copper_weight"] and parsed["copper_outer_oz"] and parsed["copper_inner_oz"]:
+        if parsed["copper_outer_oz"] == parsed["copper_inner_oz"]:
+            parsed["copper_weight"] = f'{parsed["copper_outer_oz"]:g}oz'
+        else:
+            parsed["copper_weight"] = (
+                f'outer {parsed["copper_outer_oz"]:g}oz / '
+                f'inner {parsed["copper_inner_oz"]:g}oz'
+            )
 
     result = calculate_quote(parsed)
 
@@ -289,6 +329,21 @@ async def ai_assist(
         # value actually lands in the form field.
         if "thickness" in parsed and "thickness_mm" not in parsed:
             parsed["thickness_mm"] = parsed.pop("thickness")
+        if "gold_thickness_uin" in parsed and "enig_thickness_uinch" not in parsed:
+            parsed["enig_thickness_uinch"] = parsed["gold_thickness_uin"]
+        surface_finish = parsed.get("surface_finish")
+        if isinstance(surface_finish, str) and surface_finish.strip().lower() == "hard gold":
+            parsed["surface_finish"] = "Hard Gold"
+            parsed["hard_gold"] = True
+            parsed["enig"] = True
+        if parsed.get("copper_outer_oz") and parsed.get("copper_inner_oz") and not parsed.get("copper_weight"):
+            if parsed["copper_outer_oz"] == parsed["copper_inner_oz"]:
+                parsed["copper_weight"] = f'{parsed["copper_outer_oz"]:g}oz'
+            else:
+                parsed["copper_weight"] = (
+                    f'outer {parsed["copper_outer_oz"]:g}oz / '
+                    f'inner {parsed["copper_inner_oz"]:g}oz'
+                )
     except Exception as e:
         logger.error(f"AI assist failed: {e}")
         ai_error = "AI 解析失敗，請手動填寫規格"

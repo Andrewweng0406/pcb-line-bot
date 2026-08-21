@@ -41,14 +41,26 @@ def parse_pcb_image(image_path):
 
 判斷規則：
 - company_name: 如果看到 PCB 絲印上的公司名稱、Logo、或公司標誌，請填入公司名稱字串。如果看不到，填 null。
-- Material 如果看到 MEGTRON 6、MEGTRON6，都輸出 "MEGTRON 6"
+- Material 請保留圖片上實際材料文字，不要簡化。例如 FR4_HTG 要輸出 "FR4_HTG"，M6 FR4-HTG 要輸出 "M6 FR4-HTG"。如果看到 MEGTRON 6、MEGTRON6，都輸出 "MEGTRON 6"。
 - Surface Plating 如果看到 Ni/Au、Au、ENIG、Immersion Gold，都代表 enig = true
+- Surface Finish 如果看到 Hard Gold，請輸出 surface_finish = "Hard Gold" 並 hard_gold = true。看到 ENIG/化金/Immersion Gold 則 surface_finish = "ENIG"。
 - 如果看到 VIP、Via in Pad、Resin Plug、Plug Via，代表 vip = true
 - 如果看到 Impedance、50 ohm、Ω，代表 impedance = true
 - 如果看到 Back Drill、Backdrill，代表 back_drill = true
 - 如果看到 BVH、Blind Via Hole，代表 bvh = true
+- 如果看到 Countersunk、Counterbored、皿孔、沉頭孔，代表 countersunk = true 或 counterbored = true
+- 如果看到 Please provide inspection report、出貨檢驗及量測報告，代表 inspection_report_required = true，並把句子放到 special_requirements。
 - 如果找不到欄位，請用 null 或 false，不要猜
 - 如果看到 Thickness、厚度，例如 6.6 +/-0.2 mm，請輸出 thickness = 6.6
+- 如果看到 Min. Pitch、Device Pitch、最小 Pitch，請輸出 pitch_mm
+- 如果看到 Min Hole、最小孔徑，請輸出 min_hole_mil
+- 如果看到 Line/Space，請輸出 line_space_mil
+- 如果看到 Hole/Land，請輸出 hole_land_mil
+- 如果看到 縱橫比、Aspect Ratio，請輸出 aspect_ratio
+- 如果看到 Warpage、板翹容忍度，請輸出 warpage_mil_per_inch
+- 如果看到 External / Inner 銅厚，請輸出 copper_outer_oz 與 copper_inner_oz。例如 External 1 o.z. = copper_outer_oz 1，Inner 1 o.z. = copper_inner_oz 1。
+- 如果看到 Copper thickness 欄位但無法分辨內外層，請原文輸出 copper_weight，不要猜成 1oz。
+- 如果看到 Legend Color / 文字顏色，請輸出 legend_color。看到 S/M Color / 防焊顏色，請輸出 solder_mask_color。
 
 - 如果看到 Surface Plating、表面鍍金、Ni/Au、ENIG、Immersion Gold，請輸出:
 - enig = true
@@ -100,7 +112,7 @@ JSON 格式：
 {
   "company_name": null,
   "layer": null,
-  "material": "FR4",
+  "material": null,
   "length_mm": null,
   "width_mm": null,
   "qty": 1,
@@ -109,11 +121,26 @@ JSON 格式：
   "impedance": false,
   "back_drill": false,
   "bvh": false,
+  "hard_gold": false,
+  "countersunk": false,
+  "counterbored": false,
+  "inspection_report_required": false,
   "thickness": null,
+  "pitch_mm": null,
   "copper_weight": null,
+  "copper_outer_oz": null,
+  "copper_inner_oz": null,
   "surface_finish": null,
   "enig_thickness_um": null,
   "enig_thickness_uinch": null,
+  "min_hole_mil": null,
+  "line_space_mil": null,
+  "hole_land_mil": null,
+  "aspect_ratio": null,
+  "warpage_mil_per_inch": null,
+  "legend_color": null,
+  "solder_mask_color": null,
+  "special_requirements": null,
   "issue_ratio": 1,
   "area_inch": null,
   "delivery_days": null

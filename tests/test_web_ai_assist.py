@@ -92,6 +92,98 @@ def test_ai_assist_fills_form_from_uploaded_photo(temp_db, monkeypatch):
     assert 'value="ZENVOCE CORPORATION"' in response.text
 
 
+def test_ai_assist_fills_extended_pcb_image_fields(temp_db, monkeypatch):
+    import io
+
+    import app.web as web_module
+
+    monkeypatch.setattr(
+        web_module,
+        "parse_pcb_image",
+        lambda path: {
+            "layer": 22,
+            "qty": 3,
+            "material": "M6 FR4-HTG",
+            "company_name": "HTSI",
+            "length_mm": 490,
+            "width_mm": 565,
+            "thickness": 5,
+            "pitch_mm": 0.5,
+            "surface_finish": "ENIG",
+            "enig": True,
+            "enig_thickness_uinch": 10,
+            "vip": True,
+            "impedance": True,
+            "back_drill": True,
+            "copper_outer_oz": 1,
+            "copper_inner_oz": 1,
+            "min_hole_mil": 8,
+            "warpage_mil_per_inch": 4,
+            "legend_color": "White",
+            "solder_mask_color": "Green",
+            "countersunk": True,
+            "counterbored": True,
+            "inspection_report_required": True,
+            "special_requirements": "Please provide inspection report.",
+        },
+    )
+
+    client = _logged_in_client(temp_db)
+    fake_image = io.BytesIO(b"fake-jpeg-bytes")
+    response = client.post(
+        "/quotes/new/ai-assist",
+        data={"spec_text": ""},
+        files={"photo": ("fab-info.jpg", fake_image, "image/jpeg")},
+    )
+
+    assert response.status_code == 200
+    assert 'name="material" value="M6 FR4-HTG"' in response.text
+    assert 'name="pitch_mm" value="0.5"' in response.text
+    assert 'name="copper_outer_oz" value="1"' in response.text
+    assert 'name="copper_inner_oz" value="1"' in response.text
+    assert 'name="copper_weight" value="1oz"' in response.text
+    assert 'name="min_hole_mil" value="8"' in response.text
+    assert 'name="warpage_mil_per_inch" value="4"' in response.text
+    assert 'name="legend_color" value="White"' in response.text
+    assert 'name="solder_mask_color" value="Green"' in response.text
+    assert 'name="back_drill" checked' in response.text
+    assert 'name="countersunk" checked' in response.text
+    assert 'name="counterbored" checked' in response.text
+    assert 'name="inspection_report_required" checked' in response.text
+    assert "Please provide inspection report." in response.text
+
+
+def test_ai_assist_marks_hard_gold_from_photo(temp_db, monkeypatch):
+    import io
+
+    import app.web as web_module
+
+    monkeypatch.setattr(
+        web_module,
+        "parse_pcb_image",
+        lambda path: {
+            "layer": 36,
+            "qty": 2,
+            "material": "FR4",
+            "surface_finish": "hard gold",
+            "enig_thickness_uinch": 20,
+        },
+    )
+
+    client = _logged_in_client(temp_db)
+    fake_image = io.BytesIO(b"fake-jpeg-bytes")
+    response = client.post(
+        "/quotes/new/ai-assist",
+        data={"spec_text": ""},
+        files={"photo": ("probeleader.jpg", fake_image, "image/jpeg")},
+    )
+
+    assert response.status_code == 200
+    assert 'name="surface_finish" value="Hard Gold"' in response.text
+    assert 'name="enig" checked' in response.text
+    assert 'name="hard_gold" checked' in response.text
+
+
 def test_ai_assist_prefers_photo_over_text_when_both_given(temp_db, monkeypatch):
     import io
 

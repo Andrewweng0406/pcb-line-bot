@@ -32,9 +32,24 @@ JSON 格式：
   "impedance": null,
   "back_drill": null,
   "bvh": null,
+  "hard_gold": null,
+  "countersunk": null,
+  "counterbored": null,
+  "inspection_report_required": null,
   "thickness": null,
+  "pitch_mm": null,
   "copper_weight": null,
+  "copper_outer_oz": null,
+  "copper_inner_oz": null,
   "surface_finish": null,
+  "min_hole_mil": null,
+  "line_space_mil": null,
+  "hole_land_mil": null,
+  "aspect_ratio": null,
+  "warpage_mil_per_inch": null,
+  "legend_color": null,
+  "solder_mask_color": null,
+  "special_requirements": null,
   "issue_ratio": null,
   "delivery_days": null
 }
@@ -43,6 +58,8 @@ JSON 格式：
 如果使用者說「不要鍍金」「取消鍍金」「不要 ENIG」，enig = false, enig_thickness_uinch = null
 如果使用者說「要鍍金」「ENIG」，enig = true
 如果使用者說「鍍金改 5u」「Gold 5u」「ENIG 5u」「化金 5u」，enig = true, enig_thickness_uinch = 5
+
+材料請保留使用者原文，例如 FR4_HTG、FR4-HTG、M6 FR4-HTG 不要簡化成 FR4。
 
 如果使用者說「Hard Gold 20μ」「Gold 20μ」「20um」「20μm」，enig = true。
 如果單位是 u" 或 uinch，直接當成 enig_thickness_uinch。
@@ -63,12 +80,15 @@ JSON 格式：
 如果沒有提到交期，delivery_days = null
 
 如果使用者說「板厚 5mm」「厚度 5mm」「Thickness 5mm」，thickness = 5
+如果使用者說「Pitch 0.5mm」「最小 Pitch 0.5」，pitch_mm = 0.5
 
 如果使用者說「銅厚 1oz」「Copper 1oz」「1 oz」，copper_weight = "1oz"
+如果使用者說「外層 1oz 內層 1oz」「External 1 oz Inner 1 oz」，copper_outer_oz = 1, copper_inner_oz = 1
+如果使用者說「half oz & one oz」但不能分辨內外層，copper_weight = "half oz & one oz"
 
 如果使用者說「交期 7天」「7天」「Lead time 7 days」，delivery_days = 7
 
-如果使用者說「鍍金 20u」「Gold 20u」「Hard Gold 20u」「化金 20u」，enig = true, surface_finish = "Hard Gold", enig_thickness_uinch = 20
+如果使用者說「鍍金 20u」「Gold 20u」「Hard Gold 20u」「化金 20u」，enig = true, surface_finish = "Hard Gold", hard_gold = true, enig_thickness_uinch = 20
 
 如果使用者說「不要鍍金」「取消鍍金」「不要 ENIG」，enig = false, surface_finish = null, enig_thickness_uinch = null
 
@@ -83,6 +103,17 @@ JSON 格式：
 
 如果使用者說「要阻抗」「有阻抗」「Impedance yes」，impedance = true
 如果使用者說「不要阻抗」「取消阻抗」，impedance = false
+
+如果使用者說「最小孔徑 8mil」「Min Hole 8mil」，min_hole_mil = 8
+如果使用者說「Line/Space 3mil」，line_space_mil = 3
+如果使用者說「Hole/Land 8mil」，hole_land_mil = 8
+如果使用者說「縱橫比 25」「Aspect Ratio 25」，aspect_ratio = 25
+如果使用者說「板翹 4 mil/inch」「Warpage 4 mil/inch」，warpage_mil_per_inch = 4
+如果使用者說「白色文字」「Legend Color White」，legend_color = "White"
+如果使用者說「綠油」「防焊綠色」「S/M Color Green」，solder_mask_color = "Green"
+如果使用者說「要皿孔」「Countersunk YES」，countersunk = true
+如果使用者說「Counterbored YES」，counterbored = true
+如果使用者說「請附檢驗報告」「Please provide inspection report」，inspection_report_required = true, special_requirements = "Please provide inspection report."
 
 客戶文字：
 """ + text
