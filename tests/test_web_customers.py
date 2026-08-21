@@ -29,3 +29,5 @@ def test_customers_list_and_create(temp_db):
     assert response.status_code == 200
     assert "ABC Corp" in response.text
     assert "Jane" in response.text
+    assert "RFQs" in response.text
+    assert "Win Rate" in response.text

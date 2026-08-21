@@ -23,3 +23,6 @@ def test_stats_page_loads_with_chart_data(temp_db):
 
     assert response.status_code == 200
     assert "chart.js" in response.text.lower()
+    assert "Quote Outcomes" in response.text
+    assert "Quote Volume Over Time" in response.text
+    assert "Top Customers" in response.text

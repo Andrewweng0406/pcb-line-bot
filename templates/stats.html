@@ -16,9 +16,72 @@
     </div>
 </div>
 
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+    <div class="card p-6">
+        <h2 class="font-medium mb-3">Quote Outcomes</h2>
+        <canvas id="outcomeChart"></canvas>
+    </div>
+    <div class="card p-6">
+        <h2 class="font-medium mb-3">Win Rate</h2>
+        <p class="font-data text-3xl" style="color: var(--copper-dark)">
+            {{ "{:.1f}%".format(outcome_stats.win_rate * 100) if outcome_stats.win_rate is not none else "-" }}
+        </p>
+        <p class="text-sm mt-2" style="color: var(--ink-muted)">Resolved quotes: {{ outcome_stats.resolved_count }}</p>
+    </div>
+    <div class="card p-6">
+        <h2 class="font-medium mb-3">Average Margin</h2>
+        {% set latest_margin = pricing_trends | selectattr("average_margin_pct", "ne", none) | list | last %}
+        <p class="font-data text-3xl" style="color: var(--copper-dark)">
+            {{ "{:.1f}%".format(latest_margin.average_margin_pct * 100) if latest_margin else "-" }}
+        </p>
+        <p class="text-sm mt-2" style="color: var(--ink-muted)">Latest period with margin data</p>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+    <div class="card p-6">
+        <h2 class="font-medium mb-3">Quote Volume Over Time</h2>
+        <canvas id="volumeTrendChart"></canvas>
+    </div>
+    <div class="card p-6">
+        <h2 class="font-medium mb-3">Average Quote Value Over Time</h2>
+        <canvas id="valueTrendChart"></canvas>
+    </div>
+</div>
+
+<div class="card p-6 mt-6 overflow-x-auto">
+    <h2 class="font-medium mb-3">Top Customers</h2>
+    <table class="w-full text-sm whitespace-nowrap">
+        <thead style="color: var(--ink-muted)" class="text-left">
+            <tr>
+                <th class="py-2 pr-4">Customer</th>
+                <th class="py-2 pr-4">RFQs</th>
+                <th class="py-2 pr-4">Won</th>
+                <th class="py-2 pr-4">Lost</th>
+                <th class="py-2 pr-4">Win Rate</th>
+                <th class="py-2 pr-4">Won Revenue</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in top_customers %}
+            <tr style="border-top: 1px solid var(--border)">
+                <td class="py-2 pr-4">{{ c.company_name }}</td>
+                <td class="py-2 pr-4 font-data">{{ c.total_rfqs }}</td>
+                <td class="py-2 pr-4 font-data">{{ c.won }}</td>
+                <td class="py-2 pr-4 font-data">{{ c.lost }}</td>
+                <td class="py-2 pr-4 font-data">{{ "{:.1f}%".format(c.win_rate * 100) if c.win_rate is not none else "-" }}</td>
+                <td class="py-2 pr-4 font-data">NT$ {{ "{:,.0f}".format(c.total_won_value or 0) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
 <script>
     const byLayer = {{ by_layer | tojson }};
     const byMaterial = {{ by_material | tojson }};
+    const outcomeStats = {{ outcome_stats | tojson }};
+    const pricingTrends = {{ pricing_trends | tojson }};
 
     new Chart(document.getElementById("layerChart"), {
         type: "bar",
@@ -33,6 +96,31 @@
         data: {
             labels: byMaterial.map(r => r.material),
             datasets: [{ data: byMaterial.map(r => r.count), backgroundColor: ["#B5651D", "#A6832E", "#1E4373", "#3F7D4C", "#8F4E16"] }],
+        },
+    });
+
+    const outcomeLabels = Object.keys(outcomeStats.counts);
+    new Chart(document.getElementById("outcomeChart"), {
+        type: "doughnut",
+        data: {
+            labels: outcomeLabels,
+            datasets: [{ data: outcomeLabels.map(k => outcomeStats.counts[k]), backgroundColor: ["#B5651D", "#3F7D4C", "#8F4E16", "#1E4373", "#A6832E"] }],
+        },
+    });
+
+    new Chart(document.getElementById("volumeTrendChart"), {
+        type: "line",
+        data: {
+            labels: pricingTrends.map(r => r.period),
+            datasets: [{ label: "RFQs", data: pricingTrends.map(r => r.rfq_count), borderColor: "#1E4373", backgroundColor: "#1E437333" }],
+        },
+    });
+
+    new Chart(document.getElementById("valueTrendChart"), {
+        type: "line",
+        data: {
+            labels: pricingTrends.map(r => r.period),
+            datasets: [{ label: "Avg Quote", data: pricingTrends.map(r => r.average_quote_value), borderColor: "#B5651D", backgroundColor: "#B5651D33" }],
         },
     });
 </script>

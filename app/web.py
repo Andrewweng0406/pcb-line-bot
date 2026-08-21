@@ -6,6 +6,11 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 import app.core.database as db
+from app.business_analytics import (
+    get_customer_analytics,
+    get_outcome_stats,
+    get_pricing_trends,
+)
 from app.ai_parser import parse_pcb_text
 from app.core.auth import (
     create_session_token,
@@ -494,10 +499,20 @@ def customers_list(request: Request, user=Depends(get_current_user_optional)):
 
     query_db = db.SessionLocal()
     customers = query_db.query(db.Customer).order_by(db.Customer.company_name).all()
+    customer_analytics = {
+        item["customer_id"]: item
+        for item in get_customer_analytics(query_db, db.Customer, db.QuoteHistory, limit=1000)
+    }
     query_db.close()
 
     return templates.TemplateResponse(
-        "customers.html", {"request": request, "user": user, "customers": customers}
+        "customers.html",
+        {
+            "request": request,
+            "user": user,
+            "customers": customers,
+            "customer_analytics": customer_analytics,
+        },
     )
 
 
@@ -531,6 +546,12 @@ def stats_page(request: Request, user=Depends(get_current_user_optional)):
     if user is None:
         return RedirectResponse(url="/login", status_code=303)
 
+    query_db = db.SessionLocal()
+    outcome_stats = get_outcome_stats(query_db, db.QuoteHistory)
+    pricing_trends = get_pricing_trends(query_db, db.QuoteHistory)
+    top_customers = get_customer_analytics(query_db, db.Customer, db.QuoteHistory)
+    query_db.close()
+
     return templates.TemplateResponse(
         "stats.html",
         {
@@ -538,5 +559,8 @@ def stats_page(request: Request, user=Depends(get_current_user_optional)):
             "user": user,
             "by_layer": db.get_stats_by_layer(),
             "by_material": db.get_stats_by_material(),
+            "outcome_stats": outcome_stats,
+            "pricing_trends": pricing_trends,
+            "top_customers": top_customers,
         },
     )

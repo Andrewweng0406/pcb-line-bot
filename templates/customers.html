@@ -33,15 +33,24 @@
                 <th class="px-4 py-2">聯絡人</th>
                 <th class="px-4 py-2">電話</th>
                 <th class="px-4 py-2">Email</th>
+                <th class="px-4 py-2">RFQs</th>
+                <th class="px-4 py-2">Win Rate</th>
+                <th class="px-4 py-2">Won Revenue</th>
+                <th class="px-4 py-2">Last RFQ</th>
             </tr>
         </thead>
         <tbody>
             {% for c in customers %}
+            {% set metrics = customer_analytics.get(c.id) %}
             <tr style="border-top: 1px solid var(--border)">
                 <td class="px-4 py-2">{{ c.company_name }}</td>
                 <td class="px-4 py-2">{{ c.contact or "-" }}</td>
                 <td class="px-4 py-2 font-data">{{ c.phone or "-" }}</td>
                 <td class="px-4 py-2 font-data">{{ c.email or "-" }}</td>
+                <td class="px-4 py-2 font-data">{{ metrics.total_rfqs if metrics else 0 }}</td>
+                <td class="px-4 py-2 font-data">{{ "{:.1f}%".format(metrics.win_rate * 100) if metrics and metrics.win_rate is not none else "-" }}</td>
+                <td class="px-4 py-2 font-data">NT$ {{ "{:,.0f}".format(metrics.total_won_value or 0) if metrics else "0" }}</td>
+                <td class="px-4 py-2 font-data">{{ metrics.last_rfq_date[:10] if metrics and metrics.last_rfq_date else "-" }}</td>
             </tr>
             {% endfor %}
         </tbody>

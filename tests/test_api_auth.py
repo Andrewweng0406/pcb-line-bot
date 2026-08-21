@@ -138,3 +138,44 @@ def test_api_returns_similar_quotes_and_historical_summary(temp_db):
     assert summary.status_code == 200
     assert summary.json()["comparable_count"] == 1
     assert summary.json()["average_quoted_unit_price"] == 110
+
+
+def test_api_returns_business_analytics(temp_db):
+    from app.main import app
+    client = TestClient(app)
+
+    db = temp_db.SessionLocal()
+    user = temp_db.User(email="staff@example.com", password_hash=hash_password("hunter2"))
+    customer = temp_db.Customer(company_name="ABC Corp")
+    db.add_all([user, customer])
+    db.commit()
+    db.refresh(customer)
+    customer_id = customer.id
+    db.close()
+
+    temp_db.save_quote(
+        "web:1",
+        {"layer": 6, "qty": 1, "area_inch": 10},
+        {"status": "success", "total": 100, "unit_price": 100},
+        customer_id=customer_id,
+    )
+    db = temp_db.SessionLocal()
+    quote = db.query(temp_db.QuoteHistory).first()
+    quote.quote_outcome = "won"
+    quote.final_price = 100
+    db.commit()
+    db.close()
+
+    client.post("/login", data={"email": "staff@example.com", "password": "hunter2"})
+
+    outcomes = client.get("/api/stats/outcomes")
+    assert outcomes.status_code == 200
+    assert outcomes.json()["counts"]["won"] == 1
+
+    trends = client.get("/api/stats/pricing-trends")
+    assert trends.status_code == 200
+    assert trends.json()[0]["rfq_count"] == 1
+
+    customers = client.get("/api/stats/top-customers")
+    assert customers.status_code == 200
+    assert customers.json()[0]["company_name"] == "ABC Corp"

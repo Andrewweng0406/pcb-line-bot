@@ -3,6 +3,11 @@ from datetime import datetime, timedelta
 import app.core.database as db
 from app.web import get_current_user_optional
 from sqlalchemy import desc
+from app.business_analytics import (
+    get_customer_analytics,
+    get_outcome_stats,
+    get_pricing_trends,
+)
 from app.historical_intelligence import find_similar_quotes, historical_pricing_summary
 from app.quote_metrics import calculate_margin, to_non_negative_float, to_non_negative_int
 from app.quote_outcomes import normalize_lost_reason, normalize_outcome
@@ -301,5 +306,38 @@ def get_stats_by_material(user=Depends(require_user)):
     """Group statistics by material."""
     try:
         return db.get_stats_by_material()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/stats/outcomes")
+def get_stats_outcomes(user=Depends(require_user)):
+    try:
+        session = db.SessionLocal()
+        result = get_outcome_stats(session, db.QuoteHistory)
+        session.close()
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/stats/pricing-trends")
+def get_stats_pricing_trends(user=Depends(require_user)):
+    try:
+        session = db.SessionLocal()
+        result = get_pricing_trends(session, db.QuoteHistory)
+        session.close()
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/stats/top-customers")
+def get_stats_top_customers(user=Depends(require_user)):
+    try:
+        session = db.SessionLocal()
+        result = get_customer_analytics(session, db.Customer, db.QuoteHistory)
+        session.close()
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
