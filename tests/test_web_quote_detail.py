@@ -195,6 +195,36 @@ def test_export_excel_route_downloads_when_spec_present(temp_db):
     assert response.headers["location"].startswith("/download/exports/")
 
 
+def test_export_formal_quote_route_downloads_when_spec_present(temp_db):
+    temp_db.save_quote(
+        "line:U1",
+        {
+            "layer": 28,
+            "qty": 3,
+            "material": "FR4_HTG",
+            "length_mm": 560,
+            "width_mm": 350,
+            "thickness_mm": 5,
+            "enig": True,
+            "enig_thickness_uinch": 10,
+            "impedance": True,
+            "copper_outer_oz": 1,
+            "copper_inner_oz": 1,
+            "special_requirements": "Please provide inspection report.",
+        },
+        {"status": "success", "total": 228095.46, "unit_price": 76031.82, "area_inch": 303.8},
+    )
+    db = temp_db.SessionLocal()
+    quote_id = db.query(temp_db.QuoteHistory).order_by(temp_db.QuoteHistory.id.desc()).first().id
+    db.close()
+
+    client = _logged_in_client(temp_db)
+    response = client.get(f"/quotes/{quote_id}/export/formal", follow_redirects=False)
+
+    assert response.status_code == 303
+    assert response.headers["location"].startswith("/download/exports/formal_quote_")
+
+
 def test_export_excel_route_404s_without_spec(temp_db):
     db = temp_db.SessionLocal()
     quote = temp_db.QuoteHistory(source_channel_id="line:U1", layer=6, qty=1, total=100.0, unit_price=100.0)
@@ -206,4 +236,18 @@ def test_export_excel_route_404s_without_spec(temp_db):
 
     client = _logged_in_client(temp_db)
     response = client.get(f"/quotes/{quote_id}/export/excel", follow_redirects=False)
+    assert response.status_code == 404
+
+
+def test_export_formal_quote_route_404s_without_spec(temp_db):
+    db = temp_db.SessionLocal()
+    quote = temp_db.QuoteHistory(source_channel_id="line:U1", layer=6, qty=1, total=100.0, unit_price=100.0)
+    db.add(quote)
+    db.commit()
+    db.refresh(quote)
+    quote_id = quote.id
+    db.close()
+
+    client = _logged_in_client(temp_db)
+    response = client.get(f"/quotes/{quote_id}/export/formal", follow_redirects=False)
     assert response.status_code == 404

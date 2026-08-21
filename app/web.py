@@ -518,8 +518,15 @@ def quote_export_excel(quote_id: int, user=Depends(get_current_user_optional)):
     if user is None:
         return RedirectResponse(url="/login", status_code=303)
 
+    from sqlalchemy.orm import joinedload
+
     query_db = db.SessionLocal()
-    quote = query_db.query(db.QuoteHistory).filter(db.QuoteHistory.id == quote_id).first()
+    quote = (
+        query_db.query(db.QuoteHistory)
+        .options(joinedload(db.QuoteHistory.customer))
+        .filter(db.QuoteHistory.id == quote_id)
+        .first()
+    )
     query_db.close()
 
     if quote is None or not quote.spec_json or not quote.breakdown_json:
@@ -534,14 +541,29 @@ def quote_export_formal(quote_id: int, user=Depends(get_current_user_optional)):
     if user is None:
         return RedirectResponse(url="/login", status_code=303)
 
+    from sqlalchemy.orm import joinedload
+
     query_db = db.SessionLocal()
-    quote = query_db.query(db.QuoteHistory).filter(db.QuoteHistory.id == quote_id).first()
+    quote = (
+        query_db.query(db.QuoteHistory)
+        .options(joinedload(db.QuoteHistory.customer))
+        .filter(db.QuoteHistory.id == quote_id)
+        .first()
+    )
     query_db.close()
 
     if quote is None or not quote.spec_json or not quote.breakdown_json:
         raise HTTPException(status_code=404, detail="Quote not found or missing spec data")
 
-    output_path = export_formal_quote(quote.spec_json, quote.breakdown_json)
+    output_path = export_formal_quote(
+        quote.spec_json,
+        quote.breakdown_json,
+        {
+            "quote_no": quote.quote_no,
+            "customer_name": quote.customer.company_name if quote.customer else None,
+            "quote_date": quote.created_at.strftime("%Y/%m/%d") if quote.created_at else None,
+        },
+    )
     import os as _os
 
     filename = _os.path.basename(output_path)
