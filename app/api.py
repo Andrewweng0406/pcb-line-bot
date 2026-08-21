@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 import app.core.database as db
 from app.web import get_current_user_optional
 from sqlalchemy import desc
+from app.historical_intelligence import find_similar_quotes, historical_pricing_summary
 from app.quote_metrics import calculate_margin, to_non_negative_float, to_non_negative_int
 from app.quote_outcomes import normalize_lost_reason, normalize_outcome
 
@@ -182,6 +183,42 @@ def update_quote(quote_id: int, data: dict, user=Depends(require_user)):
         session.close()
 
         return {"status": "success", "message": "報價已更新"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/quotes/{quote_id}/similar")
+def get_similar_quotes(quote_id: int, limit: int = Query(10), user=Depends(require_user)):
+    """Return explainable structured-similarity matches for one quote."""
+    try:
+        session = db.SessionLocal()
+        quote = session.query(db.QuoteHistory).filter(db.QuoteHistory.id == quote_id).first()
+        if not quote:
+            session.close()
+            raise HTTPException(status_code=404, detail="報價不存在")
+        matches = find_similar_quotes(session, db.QuoteHistory, quote, limit=limit)
+        session.close()
+        return matches
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/quotes/{quote_id}/historical-summary")
+def get_historical_summary(quote_id: int, user=Depends(require_user)):
+    """Return pricing reference stats from the closest historical quotes."""
+    try:
+        session = db.SessionLocal()
+        quote = session.query(db.QuoteHistory).filter(db.QuoteHistory.id == quote_id).first()
+        if not quote:
+            session.close()
+            raise HTTPException(status_code=404, detail="報價不存在")
+        similar = find_similar_quotes(session, db.QuoteHistory, quote, limit=50)
+        session.close()
+        return historical_pricing_summary(similar)
     except HTTPException:
         raise
     except Exception as e:

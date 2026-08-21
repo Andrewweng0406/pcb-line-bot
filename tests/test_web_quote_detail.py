@@ -33,6 +33,30 @@ def test_quote_detail_shows_spec_and_breakdown(temp_db):
     assert "待審核" in response.text
 
 
+def test_quote_detail_shows_historical_intelligence(temp_db):
+    temp_db.save_quote(
+        "web:1",
+        {"layer": 6, "material": "FR4", "qty": 10, "length_mm": 100, "width_mm": 100, "enig": True},
+        {"status": "success", "total": 1000, "unit_price": 100},
+    )
+    temp_db.save_quote(
+        "web:1",
+        {"layer": 6, "material": "FR4", "qty": 10, "length_mm": 102, "width_mm": 100, "enig": True},
+        {"status": "success", "total": 1100, "unit_price": 110},
+    )
+    db = temp_db.SessionLocal()
+    quote_id = db.query(temp_db.QuoteHistory).order_by(temp_db.QuoteHistory.id.asc()).first().id
+    db.close()
+
+    client = _logged_in_client(temp_db)
+    response = client.get(f"/quotes/{quote_id}")
+
+    assert response.status_code == 200
+    assert "Historical Intelligence" in response.text
+    assert "Similar Quotes" in response.text
+    assert "Similar RFQs" in response.text
+
+
 def test_quote_detail_missing_returns_404(temp_db):
     client = _logged_in_client(temp_db)
     response = client.get("/quotes/999")

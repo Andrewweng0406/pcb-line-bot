@@ -18,6 +18,7 @@ from app.core.logging import get_logger
 from app.core.storage import file_storage
 from app.export_excel import export_quote_excel
 from app.formal_quote_export import export_formal_quote
+from app.historical_intelligence import find_similar_quotes, historical_pricing_summary
 from app.image_parser import parse_pcb_image
 from app.quote_metrics import (
     calculate_margin,
@@ -359,10 +360,14 @@ def quote_detail(request: Request, quote_id: int, user=Depends(get_current_user_
         .filter(db.QuoteHistory.id == quote_id)
         .first()
     )
-    query_db.close()
 
     if quote is None:
+        query_db.close()
         raise HTTPException(status_code=404, detail="Quote not found")
+
+    similar_quotes = find_similar_quotes(query_db, db.QuoteHistory, quote, limit=8)
+    historical_summary = historical_pricing_summary(similar_quotes)
+    query_db.close()
 
     return templates.TemplateResponse(
         "quote_detail.html",
@@ -374,6 +379,8 @@ def quote_detail(request: Request, quote_id: int, user=Depends(get_current_user_
             "outcome_labels": OUTCOME_LABELS,
             "lost_reason_labels": LOST_REASON_LABELS,
             "rfq_completeness": evaluate_rfq_completeness(quote),
+            "similar_quotes": similar_quotes,
+            "historical_summary": historical_summary,
         },
     )
 

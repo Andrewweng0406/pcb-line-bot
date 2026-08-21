@@ -79,3 +79,62 @@ def test_api_patch_updates_outcome_and_actual_margin(temp_db):
     assert quote.quote_outcome == "won"
     assert quote.actual_margin_pct == 0.25
     db.close()
+
+
+def test_api_returns_similar_quotes_and_historical_summary(temp_db):
+    from app.main import app
+    client = TestClient(app)
+
+    db = temp_db.SessionLocal()
+    user = temp_db.User(email="staff@example.com", password_hash=hash_password("hunter2"))
+    db.add(user)
+    db.commit()
+    db.close()
+
+    temp_db.save_quote(
+        "web:1",
+        {
+            "layer": 6,
+            "material": "FR4",
+            "qty": 10,
+            "length_mm": 100,
+            "width_mm": 100,
+            "enig": True,
+            "thickness_mm": 1.6,
+            "copper_weight": "1oz",
+            "delivery_days": 7,
+        },
+        {"status": "success", "total": 1000, "unit_price": 100},
+    )
+    temp_db.save_quote(
+        "web:1",
+        {
+            "layer": 6,
+            "material": "FR4",
+            "qty": 10,
+            "length_mm": 102,
+            "width_mm": 100,
+            "enig": True,
+            "thickness_mm": 1.6,
+            "copper_weight": "1oz",
+            "delivery_days": 7,
+        },
+        {"status": "success", "total": 1100, "unit_price": 110},
+    )
+    db = temp_db.SessionLocal()
+    quotes = db.query(temp_db.QuoteHistory).order_by(temp_db.QuoteHistory.id.asc()).all()
+    quotes[1].quote_outcome = "won"
+    quote_id = quotes[0].id
+    db.commit()
+    db.close()
+
+    client.post("/login", data={"email": "staff@example.com", "password": "hunter2"})
+
+    similar = client.get(f"/api/quotes/{quote_id}/similar")
+    assert similar.status_code == 200
+    assert similar.json()[0]["similarity"] > 80
+
+    summary = client.get(f"/api/quotes/{quote_id}/historical-summary")
+    assert summary.status_code == 200
+    assert summary.json()["comparable_count"] == 1
+    assert summary.json()["average_quoted_unit_price"] == 110
