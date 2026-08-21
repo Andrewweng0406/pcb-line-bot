@@ -25,6 +25,7 @@ from app.export_excel import export_quote_excel
 from app.formal_quote_export import export_formal_quote
 from app.historical_intelligence import find_similar_quotes, historical_pricing_summary
 from app.image_parser import parse_pcb_image
+from app.import_quotes import confirm_import, preview_import
 from app.quote_metrics import (
     calculate_margin,
     to_non_negative_float,
@@ -539,6 +540,95 @@ def customers_create(
     query_db.close()
 
     return RedirectResponse(url="/customers", status_code=303)
+
+
+def _mapping_from_form(
+    customer_col: str,
+    layer_col: str,
+    material_col: str,
+    qty_col: str,
+    size_col: str,
+    total_col: str,
+    quote_date_col: str,
+    outcome_col: str,
+) -> dict:
+    return {
+        "customer": customer_col,
+        "layer": layer_col,
+        "material": material_col,
+        "qty": qty_col,
+        "size": size_col,
+        "total": total_col,
+        "quote_date": quote_date_col,
+        "quote_outcome": outcome_col,
+    }
+
+
+@router.get("/import/quotes", response_class=HTMLResponse)
+def import_quotes_page(request: Request, user=Depends(get_current_user_optional)):
+    if user is None:
+        return RedirectResponse(url="/login", status_code=303)
+    return templates.TemplateResponse(
+        "import_quotes.html",
+        {"request": request, "user": user, "result": None, "error": None},
+    )
+
+
+@router.post("/import/quotes", response_class=HTMLResponse)
+async def import_quotes_submit(
+    request: Request,
+    file: UploadFile = File(...),
+    action: str = Form("preview"),
+    customer_col: str = Form("Customer Name"),
+    layer_col: str = Form("Layers"),
+    material_col: str = Form("Material"),
+    qty_col: str = Form("Qty"),
+    size_col: str = Form("Size"),
+    total_col: str = Form("Quote"),
+    quote_date_col: str = Form("Date"),
+    outcome_col: str = Form("Result"),
+    user=Depends(get_current_user_optional),
+):
+    if user is None:
+        return RedirectResponse(url="/login", status_code=303)
+
+    try:
+        file_bytes = await file.read()
+        mapping = _mapping_from_form(
+            customer_col,
+            layer_col,
+            material_col,
+            qty_col,
+            size_col,
+            total_col,
+            quote_date_col,
+            outcome_col,
+        )
+        if action == "confirm":
+            query_db = db.SessionLocal()
+            try:
+                result = confirm_import(query_db, db, file_bytes, mapping, user_id=user.id)
+            finally:
+                query_db.close()
+            if result["status"] == "error":
+                return templates.TemplateResponse(
+                    "import_quotes.html",
+                    {"request": request, "user": user, "result": result, "error": "Invalid rows must be fixed before import."},
+                    status_code=400,
+                )
+        else:
+            result = preview_import(file_bytes, mapping)
+    except Exception as e:
+        return templates.TemplateResponse(
+            "import_quotes.html",
+            {"request": request, "user": user, "result": None, "error": str(e)},
+            status_code=400,
+        )
+
+    return templates.TemplateResponse(
+        "import_quotes.html",
+        {"request": request, "user": user, "result": result, "error": None},
+    )
 
 
 @router.get("/stats", response_class=HTMLResponse)

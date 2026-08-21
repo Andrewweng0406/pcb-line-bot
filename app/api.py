@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from datetime import datetime, timedelta
 import app.core.database as db
 from app.web import get_current_user_optional
@@ -9,6 +9,7 @@ from app.business_analytics import (
     get_pricing_trends,
 )
 from app.historical_intelligence import find_similar_quotes, historical_pricing_summary
+from app.import_quotes import confirm_import, parse_mapping_json, preview_import
 from app.quote_metrics import calculate_margin, to_non_negative_float, to_non_negative_int
 from app.quote_outcomes import normalize_lost_reason, normalize_outcome
 
@@ -341,3 +342,44 @@ def get_stats_top_customers(user=Depends(require_user)):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/import/quotes/preview")
+async def preview_quote_import(
+    file: UploadFile = File(...),
+    mapping_json: str = Form("{}"),
+    user=Depends(require_user),
+):
+    try:
+        file_bytes = await file.read()
+        return preview_import(file_bytes, parse_mapping_json(mapping_json))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/import/quotes/confirm")
+async def confirm_quote_import(
+    file: UploadFile = File(...),
+    mapping_json: str = Form("{}"),
+    user=Depends(require_user),
+):
+    try:
+        file_bytes = await file.read()
+        session = db.SessionLocal()
+        try:
+            result = confirm_import(
+                session,
+                db,
+                file_bytes,
+                parse_mapping_json(mapping_json),
+                user_id=user.id,
+            )
+        finally:
+            session.close()
+        if result["status"] == "error":
+            raise HTTPException(status_code=400, detail=result)
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))

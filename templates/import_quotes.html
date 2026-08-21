@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}匯入歷史報價 - PCB 報價系統{% endblock %}
+{% block content %}
+<h1 class="text-2xl mb-6">匯入歷史報價</h1>
+
+{% if error %}
+<div class="card p-4 mb-6" style="border-color: #B91C1C; color: #B91C1C">{{ error }}</div>
+{% endif %}
+
+<form method="post" action="/import/quotes" enctype="multipart/form-data" class="card p-6 mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <label class="text-sm md:col-span-3">
+            Excel File
+            <input type="file" name="file" accept=".xlsx" required class="block mt-1 text-sm">
+        </label>
+        <label class="text-sm">Customer Column<input name="customer_col" value="Customer Name" class="w-full border rounded-lg px-3 py-2" style="border-color: var(--border)"></label>
+        <label class="text-sm">Layer Column<input name="layer_col" value="Layers" class="w-full border rounded-lg px-3 py-2" style="border-color: var(--border)"></label>
+        <label class="text-sm">Material Column<input name="material_col" value="Material" class="w-full border rounded-lg px-3 py-2" style="border-color: var(--border)"></label>
+        <label class="text-sm">Qty Column<input name="qty_col" value="Qty" class="w-full border rounded-lg px-3 py-2" style="border-color: var(--border)"></label>
+        <label class="text-sm">Size Column<input name="size_col" value="Size" class="w-full border rounded-lg px-3 py-2" style="border-color: var(--border)"></label>
+        <label class="text-sm">Quote Column<input name="total_col" value="Quote" class="w-full border rounded-lg px-3 py-2" style="border-color: var(--border)"></label>
+        <label class="text-sm">Date Column<input name="quote_date_col" value="Date" class="w-full border rounded-lg px-3 py-2" style="border-color: var(--border)"></label>
+        <label class="text-sm">Result Column<input name="outcome_col" value="Result" class="w-full border rounded-lg px-3 py-2" style="border-color: var(--border)"></label>
+    </div>
+    <div class="mt-5 flex flex-wrap gap-3">
+        <button type="submit" name="action" value="preview" class="btn-secondary px-4 py-2 text-sm">Preview / Dry Run</button>
+        <button type="submit" name="action" value="confirm" class="btn-primary px-4 py-2 text-sm">Confirm Import</button>
+    </div>
+</form>
+
+{% if result %}
+<div class="card p-6 overflow-x-auto">
+    <h2 class="font-medium mb-3">Import Preview</h2>
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4 font-data">
+        <p>Rows: {{ result.rows_detected }}</p>
+        <p>Valid: {{ result.valid }}</p>
+        <p>Warnings: {{ result.warnings }}</p>
+        <p>Invalid: {{ result.invalid }}</p>
+        <p>Committed: {{ result.committed if result.committed is defined else 0 }}</p>
+    </div>
+    <table class="w-full text-sm whitespace-nowrap">
+        <thead style="color: var(--ink-muted)" class="text-left">
+            <tr>
+                <th class="py-2 pr-4">Row</th>
+                <th class="py-2 pr-4">Status</th>
+                <th class="py-2 pr-4">Layer</th>
+                <th class="py-2 pr-4">Qty</th>
+                <th class="py-2 pr-4">Quote</th>
+                <th class="py-2 pr-4">Warnings / Errors</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in result.preview_rows %}
+            <tr style="border-top: 1px solid var(--border)">
+                <td class="py-2 pr-4 font-data">{{ row.row_number }}</td>
+                <td class="py-2 pr-4">{{ row.status }}</td>
+                <td class="py-2 pr-4 font-data">{{ row.mapped.layer or "-" }}</td>
+                <td class="py-2 pr-4 font-data">{{ row.mapped.qty or "-" }}</td>
+                <td class="py-2 pr-4 font-data">{{ row.mapped.total or "-" }}</td>
+                <td class="py-2 pr-4">{{ (row.errors + row.warnings) | join("; ") }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endblock %}
