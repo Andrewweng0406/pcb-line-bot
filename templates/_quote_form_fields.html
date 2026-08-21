@@ -112,6 +112,9 @@
         <input type="checkbox" name="bvh" {% if form.bvh %}checked{% endif %}> BVH
     </label>
     <label class="flex items-center gap-2 text-sm">
+        <input type="checkbox" name="is_reorder" {% if form.is_reorder or form.reorder %}checked{% endif %}> Re-order
+    </label>
+    <label class="flex items-center gap-2 text-sm">
         <input type="checkbox" name="hard_gold" {% if form.hard_gold %}checked{% endif %}> Hard Gold
     </label>
     <label class="flex items-center gap-2 text-sm">

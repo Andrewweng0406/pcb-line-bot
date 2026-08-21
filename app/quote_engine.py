@@ -185,13 +185,105 @@ def get_press_multiplier(press_count=None):
         return 1.0, "單次壓合"
 
 
-def get_quantity_discount(qty):
+def get_quantity_discount(qty, is_reorder=False):
     """Get the quantity discount."""
-    qty = int(qty)
-    if qty >= 2:
+    if is_reorder:
         return 0.9  # 10% discount for re-orders
+    return 1.0
+
+
+def get_line_space_multiplier(line_space_mil=None):
+    """Get line/space surcharge multiplier."""
+    if line_space_mil is None:
+        return 1.0, "未提供 Line/Space"
+
+    mil = float(line_space_mil)
+    if mil <= 3:
+        return 1.45, "Line/Space ≤3mil (×1.45)"
+    if mil <= 4:
+        return 1.2, "Line/Space 3.1-4mil (×1.2)"
+    return 1.0, "Line/Space 標準"
+
+
+def get_min_hole_multiplier(min_hole_mil=None):
+    """Get minimum drill hole surcharge multiplier."""
+    if min_hole_mil is None:
+        return 1.0, "未提供最小孔徑"
+
+    mil = float(min_hole_mil)
+    if mil < 8:
+        return 1.2, "最小孔徑 <8mil (×1.2)"
+    return 1.0, "最小孔徑標準"
+
+
+def get_copper_multiplier(outer_oz=None, inner_oz=None, copper_weight_oz=None):
+    """Get copper thickness surcharge multiplier."""
+    weights = []
+    for value in (outer_oz, inner_oz, copper_weight_oz):
+        if value is not None:
+            weights.append(float(value))
+    if not weights:
+        return 1.0, "未提供銅厚"
+
+    max_oz = max(weights)
+    if max_oz > 2:
+        return 1.25, "銅厚 >2oz (×1.25)"
+    if max_oz > 1:
+        return 1.1, "銅厚 >1oz (×1.1)"
+    return 1.0, "標準銅厚"
+
+
+def get_warpage_multiplier(warpage_mil_per_inch=None):
+    """Get warpage tolerance surcharge multiplier."""
+    if warpage_mil_per_inch is None:
+        return 1.0, "未提供板翹"
+
+    mil = float(warpage_mil_per_inch)
+    if mil <= 2:
+        return 1.4, "板翹 ≤2mil/inch (×1.4)"
+    if mil <= 3:
+        return 1.2, "板翹 ≤3mil/inch (×1.2)"
+    return 1.0, "板翹標準"
+
+
+def get_hard_gold_fee(thickness_uinch=None):
+    """Hard gold should not silently reuse ENIG pricing."""
+    thickness = float(thickness_uinch or 0)
+    if thickness <= 10:
+        return 12000
+    if thickness <= 30:
+        return 24000
+    return 36000
+
+
+def build_pricing_review(data, warnings, follow_up, applied_factors, unpriced_factors):
+    critical_missing = [
+        label for key, label in [
+            ("delivery_days", "交期"),
+            ("pitch_mm", "Pitch"),
+            ("thickness_mm", "板厚"),
+        ]
+        if data.get(key) is None
+    ]
+    if unpriced_factors or len(warnings) >= 3:
+        status = "needs_review"
+        label = "需主管確認"
+    elif critical_missing:
+        status = "estimate"
+        label = "初估"
     else:
-        return 1.0
+        status = "quotable"
+        label = "可報價"
+
+    return {
+        "status": status,
+        "label": label,
+        "critical_missing": critical_missing,
+        "applied_factors": applied_factors,
+        "unpriced_factors": unpriced_factors,
+        "risk_flags": warnings,
+        "follow_up_questions": follow_up,
+    }
 
 
 def get_delivery_days_by_layer(layer):
@@ -259,6 +351,8 @@ def calculate_quote(data):
     explanations = []
     warnings = []
     follow_up = []
+    applied_factors = []
+    unpriced_factors = []
 
     # ========================================================================
     # 1. Validate required fields
@@ -336,6 +430,7 @@ def calculate_quote(data):
         multiplier *= pitch_mult
         details.append(pitch_desc)
         warnings.append(f"⚠️ {pitch_desc}")
+        applied_factors.append(pitch_desc)
 
     # Trace-to-hole surcharge
     tth_mult, tth_desc = get_trace_to_hole_multiplier(data.get("trace_to_hole_mil"))
@@ -343,12 +438,14 @@ def calculate_quote(data):
         multiplier *= tth_mult
         details.append(tth_desc)
         warnings.append(f"⚠️ {tth_desc}")
+        applied_factors.append(tth_desc)
 
     # Flatness surcharge
     flat_mult, flat_desc = get_flatness_multiplier(data.get("flatness"))
     if flat_mult > 1:
         multiplier *= flat_mult
         details.append(flat_desc)
+        applied_factors.append(flat_desc)
 
     # Aspect ratio surcharge
     ar = data.get("aspect_ratio")
@@ -362,15 +459,65 @@ def calculate_quote(data):
         multiplier *= ar_mult
         details.append(ar_desc)
         warnings.append(f"⚠️ {ar_desc}")
+        applied_factors.append(ar_desc)
 
     # Thickness surcharge
     thick_mult, thick_desc = get_thickness_multiplier(data.get("thickness_mm"))
     if thick_mult > 1:
         multiplier *= thick_mult
         details.append(thick_desc)
+        applied_factors.append(thick_desc)
+
+    line_mult, line_desc = get_line_space_multiplier(data.get("line_space_mil"))
+    if line_mult > 1:
+        multiplier *= line_mult
+        details.append(line_desc)
+        warnings.append(f"⚠️ {line_desc}")
+        applied_factors.append(line_desc)
+
+    min_hole_mult, min_hole_desc = get_min_hole_multiplier(data.get("min_hole_mil"))
+    if min_hole_mult > 1:
+        multiplier *= min_hole_mult
+        details.append(min_hole_desc)
+        warnings.append(f"⚠️ {min_hole_desc}")
+        applied_factors.append(min_hole_desc)
+
+    copper_mult, copper_desc = get_copper_multiplier(
+        data.get("copper_outer_oz"),
+        data.get("copper_inner_oz"),
+        data.get("copper_weight_oz"),
+    )
+    if copper_mult > 1:
+        multiplier *= copper_mult
+        details.append(copper_desc)
+        warnings.append(f"⚠️ {copper_desc}")
+        applied_factors.append(copper_desc)
+
+    warpage_mult, warpage_desc = get_warpage_multiplier(data.get("warpage_mil_per_inch"))
+    if warpage_mult > 1:
+        multiplier *= warpage_mult
+        details.append(warpage_desc)
+        warnings.append(f"⚠️ {warpage_desc}")
+        applied_factors.append(warpage_desc)
 
     if details:
-        explanations.append(f"規格加費倍數: {' × '.join(str(m) for m in [p for p in [pitch_mult, tth_mult, flat_mult, ar_mult, thick_mult] if p > 1])} = ×{multiplier:.2f}")
+        multiplier_parts = [
+            p for p in [
+                pitch_mult,
+                tth_mult,
+                flat_mult,
+                ar_mult,
+                thick_mult,
+                line_mult,
+                min_hole_mult,
+                copper_mult,
+                warpage_mult,
+            ]
+            if p > 1
+        ]
+        explanations.append(
+            f"規格加費倍數: {' × '.join(str(m) for m in multiplier_parts)} = ×{multiplier:.2f}"
+        )
 
     # ========================================================================
     # 7. Material cost (board charge + specification surcharges)
@@ -383,16 +530,24 @@ def calculate_quote(data):
     extra_fee = 0
 
     # ENIG plating
-    if data.get("enig"):
+    if data.get("hard_gold"):
+        hard_gold_fee = get_hard_gold_fee(data.get("enig_thickness_uinch"))
+        extra_fee += hard_gold_fee
+        explanations.append(f"Hard Gold: {hard_gold_fee:,}")
+        warnings.append("⚠️ Hard Gold 已獨立計價，請確認不同於 ENIG")
+        applied_factors.append(f"Hard Gold: {hard_gold_fee:,}")
+    elif data.get("enig"):
         enig_fee = get_enig_fee(data.get("enig_thickness_uinch"))
         extra_fee += enig_fee
         explanations.append(f"ENIG 鍍金: {enig_fee:,}")
+        applied_factors.append(f"ENIG 鍍金: {enig_fee:,}")
 
     # Via-in-pad resin plugging (VIP)
     if data.get("vip"):
         extra_fee += 5000
         explanations.append("樹脂塞孔 (VIP): 5,000")
         warnings.append("⚠️ VIP 製程，需確認塞孔要求")
+        applied_factors.append("VIP: 5,000")
 
     # Back drilling
     if data.get("back_drill"):
@@ -400,6 +555,20 @@ def calculate_quote(data):
         extra_fee += back_drill_fee
         explanations.append(f"背鑽: {back_drill_fee:,}")
         warnings.append("⚠️ 背鑽製程，需注意對位精度")
+        applied_factors.append(f"Back Drill: {back_drill_fee:,}")
+
+    if data.get("countersunk"):
+        extra_fee += 3000
+        explanations.append("Countersunk: 3,000")
+        applied_factors.append("Countersunk: 3,000")
+
+    if data.get("counterbored"):
+        extra_fee += 3000
+        explanations.append("Counterbored: 3,000")
+        applied_factors.append("Counterbored: 3,000")
+
+    if data.get("inspection_report_required"):
+        unpriced_factors.append("Inspection report requested; confirm whether to charge separately.")
 
     # Inner-layer AOI
     internal_layers = int(data.get("internal_layers", 0))
@@ -407,6 +576,7 @@ def calculate_quote(data):
         aoi_fee = get_aoi_fee(internal_layers)
         extra_fee += aoi_fee
         explanations.append(f"內層 AOI ({internal_layers} 層): {aoi_fee:,}")
+        applied_factors.append(f"內層 AOI: {aoi_fee:,}")
 
     # ========================================================================
     # 9. Lamination surcharge
@@ -416,6 +586,7 @@ def calculate_quote(data):
         extra_fee = extra_fee * press_mult + setup_fee * (press_mult - 1)
         explanations.append(f"壓合加費: {press_desc}")
         warnings.append(f"⚠️ {press_desc}")
+        applied_factors.append(press_desc)
 
     # ========================================================================
     # 10. Subtotal (setup fee + material cost + processing fees)
@@ -425,9 +596,10 @@ def calculate_quote(data):
     # ========================================================================
     # 11. Quantity discount
     # ========================================================================
-    discount = get_quantity_discount(qty)
+    discount = get_quantity_discount(qty, data.get("is_reorder") or data.get("reorder"))
     if discount < 1:
         explanations.append(f"數量折扣: ×{discount} (Re-Order)")
+        applied_factors.append(f"Re-order discount: ×{discount}")
 
     # ========================================================================
     # 12. Delivery lead-time surcharge
@@ -461,6 +633,17 @@ def calculate_quote(data):
     if data.get("enig") is None and not data.get("vip"):
         follow_up.append("請問表面處理是 ENIG 還是其他？")
 
+    if data.get("delivery_days") is None:
+        follow_up.append("請問交期需求是幾個工作天？")
+
+    pricing_review = build_pricing_review(
+        data,
+        warnings,
+        follow_up,
+        applied_factors,
+        unpriced_factors,
+    )
+
     # ========================================================================
     # 15. Return result
     # ========================================================================
@@ -486,4 +669,5 @@ def calculate_quote(data):
         "explanations": explanations,
         "warnings": warnings,
         "follow_up_questions": follow_up,
+        "pricing_review": pricing_review,
     }

@@ -32,6 +32,7 @@ JSON 格式：
   "impedance": null,
   "back_drill": null,
   "bvh": null,
+  "is_reorder": null,
   "hard_gold": null,
   "countersunk": null,
   "counterbored": null,
@@ -72,6 +73,8 @@ JSON 格式：
 
 如果使用者說「改成 4 pcs」「數量改 4」，qty = 4
 如果使用者說「投料率改 2」「4片產出2片」，issue_ratio = 2
+如果使用者說「Re-order」「復投」「舊案重下」，is_reorder = true
+如果使用者說「New Version」「新版」「新案」，is_reorder = false
 
 沒有提到的欄位保持 null，不要自己填 false。
 

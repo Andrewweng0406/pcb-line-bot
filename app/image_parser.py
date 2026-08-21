@@ -48,6 +48,7 @@ def parse_pcb_image(image_path):
 - 如果看到 Impedance、50 ohm、Ω，代表 impedance = true
 - 如果看到 Back Drill、Backdrill，代表 back_drill = true
 - 如果看到 BVH、Blind Via Hole，代表 bvh = true
+- 如果看到 Re-order 被勾選，代表 is_reorder = true；New Version 被勾選且 Re-order 未勾選，is_reorder = false。
 - 如果看到 Countersunk、Counterbored、皿孔、沉頭孔，代表 countersunk = true 或 counterbored = true
 - 如果看到 Please provide inspection report、出貨檢驗及量測報告，代表 inspection_report_required = true，並把句子放到 special_requirements。
 - 如果找不到欄位，請用 null 或 false，不要猜
@@ -121,6 +122,7 @@ JSON 格式：
   "impedance": false,
   "back_drill": false,
   "bvh": false,
+  "is_reorder": false,
   "hard_gold": false,
   "countersunk": false,
   "counterbored": false,

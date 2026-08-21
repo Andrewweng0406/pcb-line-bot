@@ -25,6 +25,12 @@
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
     <div class="card p-6">
         <h2 class="font-medium mb-3">業務下一步</h2>
+        {% set pricing_review = quote.breakdown_json.pricing_review if quote.breakdown_json and quote.breakdown_json.pricing_review else none %}
+        {% if pricing_review %}
+        <p class="font-data text-xl mb-2" style="color: var(--copper-dark)">
+            價格狀態：{{ pricing_review.label }}
+        </p>
+        {% endif %}
         <p class="font-data text-xl mb-3" style="color: var(--copper-dark)">
             RFQ Data Quality：{{ (rfq_completeness.completeness_score * 100) | round | int }}% Complete
         </p>
@@ -46,6 +52,22 @@
         {% endif %}
         {% if not rfq_completeness.required_missing_labels and not rfq_completeness.recommended_missing_labels %}
         <p class="mb-4" style="color: var(--ink-muted)">資料完整，可以產生正式報價單。</p>
+        {% endif %}
+        {% if pricing_review and pricing_review.critical_missing %}
+        <div class="mb-4" style="color: var(--ink-muted)">
+            <p class="font-medium">價格初估缺少</p>
+            {% for label in pricing_review.critical_missing %}
+            <p class="text-sm">- {{ label }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if pricing_review and pricing_review.unpriced_factors %}
+        <div class="mb-4">
+            <p class="font-medium">需人工確認成本</p>
+            {% for label in pricing_review.unpriced_factors %}
+            <p class="text-sm">- {{ label }}</p>
+            {% endfor %}
+        </div>
         {% endif %}
         <div class="flex flex-wrap gap-3">
             <a href="/quotes/{{ quote.id }}/export/formal" class="btn-primary px-4 py-2 text-sm whitespace-nowrap">
@@ -81,6 +103,14 @@
         <h2 class="font-medium mb-3">內部計價摘要</h2>
         <p class="font-data">預估成本：{{ "NT$ {:,.0f}".format(quote.estimated_cost) if quote.estimated_cost is not none else "-" }}</p>
         <p class="font-data">預估毛利：{{ "{:.1f}%".format(quote.estimated_margin_pct * 100) if quote.estimated_margin_pct is not none else "-" }}</p>
+        {% if quote.breakdown_json and quote.breakdown_json.pricing_review and quote.breakdown_json.pricing_review.applied_factors %}
+        <div class="mt-3 text-sm" style="color: var(--ink-muted)">
+            <p class="font-medium">已套用價格因子</p>
+            {% for line in quote.breakdown_json.pricing_review.applied_factors[:5] %}
+            <p>- {{ line }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
         {% if quote.breakdown_json and quote.breakdown_json.explanations %}
         <div class="mt-3 text-sm font-data" style="color: var(--ink-muted)">
             {% for line in quote.breakdown_json.explanations[:4] %}
