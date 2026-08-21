@@ -3,6 +3,8 @@ from datetime import datetime, timedelta
 import app.core.database as db
 from app.web import get_current_user_optional
 from sqlalchemy import desc
+from app.quote_metrics import calculate_margin, to_non_negative_float, to_non_negative_int
+from app.quote_outcomes import normalize_lost_reason, normalize_outcome
 
 router = APIRouter(prefix="/api", tags=["api"])
 
@@ -107,6 +109,10 @@ def get_quote(quote_id: int, user=Depends(require_user)):
             "issue_ratio": quote.issue_ratio,
             "total": quote.total,
             "unit_price": quote.unit_price,
+            "quote_outcome": quote.quote_outcome,
+            "final_price": quote.final_price,
+            "actual_cost": quote.actual_cost,
+            "actual_margin_pct": quote.actual_margin_pct,
             "created_at": quote.created_at.isoformat()
         }
     except HTTPException:
@@ -127,11 +133,49 @@ def update_quote(quote_id: int, data: dict, user=Depends(require_user)):
 
         # Update allowed fields
         if "total" in data:
-            quote.total = data["total"]
+            total = to_non_negative_float(data["total"])
+            if total is None:
+                raise HTTPException(status_code=400, detail="Invalid total")
+            quote.total = total
         if "status" in data:
             quote.status = data["status"]
         if "notes" in data:
             quote.notes = data["notes"]
+        if "quote_outcome" in data:
+            outcome = normalize_outcome(data["quote_outcome"])
+            if outcome is None:
+                raise HTTPException(status_code=400, detail="Invalid quote_outcome")
+            quote.quote_outcome = outcome
+        if "final_price" in data:
+            final_price = to_non_negative_float(data["final_price"])
+            if data["final_price"] not in (None, "") and final_price is None:
+                raise HTTPException(status_code=400, detail="Invalid final_price")
+            quote.final_price = final_price
+        if "actual_cost" in data:
+            actual_cost = to_non_negative_float(data["actual_cost"])
+            if data["actual_cost"] not in (None, "") and actual_cost is None:
+                raise HTTPException(status_code=400, detail="Invalid actual_cost")
+            quote.actual_cost = actual_cost
+        if "production_lead_time_actual" in data:
+            days = to_non_negative_int(data["production_lead_time_actual"])
+            if data["production_lead_time_actual"] not in (None, "") and days is None:
+                raise HTTPException(status_code=400, detail="Invalid production_lead_time_actual")
+            quote.production_lead_time_actual = days
+        if "lost_reason" in data:
+            lost_reason = normalize_lost_reason(data["lost_reason"])
+            if data["lost_reason"] not in (None, "") and lost_reason is None:
+                raise HTTPException(status_code=400, detail="Invalid lost_reason")
+            quote.lost_reason = lost_reason
+        if "lost_reason_note" in data:
+            quote.lost_reason_note = data["lost_reason_note"] or None
+        if "competitor_name" in data:
+            quote.competitor_name = data["competitor_name"] or None
+        if "competitor_price" in data:
+            competitor_price = to_non_negative_float(data["competitor_price"])
+            if data["competitor_price"] not in (None, "") and competitor_price is None:
+                raise HTTPException(status_code=400, detail="Invalid competitor_price")
+            quote.competitor_price = competitor_price
+        quote.actual_margin_pct = calculate_margin(quote.final_price, quote.actual_cost)
         quote.updated_by_user_id = user.id
 
         session.commit()

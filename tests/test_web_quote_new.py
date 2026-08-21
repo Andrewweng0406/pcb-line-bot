@@ -47,6 +47,9 @@ def test_submitting_quote_creates_row_and_links_customer(temp_db):
     assert quote.customer.company_name == "ABC Corp"
     assert quote.created_by.email == "staff@example.com"
     assert quote.spec_json["material"] == "FR4"
+    assert quote.source_channel == "web"
+    assert quote.product_type == "pcb"
+    assert quote.pricing_version == "v1"
     db.close()
 
 

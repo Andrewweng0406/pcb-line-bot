@@ -22,7 +22,18 @@ def test_create_customer(temp_db):
 
 
 def test_save_quote_stores_full_spec_and_breakdown(temp_db):
-    parsed = {"layer": 6, "material": "FR4", "qty": 9, "enig": True}
+    parsed = {
+        "layer": "6L",
+        "material": "FR4",
+        "qty": 9,
+        "enig": True,
+        "enig_thickness_uinch": 10,
+        "length_mm": 100,
+        "width_mm": 100,
+        "copper_weight": "1oz",
+        "thickness_mm": 1.6,
+        "delivery_days": 7,
+    }
     result = {"status": "success", "total": 12345.0, "unit_price": 1371.67, "issue_ratio": 1.0}
 
     ok = temp_db.save_quote("line:U123", parsed, result)
@@ -36,6 +47,21 @@ def test_save_quote_stores_full_spec_and_breakdown(temp_db):
     assert quote.spec_json == parsed
     assert quote.breakdown_json == result
     assert quote.quote_no.startswith("PCB-")
+    assert quote.layer == 6
+    assert quote.material == "FR4"
+    assert quote.area_in2 == 15.5
+    assert quote.surface_finish == "ENIG"
+    assert quote.gold_thickness_uin == 10
+    assert quote.copper_weight_oz == 1.0
+    assert quote.board_thickness_mm == 1.6
+    assert quote.delivery_days == 7
+    assert quote.quote_outcome == "pending"
+    assert quote.source_channel == "line"
+    assert quote.product_type == "pcb"
+    assert quote.pricing_version == "v1"
+    assert quote.currency is None
+    assert quote.estimated_cost is None
+    assert quote.estimated_margin_pct is None
     db.close()
 
 
@@ -79,6 +105,14 @@ def test_migration_adds_expected_columns(temp_db):
     assert "breakdown_json" in columns
     assert "created_by_user_id" in columns
     assert "updated_by_user_id" in columns
+    assert "rfq_received_at" in columns
+    assert "area_in2" in columns
+    assert "quote_outcome" in columns
+    assert "final_price" in columns
+    assert "actual_margin_pct" in columns
+    assert "source_channel" in columns
+    assert "product_type" in columns
+    assert "pricing_version" in columns
 
 
 def test_migration_upgrades_legacy_schema_without_losing_data(temp_db):
@@ -109,21 +143,43 @@ def test_migration_upgrades_legacy_schema_without_losing_data(temp_db):
             """
         ))
         conn.execute(text(
-            "INSERT INTO quote_history (customer_id, layer, total) "
-            "VALUES ('Uabc123', 6, 12345.0)"
+            "INSERT INTO quote_history (customer_id, layer, total, created_at) "
+            "VALUES ('Uabc123', 6, 12345.0, '2026-07-23 00:00:00')"
         ))
 
+    temp_db._run_migrations(temp_db.engine)
     temp_db._run_migrations(temp_db.engine)
 
     inspector = inspect(temp_db.engine)
     columns = {col["name"] for col in inspector.get_columns("quote_history")}
     assert "source_channel_id" in columns
     assert "spec_json" in columns
+    assert "quote_outcome" in columns
+    assert "source_channel" in columns
+    assert "product_type" in columns
 
     db = temp_db.SessionLocal()
     quote = db.query(temp_db.QuoteHistory).first()
     assert quote.source_channel_id == "Uabc123"
     assert quote.total == 12345.0
+    assert quote.quote_outcome == "pending"
+    assert quote.source_channel == "line"
+    assert quote.product_type == "pcb"
+    assert quote.rfq_received_at is not None
+    db.close()
+
+
+def test_source_channel_backfill_marks_ambiguous_as_legacy(temp_db):
+    from sqlalchemy import text
+
+    with temp_db.engine.begin() as conn:
+        conn.execute(text("INSERT INTO quote_history (source_channel_id, layer, qty, total) VALUES ('unknown-user', 6, 1, 10)"))
+
+    temp_db._run_migrations(temp_db.engine)
+
+    db = temp_db.SessionLocal()
+    quote = db.query(temp_db.QuoteHistory).filter(temp_db.QuoteHistory.source_channel_id == "unknown-user").first()
+    assert quote.source_channel == "legacy"
     db.close()
 
 

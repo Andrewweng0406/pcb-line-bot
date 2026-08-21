@@ -19,6 +19,18 @@ from app.core.storage import file_storage
 from app.export_excel import export_quote_excel
 from app.formal_quote_export import export_formal_quote
 from app.image_parser import parse_pcb_image
+from app.quote_metrics import (
+    calculate_margin,
+    to_non_negative_float,
+    to_non_negative_int,
+)
+from app.quote_outcomes import (
+    LOST_REASON_LABELS,
+    OUTCOME_LABELS,
+    normalize_lost_reason,
+    normalize_outcome,
+)
+from app.rfq_completeness import evaluate_rfq_completeness
 from app.quote_engine import calculate_quote
 
 STATUS_LABELS = {"pending": "待審核", "approved": "已批准", "ordered": "已下單"}
@@ -354,7 +366,15 @@ def quote_detail(request: Request, quote_id: int, user=Depends(get_current_user_
 
     return templates.TemplateResponse(
         "quote_detail.html",
-        {"request": request, "user": user, "quote": quote, "status_labels": STATUS_LABELS},
+        {
+            "request": request,
+            "user": user,
+            "quote": quote,
+            "status_labels": STATUS_LABELS,
+            "outcome_labels": OUTCOME_LABELS,
+            "lost_reason_labels": LOST_REASON_LABELS,
+            "rfq_completeness": evaluate_rfq_completeness(quote),
+        },
     )
 
 
@@ -363,6 +383,14 @@ def update_quote(
     quote_id: int,
     status: str = Form(...),
     notes: str = Form(""),
+    quote_outcome: Optional[str] = Form(None),
+    final_price: Optional[str] = Form(None),
+    actual_cost: Optional[str] = Form(None),
+    production_lead_time_actual: Optional[str] = Form(None),
+    lost_reason: Optional[str] = Form(None),
+    lost_reason_note: Optional[str] = Form(None),
+    competitor_name: Optional[str] = Form(None),
+    competitor_price: Optional[str] = Form(None),
     user=Depends(get_current_user_optional),
 ):
     if user is None:
@@ -376,6 +404,40 @@ def update_quote(
 
     quote.status = status
     quote.notes = notes
+    if quote_outcome is not None:
+        normalized_outcome = normalize_outcome(quote_outcome)
+        if normalized_outcome is None:
+            query_db.close()
+            raise HTTPException(status_code=400, detail="Invalid quote outcome")
+        quote.quote_outcome = normalized_outcome
+
+    numeric_updates = [
+        ("final_price", final_price, to_non_negative_float),
+        ("actual_cost", actual_cost, to_non_negative_float),
+        ("competitor_price", competitor_price, to_non_negative_float),
+        ("production_lead_time_actual", production_lead_time_actual, to_non_negative_int),
+    ]
+    for field_name, raw_value, parser in numeric_updates:
+        if raw_value is None:
+            continue
+        parsed_value = parser(raw_value)
+        if raw_value != "" and parsed_value is None:
+            query_db.close()
+            raise HTTPException(status_code=400, detail=f"Invalid {field_name}")
+        setattr(quote, field_name, parsed_value)
+
+    quote.actual_margin_pct = calculate_margin(quote.final_price, quote.actual_cost)
+
+    if lost_reason is not None:
+        normalized_lost_reason = normalize_lost_reason(lost_reason)
+        if lost_reason and normalized_lost_reason is None:
+            query_db.close()
+            raise HTTPException(status_code=400, detail="Invalid lost reason")
+        quote.lost_reason = normalized_lost_reason
+    if lost_reason_note is not None:
+        quote.lost_reason_note = lost_reason_note or None
+    if competitor_name is not None:
+        quote.competitor_name = competitor_name or None
     quote.updated_by_user_id = user.id
     query_db.commit()
     query_db.close()

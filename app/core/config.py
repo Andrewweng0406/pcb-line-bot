@@ -15,6 +15,10 @@ class Settings(BaseSettings):
     # Shared code required to self-register a web login account
     INVITE_CODE: str = os.getenv("INVITE_CODE", "dev-invite-change-me")
 
+    # Quote data foundation
+    DEFAULT_CURRENCY: str = os.getenv("DEFAULT_CURRENCY", "")
+    PRICING_VERSION: str = os.getenv("PRICING_VERSION", "v1")
+
     # LINE Bot
     LINE_CHANNEL_ACCESS_TOKEN: str = os.getenv("LINE_CHANNEL_ACCESS_TOKEN", "")
     LINE_CHANNEL_SECRET: str = os.getenv("LINE_CHANNEL_SECRET", "")

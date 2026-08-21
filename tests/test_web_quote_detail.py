@@ -45,10 +45,57 @@ def test_update_quote_status_and_notes(temp_db):
     quote_id = db.query(temp_db.QuoteHistory).order_by(temp_db.QuoteHistory.id.desc()).first().id
     db.close()
 
+
+def test_update_quote_outcome_won_fields_and_margin(temp_db):
+    temp_db.save_quote("web:1", {"layer": 6, "qty": 1, "area_inch": 10}, {"status": "success", "total": 100.0, "unit_price": 100.0})
+    db = temp_db.SessionLocal()
+    quote_id = db.query(temp_db.QuoteHistory).order_by(temp_db.QuoteHistory.id.desc()).first().id
+    db.close()
+
     client = _logged_in_client(temp_db)
     response = client.post(
         f"/quotes/{quote_id}/update",
-        data={"status": "approved", "notes": "customer confirmed"},
+        data={
+            "status": "pending",
+            "notes": "",
+            "quote_outcome": "won",
+            "final_price": "120",
+            "actual_cost": "90",
+            "production_lead_time_actual": "8",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+
+    db = temp_db.SessionLocal()
+    quote = db.query(temp_db.QuoteHistory).filter(temp_db.QuoteHistory.id == quote_id).first()
+    assert quote.status == "pending"
+    assert quote.quote_outcome == "won"
+    assert quote.final_price == 120
+    assert quote.actual_cost == 90
+    assert quote.production_lead_time_actual == 8
+    assert quote.actual_margin_pct == 0.25
+    db.close()
+
+
+def test_update_quote_outcome_lost_without_reason_and_with_competitor_data(temp_db):
+    temp_db.save_quote("web:1", {"layer": 6, "qty": 1, "area_inch": 10}, {"status": "success", "total": 100.0, "unit_price": 100.0})
+    db = temp_db.SessionLocal()
+    quote_id = db.query(temp_db.QuoteHistory).order_by(temp_db.QuoteHistory.id.desc()).first().id
+    db.close()
+
+    client = _logged_in_client(temp_db)
+    response = client.post(
+        f"/quotes/{quote_id}/update",
+        data={
+            "status": "approved",
+            "notes": "still operationally approved",
+            "quote_outcome": "lost",
+            "lost_reason": "",
+            "lost_reason_note": "customer paused",
+            "competitor_name": "Other Fab",
+            "competitor_price": "95",
+        },
         follow_redirects=False,
     )
     assert response.status_code == 303
@@ -56,8 +103,40 @@ def test_update_quote_status_and_notes(temp_db):
     db = temp_db.SessionLocal()
     quote = db.query(temp_db.QuoteHistory).filter(temp_db.QuoteHistory.id == quote_id).first()
     assert quote.status == "approved"
-    assert quote.notes == "customer confirmed"
-    assert quote.updated_by.email == "staff@example.com"
+    assert quote.quote_outcome == "lost"
+    assert quote.lost_reason is None
+    assert quote.lost_reason_note == "customer paused"
+    assert quote.competitor_name == "Other Fab"
+    assert quote.competitor_price == 95
+    db.close()
+
+
+def test_status_update_does_not_clear_existing_outcome_data(temp_db):
+    temp_db.save_quote("web:1", {"layer": 6, "qty": 1, "area_inch": 10}, {"status": "success", "total": 100.0, "unit_price": 100.0})
+    db = temp_db.SessionLocal()
+    quote = db.query(temp_db.QuoteHistory).order_by(temp_db.QuoteHistory.id.desc()).first()
+    quote.quote_outcome = "won"
+    quote.final_price = 120
+    quote.actual_cost = 90
+    quote.actual_margin_pct = 0.25
+    quote_id = quote.id
+    db.commit()
+    db.close()
+
+    client = _logged_in_client(temp_db)
+    response = client.post(
+        f"/quotes/{quote_id}/update",
+        data={"status": "ordered", "notes": "ordered now"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+
+    db = temp_db.SessionLocal()
+    quote = db.query(temp_db.QuoteHistory).filter(temp_db.QuoteHistory.id == quote_id).first()
+    assert quote.status == "ordered"
+    assert quote.quote_outcome == "won"
+    assert quote.final_price == 120
+    assert quote.actual_margin_pct == 0.25
     db.close()
 
 

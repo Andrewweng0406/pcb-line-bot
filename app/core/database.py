@@ -7,6 +7,8 @@ from sqlalchemy.orm import sessionmaker, Session, relationship
 from datetime import datetime
 from app.core.config import settings
 from app.core.logging import get_logger
+from app.quote_metrics import calculate_margin
+from app.rfq_normalization import normalized_quote_fields
 
 logger = get_logger(__name__)
 
@@ -67,6 +69,29 @@ class QuoteHistory(Base):
     # fields added to the parser or quote engine don't require a migration.
     spec_json = Column(JSON, nullable=True)
     breakdown_json = Column(JSON, nullable=True)
+    rfq_received_at = Column(DateTime, nullable=True)
+    quote_sent_at = Column(DateTime, nullable=True)
+    area_in2 = Column(Float, nullable=True)
+    board_thickness_mm = Column(Float, nullable=True)
+    copper_weight_oz = Column(Float, nullable=True)
+    surface_finish = Column(String(100), nullable=True)
+    gold_thickness_uin = Column(Float, nullable=True)
+    delivery_days = Column(Integer, nullable=True)
+    estimated_cost = Column(Float, nullable=True)
+    estimated_margin_pct = Column(Float, nullable=True)
+    quote_outcome = Column(String(20), default="pending", index=True)
+    final_price = Column(Float, nullable=True)
+    actual_cost = Column(Float, nullable=True)
+    actual_margin_pct = Column(Float, nullable=True)
+    lost_reason = Column(String(50), nullable=True)
+    lost_reason_note = Column(Text, nullable=True)
+    competitor_name = Column(String(255), nullable=True)
+    competitor_price = Column(Float, nullable=True)
+    production_lead_time_actual = Column(Integer, nullable=True)
+    currency = Column(String(10), nullable=True)
+    source_channel = Column(String(50), nullable=True, index=True)
+    product_type = Column(String(50), default="pcb", index=True)
+    pricing_version = Column(String(50), nullable=True)
     created_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     updated_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
@@ -102,6 +127,29 @@ def _run_migrations(engine) -> None:
             "quote_no": "VARCHAR(50)",
             "spec_json": "JSON",
             "breakdown_json": "JSON",
+            "rfq_received_at": "TIMESTAMP",
+            "quote_sent_at": "TIMESTAMP",
+            "area_in2": "FLOAT",
+            "board_thickness_mm": "FLOAT",
+            "copper_weight_oz": "FLOAT",
+            "surface_finish": "VARCHAR(100)",
+            "gold_thickness_uin": "FLOAT",
+            "delivery_days": "INTEGER",
+            "estimated_cost": "FLOAT",
+            "estimated_margin_pct": "FLOAT",
+            "quote_outcome": "VARCHAR(20) DEFAULT 'pending'",
+            "final_price": "FLOAT",
+            "actual_cost": "FLOAT",
+            "actual_margin_pct": "FLOAT",
+            "lost_reason": "VARCHAR(50)",
+            "lost_reason_note": "TEXT",
+            "competitor_name": "VARCHAR(255)",
+            "competitor_price": "FLOAT",
+            "production_lead_time_actual": "INTEGER",
+            "currency": "VARCHAR(10)",
+            "source_channel": "VARCHAR(50)",
+            "product_type": "VARCHAR(50) DEFAULT 'pcb'",
+            "pricing_version": "VARCHAR(50)",
             "created_by_user_id": "INTEGER",
             "updated_by_user_id": "INTEGER",
         }
@@ -110,6 +158,40 @@ def _run_migrations(engine) -> None:
                 conn.execute(text(
                     f"ALTER TABLE quote_history ADD COLUMN {column_name} {column_type}"
                 ))
+                columns.add(column_name)
+
+        if "quote_outcome" in columns:
+            conn.execute(text(
+                "UPDATE quote_history SET quote_outcome = 'pending' "
+                "WHERE quote_outcome IS NULL"
+            ))
+        if "product_type" in columns:
+            conn.execute(text(
+                "UPDATE quote_history SET product_type = 'pcb' "
+                "WHERE product_type IS NULL"
+            ))
+        if "rfq_received_at" in columns and "created_at" in columns:
+            conn.execute(text(
+                "UPDATE quote_history SET rfq_received_at = created_at "
+                "WHERE rfq_received_at IS NULL"
+            ))
+        if "source_channel" in columns and "source_channel_id" in columns:
+            rows = conn.execute(text(
+                "SELECT id, source_channel_id FROM quote_history "
+                "WHERE source_channel IS NULL"
+            )).fetchall()
+            for row in rows:
+                source_channel_id = row[1] or ""
+                if source_channel_id.startswith("web:"):
+                    source_channel = "web"
+                elif source_channel_id.startswith("line:") or source_channel_id.startswith("U"):
+                    source_channel = "line"
+                else:
+                    source_channel = "legacy"
+                conn.execute(
+                    text("UPDATE quote_history SET source_channel = :source_channel WHERE id = :id"),
+                    {"source_channel": source_channel, "id": row[0]},
+                )
 
 
 def init_db():
@@ -184,6 +266,16 @@ def _generate_quote_no(db: Session) -> str:
     return f"PCB-{today_str}-{count_today + 1:03d}"
 
 
+def infer_source_channel(source_channel_id: str) -> str:
+    if not source_channel_id:
+        return "legacy"
+    if source_channel_id.startswith("web:"):
+        return "web"
+    if source_channel_id.startswith("line:") or source_channel_id.startswith("U"):
+        return "line"
+    return "legacy"
+
+
 def save_quote(
     source_channel_id: str,
     parsed: dict,
@@ -193,21 +285,39 @@ def save_quote(
 ) -> bool:
     try:
         db = SessionLocal()
+        normalized = normalized_quote_fields(parsed, result)
+        estimated_cost = result.get("estimated_cost")
+        total = result.get("total")
         quote = QuoteHistory(
             source_channel_id=source_channel_id,
             customer_id=customer_id,
-            layer=parsed.get("layer"),
+            layer=normalized.get("layer") or parsed.get("layer"),
             material=parsed.get("material"),
             length_mm=parsed.get("length_mm"),
             width_mm=parsed.get("width_mm"),
             qty=parsed.get("qty"),
             issue_ratio=result.get("issue_ratio", 1.0),
-            total=result.get("total"),
+            total=total,
             unit_price=result.get("unit_price"),
             status="pending",
             quote_no=_generate_quote_no(db),
             spec_json=parsed,
             breakdown_json=result,
+            rfq_received_at=datetime.utcnow(),
+            quote_sent_at=datetime.utcnow(),
+            area_in2=normalized.get("area_in2"),
+            board_thickness_mm=normalized.get("board_thickness_mm"),
+            copper_weight_oz=normalized.get("copper_weight_oz"),
+            surface_finish=normalized.get("surface_finish"),
+            gold_thickness_uin=normalized.get("gold_thickness_uin"),
+            delivery_days=normalized.get("delivery_days"),
+            estimated_cost=estimated_cost,
+            estimated_margin_pct=calculate_margin(total, estimated_cost),
+            quote_outcome="pending",
+            currency=settings.DEFAULT_CURRENCY or None,
+            source_channel=infer_source_channel(source_channel_id),
+            product_type="pcb",
+            pricing_version=settings.PRICING_VERSION,
             created_by_user_id=created_by_user_id,
         )
         db.add(quote)
