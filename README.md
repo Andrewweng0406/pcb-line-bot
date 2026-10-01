@@ -5,6 +5,16 @@ dashboard and a LINE bot, with support for text and image recognition. Both
 channels share the same quote engine, AI parser, and database — a quote
 created from either one shows up in the same history.
 
+## Live Demo
+
+- URL: https://web-production-803c7.up.railway.app/login
+- Email: `owner@example.com`
+- Password: `hunter2`
+- Interview walkthrough: [docs/INTERVIEW_DEMO.md](docs/INTERVIEW_DEMO.md)
+
+This demo account is intended for interview review only. Rotate the password
+or replace the account before using the deployment for real customer data.
+
 ## Features
 
 - ✅ Internal web dashboard (login/self-registration, quote creation with
@@ -17,20 +27,31 @@ created from either one shows up in the same history.
 - ✅ Quote history lookup
 - ✅ Average price statistics
 - ✅ Excel and formal quote document export
+- ✅ Repeatable interview/demo data seeding
 - ✅ User memory storage with Redis support
 - ✅ S3 file storage support
 - ✅ Complete error handling and logging
 - ✅ Ready for Docker, AWS Fargate, and Railway
 
+## Interview Demo
+
+For a guided 3-5 minute demo flow, use
+[docs/INTERVIEW_DEMO.md](docs/INTERVIEW_DEMO.md). It includes:
+
+- a click-by-click walkthrough
+- sample RFQ text to paste into AI Form Assist
+- backup manual RFQ values if AI parsing is unavailable
+- architecture talking points
+
 ## Tech Stack
 
 - **Backend**: FastAPI + Uvicorn
-- **Database**: PostgreSQL (RDS)
-- **Cache**: Redis (ElastiCache)
-- **File storage**: S3
+- **Database**: PostgreSQL
+- **Cache**: Redis-compatible memory store support
+- **File storage**: Local/Railway persistent volume or S3
 - **Containerization**: Docker + Docker Compose
-- **Infrastructure**: AWS CloudFormation
-- **Monitoring**: CloudWatch
+- **Infrastructure**: Railway for demo, AWS CloudFormation support
+- **Monitoring**: Application logs and `/health`
 
 ## Local Development
 
@@ -138,7 +159,7 @@ The seed is idempotent. It upserts demo customers and RFQs using stable
 duplicates. On Railway, run it in the production environment:
 
 ```bash
-railway run --service web --environment production python scripts/seed_demo_data.py
+railway ssh --service web --environment production -- python scripts/seed_demo_data.py
 ```
 
 ### Pages
