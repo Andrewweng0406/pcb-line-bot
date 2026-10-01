@@ -3,6 +3,9 @@
 Use this guide for a 3-5 minute walkthrough of the PCB Quote System. The goal
 is to show an end-to-end workflow, not every feature.
 
+For a company-specific framing against Vereyo, see
+[VEREYO_ALIGNMENT.md](VEREYO_ALIGNMENT.md).
+
 ## Live Demo
 
 - URL: https://web-production-803c7.up.railway.app/login
@@ -18,6 +21,10 @@ This app helps a PCB sales or pricing team turn messy RFQ input into a
 structured quote, track commercial outcomes, and reuse historical pricing
 context. The same FastAPI backend supports the internal web dashboard and the
 LINE bot, so quotes from either channel land in one database.
+
+If interviewing with Vereyo, frame it as the same workflow pattern in a
+different domain: Vereyo turns construction plans into estimates, while this
+system turns PCB RFQs into structured, auditable quotes.
 
 ## Walkthrough
 

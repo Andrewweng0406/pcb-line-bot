@@ -11,6 +11,7 @@ created from either one shows up in the same history.
 - Email: `owner@example.com`
 - Password: `hunter2`
 - Interview walkthrough: [docs/INTERVIEW_DEMO.md](docs/INTERVIEW_DEMO.md)
+- Vereyo-specific positioning: [docs/VEREYO_ALIGNMENT.md](docs/VEREYO_ALIGNMENT.md)
 
 This demo account is intended for interview review only. Rotate the password
 or replace the account before using the deployment for real customer data.
@@ -42,6 +43,10 @@ For a guided 3-5 minute demo flow, use
 - sample RFQ text to paste into AI Form Assist
 - backup manual RFQ values if AI parsing is unavailable
 - architecture talking points
+
+For Vereyo interviews, use
+[docs/VEREYO_ALIGNMENT.md](docs/VEREYO_ALIGNMENT.md) to frame this project as
+the same vertical estimating workflow pattern in a different technical domain.
 
 ## Tech Stack
 
