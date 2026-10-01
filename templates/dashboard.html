@@ -28,6 +28,33 @@
 
 <section class="card p-6 mt-6">
     <div class="flex items-center justify-between gap-4 mb-4">
+        <h2 class="text-lg font-semibold">{{ tr(request, "pipeline_snapshot") }}</h2>
+        <span class="text-sm" style="color: var(--ink-muted)">{{ tr(request, "commercial_outcome") }}</span>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="border rounded-lg p-4" style="border-color: var(--border)">
+            <p class="text-sm" style="color: var(--ink-muted)">{{ tr(request, "active_quotes") }}</p>
+            <p class="text-2xl font-data" style="color: var(--copper-dark)">{{ pipeline_snapshot.active_count }}</p>
+        </div>
+        <div class="border rounded-lg p-4" style="border-color: var(--border)">
+            <p class="text-sm" style="color: var(--ink-muted)">{{ tr(request, "pipeline_value") }}</p>
+            <p class="text-2xl font-data" style="color: var(--copper-dark)">NT$ {{ "{:,.0f}".format(pipeline_snapshot.pipeline_value) }}</p>
+        </div>
+        <div class="border rounded-lg p-4" style="border-color: var(--border)">
+            <p class="text-sm" style="color: var(--ink-muted)">{{ tr(request, "won_quotes") }} / {{ tr(request, "lost_quotes") }}</p>
+            <p class="text-2xl font-data" style="color: var(--copper-dark)">{{ pipeline_snapshot.won_count }} / {{ pipeline_snapshot.lost_count }}</p>
+        </div>
+        <div class="border rounded-lg p-4" style="border-color: var(--border)">
+            <p class="text-sm" style="color: var(--ink-muted)">{{ tr(request, "win_rate") }}</p>
+            <p class="text-2xl font-data" style="color: var(--copper-dark)">
+                {{ "{:.0f}%".format(pipeline_snapshot.win_rate * 100) if pipeline_snapshot.win_rate is not none else "-" }}
+            </p>
+        </div>
+    </div>
+</section>
+
+<section class="card p-6 mt-6">
+    <div class="flex items-center justify-between gap-4 mb-4">
         <h2 class="text-lg font-semibold">{{ tr(request, "recent_rfqs") }}</h2>
         <a href="/quotes" class="text-sm hover:underline" style="color: var(--copper-dark)">
             {{ tr(request, "view_quote_list") }}

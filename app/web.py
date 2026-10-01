@@ -145,6 +145,14 @@ TRANSLATIONS = {
         "recent_rfqs": "Recent RFQs",
         "no_recent_rfqs": "No RFQs yet.",
         "quote_no": "Quote No.",
+        "pipeline_snapshot": "Pipeline Snapshot",
+        "active_quotes": "Active Quotes",
+        "pipeline_value": "Pipeline Value",
+        "won_quotes": "Won Quotes",
+        "lost_quotes": "Lost Quotes",
+        "win_rate": "Win Rate",
+        "no_response": "No Response",
+        "cancelled": "Cancelled",
         "commercial_outcome": "Commercial Outcome",
         "final_price": "Final Price",
         "actual_cost": "Actual Cost",
@@ -270,6 +278,14 @@ TRANSLATIONS = {
         "recent_rfqs": "近期 RFQ",
         "no_recent_rfqs": "尚無 RFQ。",
         "quote_no": "報價單號",
+        "pipeline_snapshot": "案件狀態總覽",
+        "active_quotes": "進行中報價",
+        "pipeline_value": "案件金額",
+        "won_quotes": "成交報價",
+        "lost_quotes": "流失報價",
+        "win_rate": "成交率",
+        "no_response": "無回覆",
+        "cancelled": "已取消",
         "commercial_outcome": "商務結果",
         "final_price": "最終價格",
         "actual_cost": "實際成本",
@@ -310,6 +326,16 @@ def localized_status_labels(request: Request):
         "pending": tr(request, "pending_review"),
         "approved": tr(request, "approved"),
         "ordered": tr(request, "ordered"),
+    }
+
+
+def localized_outcome_labels(request: Request):
+    return {
+        "pending": tr(request, "pending_review"),
+        "won": tr(request, "won_quotes"),
+        "lost": tr(request, "lost_quotes"),
+        "no_response": tr(request, "no_response"),
+        "cancelled": tr(request, "cancelled"),
     }
 
 
@@ -442,7 +468,33 @@ def dashboard(request: Request, user=Depends(get_current_user_optional)):
         .limit(5)
         .all()
     )
+    status_counts = dict(
+        query_db.query(db.QuoteHistory.status, db.func.count(db.QuoteHistory.id))
+        .group_by(db.QuoteHistory.status)
+        .all()
+    )
+    outcome_counts = dict(
+        query_db.query(db.QuoteHistory.quote_outcome, db.func.count(db.QuoteHistory.id))
+        .group_by(db.QuoteHistory.quote_outcome)
+        .all()
+    )
+    active_value = (
+        query_db.query(db.func.coalesce(db.func.sum(db.QuoteHistory.total), 0))
+        .filter(db.QuoteHistory.status.in_(["pending", "approved"]))
+        .scalar()
+        or 0
+    )
     query_db.close()
+    won_count = outcome_counts.get("won", 0)
+    lost_count = outcome_counts.get("lost", 0)
+    decided_count = won_count + lost_count
+    pipeline_snapshot = {
+        "active_count": status_counts.get("pending", 0) + status_counts.get("approved", 0),
+        "pipeline_value": float(active_value),
+        "won_count": won_count,
+        "lost_count": lost_count,
+        "win_rate": (won_count / decided_count) if decided_count else None,
+    }
     return templates.TemplateResponse(
         "dashboard.html",
         {
@@ -450,7 +502,9 @@ def dashboard(request: Request, user=Depends(get_current_user_optional)):
             "user": user,
             "stats": stats,
             "recent_quotes": recent_quotes,
+            "pipeline_snapshot": pipeline_snapshot,
             "status_labels": localized_status_labels(request),
+            "outcome_labels": localized_outcome_labels(request),
         },
     )
 
