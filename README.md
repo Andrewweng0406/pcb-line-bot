@@ -10,6 +10,7 @@ created from either one shows up in the same history.
 - ✅ Internal web dashboard (login/self-registration, quote creation with
   AI-assisted form filling, quote list/detail/status tracking, customer
   management, stats charts) — see [Web Dashboard](#web-dashboard) below
+- ✅ English-first web UI with a built-in Chinese language toggle
 - ✅ Real-time PCB quote calculation
 - ✅ Text specification parsing with OpenAI
 - ✅ PCB image recognition and parsing
@@ -100,6 +101,11 @@ The web dashboard is the primary way staff create and manage quotes day to
 day; the LINE bot remains available as a secondary channel (e.g. sending a
 photo in from the field). Both call the same `quote_engine.calculate_quote()`.
 
+The dashboard defaults to English for demos and interviews. Staff can switch
+between English and Chinese from the navigation bar; the language preference is
+stored in a cookie. Chinese RFQ/specification input remains supported by the AI
+parsers and LINE command aliases.
+
 ### First-time setup
 
 ```bash
@@ -165,6 +171,12 @@ AWS_SECRET_ACCESS_KEY=xxx
 
 # Public URL (used for download links)
 PUBLIC_BASE_URL=http://localhost:8000
+
+# Persistent file storage
+PERSISTENT_DIR=.
+UPLOAD_DIR=./data/uploads
+EXPORT_DIR=./exports
+LOG_DIR=./logs
 ```
 
 ## API Endpoints
@@ -262,16 +274,20 @@ railway variable set 'PUBLIC_BASE_URL=https://${{RAILWAY_PUBLIC_DOMAIN}}' --serv
 railway variable set DEBUG=False --service web
 
 # Persistent volume so exported Excel/formal-quote files survive redeploys
-# (the container filesystem is otherwise wiped on every deploy)
+# (the container filesystem is otherwise wiped on every deploy). This project
+# stores exports, uploads, and logs under the mounted volume.
 railway volume add --mount-path /app/exports --service web
+railway variable set PERSISTENT_DIR=/app/exports --service web
+railway variable set EXPORT_DIR=/app/exports --service web
+railway variable set UPLOAD_DIR=/app/exports/data/uploads --service web
+railway variable set LOG_DIR=/app/exports/logs --service web
 
-# Deploy (manual — no GitHub auto-deploy is configured, so this must be
-# re-run after every code change meant to reach the pilot)
+# Deploy
 railway up --service web
 
-# Create the first login account against the deployed Postgres
-DATABASE_URL=<DATABASE_PUBLIC_URL from `railway variable list --service Postgres`> \
-  python scripts/create_user.py owner@example.com your-password
+# Create the first login account against the deployed Postgres. You can run
+# this inside the web service container so it uses the private Railway DB URL:
+railway ssh --service web -- python scripts/create_user.py owner@example.com your-password
 
 # Take a manual data snapshot before risky changes (see scripts/backup_db.py)
 DATABASE_URL=<DATABASE_PUBLIC_URL> python scripts/backup_db.py
