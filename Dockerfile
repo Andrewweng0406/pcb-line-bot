@@ -14,8 +14,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Create necessary directories
-RUN mkdir -p data/uploads exports logs
+# Create necessary directories. /app/persistent is intended for Railway volume mounts.
+RUN mkdir -p data/uploads exports logs /app/persistent/data/uploads /app/persistent/exports /app/persistent/logs
 
 # Expose port
 EXPOSE 8000

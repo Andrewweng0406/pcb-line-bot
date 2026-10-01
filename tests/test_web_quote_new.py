@@ -19,7 +19,7 @@ def test_new_quote_form_loads(temp_db):
     client = _logged_in_client(temp_db)
     response = client.get("/quotes/new")
     assert response.status_code == 200
-    assert "新增報價" in response.text
+    assert "New Quote" in response.text
 
 
 def test_submitting_quote_creates_row_and_links_customer(temp_db):
@@ -61,7 +61,7 @@ def test_submitting_invalid_quote_shows_error(temp_db):
         data={"layer": 999, "qty": 1},
     )
     assert response.status_code == 400
-    assert "暫不支持" in response.text
+    assert "is not supported" in response.text
 
 
 def test_submitting_quote_with_blank_optional_fields_succeeds(temp_db):

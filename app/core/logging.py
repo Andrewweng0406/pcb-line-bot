@@ -2,8 +2,9 @@ import logging
 import logging.handlers
 import os
 from datetime import datetime
+from app.core.config import settings
 
-log_dir = "logs"
+log_dir = settings.LOG_DIR
 os.makedirs(log_dir, exist_ok=True)
 
 log_filename = os.path.join(

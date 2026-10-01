@@ -60,7 +60,7 @@ def test_ai_assist_handles_parser_failure_gracefully(temp_db, monkeypatch):
     response = client.post("/quotes/new/ai-assist", data={"spec_text": "6層 FR4"})
 
     assert response.status_code == 200
-    assert "AI 解析失敗" in response.text
+    assert "AI parsing failed" in response.text
 
 
 def test_ai_assist_fills_form_from_uploaded_photo(temp_db, monkeypatch):

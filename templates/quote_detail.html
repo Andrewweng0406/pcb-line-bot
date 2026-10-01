@@ -1,42 +1,42 @@
 {% extends "base.html" %}
-{% block title %}報價詳情 - PCB 報價系統{% endblock %}
+{% block title %}Quote Detail - {{ tr(request, "app_title") }}{% endblock %}
 {% block content %}
 <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between mb-6">
     <div>
         <h1 class="text-2xl mb-2">
-            報價詳情：<span class="font-data">{{ quote.quote_no or quote.id }}</span>
+            {{ tr(request, "quote_detail") }}: <span class="font-data">{{ quote.quote_no or quote.id }}</span>
             <span class="badge badge-{{ quote.status or 'pending' }} align-middle ml-2">{{ status_labels.get(quote.status, quote.status) }}</span>
         </h1>
         <p class="text-sm font-data" style="color: var(--ink-muted)">
-            建立者：{{ quote.created_by.email if quote.created_by else "-" }} ·
-            最後修改：{{ quote.updated_by.email if quote.updated_by else "-" }}
+            {{ tr(request, "created_by") }}: {{ quote.created_by.email if quote.created_by else "-" }} ·
+            {{ tr(request, "last_updated_by") }}: {{ quote.updated_by.email if quote.updated_by else "-" }}
         </p>
     </div>
     <div class="flex flex-wrap gap-3">
         <a href="/quotes/{{ quote.id }}/export/formal" class="btn-primary px-4 py-2 text-sm whitespace-nowrap">
-            產生正式報價單
+            {{ tr(request, "generate_formal_quote") }}
         </a>
         <a href="/quotes/{{ quote.id }}/export/excel" class="btn-secondary px-4 py-2 text-sm whitespace-nowrap">
-            下載內部 Excel
+            {{ tr(request, "download_internal_excel") }}
         </a>
     </div>
 </div>
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
     <div class="card p-6">
-        <h2 class="font-medium mb-3">業務下一步</h2>
+        <h2 class="font-medium mb-3">{{ tr(request, "sales_next_steps") }}</h2>
         {% set pricing_review = quote.breakdown_json.pricing_review if quote.breakdown_json and quote.breakdown_json.pricing_review else none %}
         {% if pricing_review %}
         <p class="font-data text-xl mb-2" style="color: var(--copper-dark)">
-            價格狀態：{{ pricing_review.label }}
+            {{ tr(request, "pricing_status") }}: {{ pricing_review.label }}
         </p>
         {% endif %}
         <p class="font-data text-xl mb-3" style="color: var(--copper-dark)">
-            RFQ Data Quality：{{ (rfq_completeness.completeness_score * 100) | round | int }}% Complete
+            {{ tr(request, "rfq_quality") }}: {{ (rfq_completeness.completeness_score * 100) | round | int }}% {{ tr(request, "complete") }}
         </p>
         {% if rfq_completeness.required_missing_labels %}
         <div class="mb-3">
-            <p class="font-medium">報價前必補</p>
+            <p class="font-medium">{{ tr(request, "required_before_quoting") }}</p>
             {% for label in rfq_completeness.required_missing_labels %}
             <p class="text-sm">- {{ label }}</p>
             {% endfor %}
@@ -44,18 +44,18 @@
         {% endif %}
         {% if rfq_completeness.recommended_missing_labels %}
         <div class="mb-4" style="color: var(--ink-muted)">
-            <p class="font-medium">建議確認</p>
+            <p class="font-medium">{{ tr(request, "recommended_checks") }}</p>
             {% for label in rfq_completeness.recommended_missing_labels %}
             <p class="text-sm">- {{ label }}</p>
             {% endfor %}
         </div>
         {% endif %}
         {% if not rfq_completeness.required_missing_labels and not rfq_completeness.recommended_missing_labels %}
-        <p class="mb-4" style="color: var(--ink-muted)">資料完整，可以產生正式報價單。</p>
+        <p class="mb-4" style="color: var(--ink-muted)">{{ tr(request, "data_complete") }}</p>
         {% endif %}
         {% if pricing_review and pricing_review.critical_missing %}
         <div class="mb-4" style="color: var(--ink-muted)">
-            <p class="font-medium">價格初估缺少</p>
+            <p class="font-medium">{{ tr(request, "estimate_missing") }}</p>
             {% for label in pricing_review.critical_missing %}
             <p class="text-sm">- {{ label }}</p>
             {% endfor %}
@@ -63,7 +63,7 @@
         {% endif %}
         {% if pricing_review and pricing_review.unpriced_factors %}
         <div class="mb-4">
-            <p class="font-medium">需人工確認成本</p>
+            <p class="font-medium">{{ tr(request, "manual_cost_review") }}</p>
             {% for label in pricing_review.unpriced_factors %}
             <p class="text-sm">- {{ label }}</p>
             {% endfor %}
@@ -71,41 +71,41 @@
         {% endif %}
         <div class="flex flex-wrap gap-3">
             <a href="/quotes/{{ quote.id }}/export/formal" class="btn-primary px-4 py-2 text-sm whitespace-nowrap">
-                產生正式報價單
+                {{ tr(request, "generate_formal_quote") }}
             </a>
             <a href="/quotes/new" class="btn-secondary px-4 py-2 text-sm whitespace-nowrap">
-                建立新報價
+                {{ tr(request, "create_new_quote") }}
             </a>
         </div>
     </div>
 
     <div class="card p-6">
-        <h2 class="font-medium mb-3">客戶報價摘要</h2>
-        <p class="font-data text-xl" style="color: var(--copper-dark)">總價：NT$ {{ "{:,.0f}".format(quote.total or 0) }}</p>
-        <p class="font-data">單片價格：NT$ {{ "{:,.0f}".format(quote.unit_price or 0) }}</p>
-        <p>客戶：{{ quote.customer.company_name if quote.customer else "-" }}</p>
-        <p class="font-data">數量：{{ quote.qty }} pcs</p>
-        <p class="font-data">交期：{{ quote.delivery_days or "TBD" }} working days</p>
+        <h2 class="font-medium mb-3">{{ tr(request, "customer_quote_summary") }}</h2>
+        <p class="font-data text-xl" style="color: var(--copper-dark)">{{ tr(request, "total") }}: NT$ {{ "{:,.0f}".format(quote.total or 0) }}</p>
+        <p class="font-data">{{ tr(request, "unit_price") }}: NT$ {{ "{:,.0f}".format(quote.unit_price or 0) }}</p>
+        <p>{{ tr(request, "customer") }}: {{ quote.customer.company_name if quote.customer else "-" }}</p>
+        <p class="font-data">{{ tr(request, "quantity") }}: {{ quote.qty }} pcs</p>
+        <p class="font-data">{{ tr(request, "lead_time") }}: {{ quote.delivery_days or "TBD" }} working days</p>
     </div>
 
     <div class="card p-6">
-        <h2 class="font-medium mb-3">規格摘要</h2>
-        <p class="font-data">層數：{{ quote.layer }}L</p>
-        <p>材料：{{ quote.material or "-" }}</p>
-        <p class="font-data">尺寸：{{ quote.length_mm or "-" }} x {{ quote.width_mm or "-" }} mm</p>
-        <p class="font-data">板厚：{{ quote.board_thickness_mm or "-" }} mm</p>
-        <p class="font-data">銅厚：{{ quote.copper_weight_oz or "-" }} oz</p>
-        <p>表面處理：{{ quote.surface_finish or "-" }}</p>
-        <p class="font-data">金厚：{{ quote.gold_thickness_uin or "-" }} u"</p>
+        <h2 class="font-medium mb-3">{{ tr(request, "spec_summary") }}</h2>
+        <p class="font-data">{{ tr(request, "layers") }}: {{ quote.layer }}L</p>
+        <p>{{ tr(request, "material") }}: {{ quote.material or "-" }}</p>
+        <p class="font-data">{{ tr(request, "size") }}: {{ quote.length_mm or "-" }} x {{ quote.width_mm or "-" }} mm</p>
+        <p class="font-data">{{ tr(request, "board_thickness_mm") }}: {{ quote.board_thickness_mm or "-" }} mm</p>
+        <p class="font-data">{{ tr(request, "copper_thickness") }}: {{ quote.copper_weight_oz or "-" }} oz</p>
+        <p>{{ tr(request, "surface_finish") }}: {{ quote.surface_finish or "-" }}</p>
+        <p class="font-data">{{ tr(request, "gold_thickness") }}: {{ quote.gold_thickness_uin or "-" }} u"</p>
     </div>
 
     <div class="card p-6">
-        <h2 class="font-medium mb-3">內部計價摘要</h2>
-        <p class="font-data">預估成本：{{ "NT$ {:,.0f}".format(quote.estimated_cost) if quote.estimated_cost is not none else "-" }}</p>
-        <p class="font-data">預估毛利：{{ "{:.1f}%".format(quote.estimated_margin_pct * 100) if quote.estimated_margin_pct is not none else "-" }}</p>
+        <h2 class="font-medium mb-3">{{ tr(request, "internal_pricing_summary") }}</h2>
+        <p class="font-data">{{ tr(request, "estimated_cost") }}: {{ "NT$ {:,.0f}".format(quote.estimated_cost) if quote.estimated_cost is not none else "-" }}</p>
+        <p class="font-data">{{ tr(request, "estimated_margin") }}: {{ "{:.1f}%".format(quote.estimated_margin_pct * 100) if quote.estimated_margin_pct is not none else "-" }}</p>
         {% if quote.breakdown_json and quote.breakdown_json.pricing_review and quote.breakdown_json.pricing_review.applied_factors %}
         <div class="mt-3 text-sm" style="color: var(--ink-muted)">
-            <p class="font-medium">已套用價格因子</p>
+            <p class="font-medium">{{ tr(request, "applied_pricing_factors") }}</p>
             {% for line in quote.breakdown_json.pricing_review.applied_factors[:5] %}
             <p>- {{ line }}</p>
             {% endfor %}
@@ -122,15 +122,15 @@
 </div>
 
 <details class="card p-6 mt-6">
-    <summary class="font-medium cursor-pointer">狀態與內部備註</summary>
+    <summary class="font-medium cursor-pointer">{{ tr(request, "status_notes") }}</summary>
     <form method="post" action="/quotes/{{ quote.id }}/update" class="space-y-3 mt-4">
         <select name="status" class="border rounded-lg px-3 py-2 text-sm" style="border-color: var(--border)">
             {% for value, label in status_labels.items() %}
             <option value="{{ value }}" {% if quote.status == value %}selected{% endif %}>{{ label }}</option>
             {% endfor %}
         </select>
-        <textarea name="notes" rows="3" class="w-full border rounded-lg px-3 py-2 text-sm" style="border-color: var(--border)" placeholder="內部備註">{{ quote.notes or "" }}</textarea>
-        <button type="submit" class="btn-primary px-4 py-2 text-sm">儲存</button>
+        <textarea name="notes" rows="3" class="w-full border rounded-lg px-3 py-2 text-sm" style="border-color: var(--border)" placeholder="{{ tr(request, 'internal_notes') }}">{{ quote.notes or "" }}</textarea>
+        <button type="submit" class="btn-primary px-4 py-2 text-sm">{{ tr(request, "save") }}</button>
     </form>
 </details>
 
@@ -181,20 +181,20 @@
             </label>
         </div>
         <textarea name="lost_reason_note" rows="2" class="w-full border rounded-lg px-3 py-2 text-sm" style="border-color: var(--border)" placeholder="Lost reason note">{{ quote.lost_reason_note or "" }}</textarea>
-        <button type="submit" class="btn-primary px-4 py-2 text-sm">儲存 Commercial Outcome</button>
+        <button type="submit" class="btn-primary px-4 py-2 text-sm">Save Commercial Outcome</button>
     </form>
 </details>
 
 <details class="card p-6 mt-6">
-    <summary class="font-medium cursor-pointer">結構化資料與歷史分析</summary>
+    <summary class="font-medium cursor-pointer">Structured Data and Historical Analysis</summary>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
         <div>
-            <h2 class="font-medium mb-3">結構化資料</h2>
-            <p class="font-data">來源：{{ quote.source_channel or "-" }}</p>
-            <p class="font-data">產品：{{ quote.product_type or "-" }}</p>
-            <p class="font-data">計價版本：{{ quote.pricing_version or "-" }}</p>
-            <p class="font-data">面積：{{ quote.area_in2 or "-" }} in²</p>
-            <p class="font-data">投料率：{{ quote.issue_ratio }}</p>
+            <h2 class="font-medium mb-3">{{ tr(request, "structured_data") }}</h2>
+            <p class="font-data">{{ tr(request, "source") }}: {{ quote.source_channel or "-" }}</p>
+            <p class="font-data">{{ tr(request, "product") }}: {{ quote.product_type or "-" }}</p>
+            <p class="font-data">{{ tr(request, "pricing_version") }}: {{ quote.pricing_version or "-" }}</p>
+            <p class="font-data">{{ tr(request, "area") }}: {{ quote.area_in2 or "-" }} in²</p>
+            <p class="font-data">{{ tr(request, "issue_ratio") }}: {{ quote.issue_ratio }}</p>
         </div>
         <div>
             <h2 class="font-medium mb-3">Historical Intelligence</h2>

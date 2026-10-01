@@ -3,6 +3,7 @@ import os
 
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+from app.core.config import settings
 
 
 def _fmt_num(value, digits=2):
@@ -189,7 +190,7 @@ def export_formal_quote(parsed, result, metadata=None):
     for column, width in widths.items():
         ws.column_dimensions[column].width = width
 
-    exports_dir = "exports"
+    exports_dir = settings.EXPORT_DIR
     os.makedirs(exports_dir, exist_ok=True)
     filename = f'formal_quote_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
     output_path = os.path.join(exports_dir, filename)

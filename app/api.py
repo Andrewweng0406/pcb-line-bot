@@ -99,7 +99,7 @@ def get_quote(quote_id: int, user=Depends(require_user)):
         session.close()
 
         if not quote:
-            raise HTTPException(status_code=404, detail="報價不存在")
+            raise HTTPException(status_code=404, detail="Quote not found")
 
         return {
             "id": quote.id,
@@ -136,7 +136,7 @@ def update_quote(quote_id: int, data: dict, user=Depends(require_user)):
         quote = session.query(db.QuoteHistory).filter(db.QuoteHistory.id == quote_id).first()
 
         if not quote:
-            raise HTTPException(status_code=404, detail="報價不存在")
+            raise HTTPException(status_code=404, detail="Quote not found")
 
         # Update allowed fields
         if "total" in data:
@@ -188,7 +188,7 @@ def update_quote(quote_id: int, data: dict, user=Depends(require_user)):
         session.commit()
         session.close()
 
-        return {"status": "success", "message": "報價已更新"}
+        return {"status": "success", "message": "Quote updated"}
     except HTTPException:
         raise
     except Exception as e:
@@ -203,7 +203,7 @@ def get_similar_quotes(quote_id: int, limit: int = Query(10), user=Depends(requi
         quote = session.query(db.QuoteHistory).filter(db.QuoteHistory.id == quote_id).first()
         if not quote:
             session.close()
-            raise HTTPException(status_code=404, detail="報價不存在")
+            raise HTTPException(status_code=404, detail="Quote not found")
         matches = find_similar_quotes(session, db.QuoteHistory, quote, limit=limit)
         session.close()
         return matches
@@ -221,7 +221,7 @@ def get_historical_summary(quote_id: int, user=Depends(require_user)):
         quote = session.query(db.QuoteHistory).filter(db.QuoteHistory.id == quote_id).first()
         if not quote:
             session.close()
-            raise HTTPException(status_code=404, detail="報價不存在")
+            raise HTTPException(status_code=404, detail="Quote not found")
         similar = find_similar_quotes(session, db.QuoteHistory, quote, limit=50)
         session.close()
         return historical_pricing_summary(similar)
@@ -239,13 +239,13 @@ def delete_quote(quote_id: int, user=Depends(require_user)):
         quote = session.query(db.QuoteHistory).filter(db.QuoteHistory.id == quote_id).first()
 
         if not quote:
-            raise HTTPException(status_code=404, detail="報價不存在")
+            raise HTTPException(status_code=404, detail="Quote not found")
 
         session.delete(quote)
         session.commit()
         session.close()
 
-        return {"status": "success", "message": "報價已刪除"}
+        return {"status": "success", "message": "Quote deleted"}
     except HTTPException:
         raise
     except Exception as e:

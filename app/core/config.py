@@ -51,7 +51,19 @@ class Settings(BaseSettings):
 
     # File Upload
     MAX_UPLOAD_SIZE: int = 10 * 1024 * 1024  # 10MB
-    UPLOAD_DIR: str = "data/uploads"
+    PERSISTENT_DIR: str = os.getenv("PERSISTENT_DIR", ".")
+    UPLOAD_DIR: str = os.getenv(
+        "UPLOAD_DIR",
+        os.path.join(PERSISTENT_DIR, "data", "uploads"),
+    )
+    EXPORT_DIR: str = os.getenv(
+        "EXPORT_DIR",
+        os.path.join(PERSISTENT_DIR, "exports"),
+    )
+    LOG_DIR: str = os.getenv(
+        "LOG_DIR",
+        os.path.join(PERSISTENT_DIR, "logs"),
+    )
 
     class Config:
         env_file = ".env"

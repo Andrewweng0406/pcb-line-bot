@@ -19,7 +19,7 @@ def test_quote_detail_shows_spec_and_breakdown(temp_db):
     temp_db.save_quote(
         "line:U1",
         {"layer": 6, "material": "FR4", "qty": 9},
-        {"status": "success", "total": 12345.0, "unit_price": 1371.67, "issue_ratio": 1.0, "explanations": ["工程費: 80000"]},
+        {"status": "success", "total": 12345.0, "unit_price": 1371.67, "issue_ratio": 1.0, "explanations": ["Setup Fee: 80000"]},
     )
     db = temp_db.SessionLocal()
     quote_id = db.query(temp_db.QuoteHistory).order_by(temp_db.QuoteHistory.id.desc()).first().id
@@ -30,7 +30,7 @@ def test_quote_detail_shows_spec_and_breakdown(temp_db):
 
     assert response.status_code == 200
     assert "12,345" in response.text
-    assert "待審核" in response.text
+    assert "Pending Review" in response.text
 
 
 def test_quote_detail_shows_historical_intelligence(temp_db):

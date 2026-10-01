@@ -21,4 +21,4 @@ def test_dashboard_shows_stats(temp_db):
 
     response = client.get("/")
     assert response.status_code == 200
-    assert "報價" in response.text
+    assert "Quote" in response.text

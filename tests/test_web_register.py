@@ -10,7 +10,7 @@ def test_register_page_loads(temp_db):
     client = _client()
     response = client.get("/register")
     assert response.status_code == 200
-    assert "邀請碼" in response.text
+    assert "Invite Code" in response.text
 
 
 def test_register_with_correct_invite_code_creates_account_and_logs_in(temp_db, monkeypatch):

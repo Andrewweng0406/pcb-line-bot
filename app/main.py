@@ -83,7 +83,7 @@ def health_check():
 def download_export_file(filename: str):
     try:
         logger.info(f"Downloading export: {filename}")
-        export_path = os.path.join("exports", filename)
+        export_path = os.path.join(settings.EXPORT_DIR, filename)
 
         if not os.path.exists(export_path):
             logger.warning(f"Export file not found: {filename}")
@@ -108,9 +108,9 @@ def download_export_file(filename: str):
 def format_quote_reply(parsed: dict, result: dict) -> str:
     if result.get("status") != "success":
         return f"""
-⚠️ 無法完成報價
+⚠️ Unable to complete quote
 
-原因：
+Reason:
 {result.get("message")}
 """
 
@@ -122,19 +122,19 @@ def format_quote_reply(parsed: dict, result: dict) -> str:
     if parsed.get("length_mm") and parsed.get("width_mm"):
         size_text = f'{parsed.get("length_mm")} x {parsed.get("width_mm")} mm'
         dimension_text = f"""
-長：{parsed.get("length_mm")} mm = {result.get("length_inch")} inch
-寬：{parsed.get("width_mm")} mm = {result.get("width_inch")} inch
-面積：{result.get("area_inch")} sq.inch
+Length: {parsed.get("length_mm")} mm = {result.get("length_inch")} inch
+Width: {parsed.get("width_mm")} mm = {result.get("width_inch")} inch
+Area: {result.get("area_inch")} sq.inch
 """
     else:
         size_text = f'{parsed.get("area_inch")} sq.inch'
         dimension_text = f"""
-面積：{result.get("area_inch")} sq.inch
-來源：客戶直接提供 Area
+Area: {result.get("area_inch")} sq.inch
+Source: Area provided directly by customer
 """
 
     if result.get("explanations"):
-        explain_text += "\n【加價原因】\n"
+        explain_text += "\n[Surcharge Reasons]\n"
         for item in result.get("explanations"):
             explain_text += f"- {item}\n"
 
@@ -144,23 +144,23 @@ def format_quote_reply(parsed: dict, result: dict) -> str:
             warning_text += f"- {item}\n"
 
     if result.get("suggest_missing"):
-        missing_text += "\n⚠️ 建議補充資料：\n"
+        missing_text += "\n⚠️ Recommended additional information:\n"
         for item in result.get("suggest_missing"):
             missing_text += f"- {item}\n"
 
     if result.get("follow_up_questions"):
-        follow_text += "\n【AI 追問】\n"
+        follow_text += "\n[AI Follow-up Questions]\n"
         for item in result.get("follow_up_questions"):
             follow_text += f"- {item}\n"
 
     company_section = ""
     if parsed.get("company_name"):
-        company_section = f"🏭 識別公司：{parsed.get('company_name')}\n\n"
+        company_section = f"🏭 Identified company: {parsed.get('company_name')}\n\n"
 
     return f"""
-📋 PCB 初步報價
+📋 Preliminary PCB Quote
 
-{company_section}【讀取到的規格】
+{company_section}[Parsed Specifications]
 Layer：{parsed.get("layer")}L
 Material：{parsed.get("material")}
 Size：{size_text}
@@ -169,7 +169,7 @@ Qty：{parsed.get("qty")} pcs
 {missing_text}
 {follow_text}
 
-【製程】
+[Process]
 ENIG：{"Yes" if parsed.get("enig") else "No"}
 ENIG Thickness：{parsed.get("enig_thickness_uinch")} u"
 VIP：{"Yes" if parsed.get("vip") else "No"}
@@ -177,34 +177,34 @@ Impedance：{"Yes" if parsed.get("impedance") else "No"}
 Back Drill：{"Yes" if parsed.get("back_drill") else "No"}
 BVH：{"Yes" if parsed.get("bvh") else "No"}
 
-【計算明細】
+[Calculation Details]
 {dimension_text}
-難度等級：{result.get("difficulty_level")}
-難度分數：{result.get("difficulty_score")}
-工程費：{result.get("engineering_fee")}
-原始板材單價：{result.get("base_material_price")} / sq.inch
-加價後板材單價：{result.get("material_price")} / sq.inch
-客戶需求數量：{parsed.get("qty")} pcs
-投料率：{result.get("issue_ratio")}
-實際投料數量：{result.get("production_qty")} pcs
-板材費：{result.get("material_cost")}
-特殊加工費：{result.get("process_cost")}
-小計：{result.get("subtotal")}
-數量折扣：{result.get("discount")}
+Difficulty level: {result.get("difficulty_level")}
+Difficulty score: {result.get("difficulty_score")}
+Engineering fee: {result.get("engineering_fee")}
+Base board unit price: {result.get("base_material_price")} / sq.inch
+Adjusted board unit price: {result.get("material_price")} / sq.inch
+Customer requested quantity: {parsed.get("qty")} pcs
+Issue ratio: {result.get("issue_ratio")}
+Production quantity: {result.get("production_qty")} pcs
+Board material cost: {result.get("material_cost")}
+Special process cost: {result.get("process_cost")}
+Subtotal: {result.get("subtotal")}
+Quantity discount: {result.get("discount")}
 {warning_text}
 {explain_text}
-交期：{
-    f"{result.get('delivery_days')} 天"
+Lead time: {
+    f"{result.get('delivery_days')} days"
     if result.get("delivery_days") is not None
-    else "未提供"
+    else "Not provided"
 }
 
-交期倍率：{result.get("delivery_multiplier")}
-【報價結果】
-總價：{result.get("total")}
-單片價格：{result.get("unit_price")} / pcs
+Lead-time multiplier: {result.get("delivery_multiplier")}
+[Quote Result]
+Total: {result.get("total")}
+Unit price: {result.get("unit_price")} / pcs
 
-⚠️ 此為 AI 初步報價，最終價格需工程確認。
+⚠️ This is an AI preliminary quote. Final pricing requires engineering review.
 """
 
 
@@ -239,54 +239,54 @@ def handle_message(event):
 
         # HELP command
         if user_text.lower() in ["help", "幫助", "帮助", "说明", "說明"]:
-            help_text = """📖 PCB 報價機器人 - 使用指南
+            help_text = """📖 PCB Quote Bot - User Guide
 
-🔹 基本指令：
+🔹 Basic Commands:
 ━━━━━━━━━━━━━━━━━━━━━━━
 
-1️⃣ 上傳圖片或描述規格
-   • 傳送 PCB 設計圖（.jpg, .png）
-   • 或用文字描述：「6層，100x100mm，數量9，投料率3」
+1️⃣ Upload an image or describe the specifications
+   • Send a PCB drawing (.jpg, .png)
+   • Or describe it in text: "6L, 100x100mm, qty 9, issue ratio 3"
 
-2️⃣ 回覆詢問
-   • 機器人會問：層數、材料、Pitch、交期等
-   • 直接回覆即可（例：「0.35mm」「7天」）
+2️⃣ Reply to follow-up questions
+   • The bot may ask for layers, material, pitch, lead time, etc.
+   • Reply directly, for example: "0.35mm" or "7 days"
 
-3️⃣ 查詢報價
-   • 輸入「查詢報價」查看最近的報價記錄
+3️⃣ Search quotes
+   • Type "query quotes" to view recent quote records
 
-4️⃣ 匯出報價單
-   • 輸入「匯出報價單」下載 Excel 報價單
+4️⃣ Export a quote
+   • Type "export quote" to download the Excel quote
 
-5️⃣ 開始新案件
-   • 輸入「新案件」、「結束」或「reset」清除當前報價
-
-━━━━━━━━━━━━━━━━━━━━━━━
-📝 報價規格範例：
-
-「6層 FR4 100x100mm 數量9 投料率3
- Pitch 0.4mm 交期7天 ENIG 10u VIP」
+5️⃣ Start a new case
+   • Type "new case", "clear", or "reset" to clear the current quote
 
 ━━━━━━━━━━━━━━━━━━━━━━━
-⏱️ 交期規則：
-• 2-4L：5天  • 6L：6天  • 8-10L：7天
-• 12-14L：8天  • 16-30L：10天
+📝 Example RFQ:
 
-💰 表面處理：
-• ENIG 5u"：3,000  • ENIG 10u"：6,000
-• ENIG 30u"：12,000  • ENIG 50u"：18,000
-
-🔧 額外加工：
-• VIP（樹脂塞孔）：5,000
-• Back Drill：5,000  • 內層 AOI：600/層
+"6L FR4 100x100mm qty 9 issue ratio 3
+ Pitch 0.4mm lead time 7 days ENIG 10u VIP"
 
 ━━━━━━━━━━━━━━━━━━━━━━━
-💡 小提示：
-✅ 儘量提供完整規格，報價會更準確
-✅ Pitch、孔到線距、平坦度會影響價格
-✅ 數量 ≥2 時享 9 折優惠
+⏱️ Lead-time Rules:
+• 2-4L: 5 days  • 6L: 6 days  • 8-10L: 7 days
+• 12-14L: 8 days  • 16-30L: 10 days
 
-需要幫助嗎？輸入「help」隨時查看說明！"""
+💰 Surface Finish:
+• ENIG 5u": 3,000  • ENIG 10u": 6,000
+• ENIG 30u": 12,000  • ENIG 50u": 18,000
+
+🔧 Extra Processes:
+• VIP (resin plugged via): 5,000
+• Back Drill: 5,000  • Inner-layer AOI: 600/layer
+
+━━━━━━━━━━━━━━━━━━━━━━━
+💡 Tips:
+✅ Complete specifications produce more accurate quotes
+✅ Pitch, trace-to-hole spacing, and flatness can affect price
+✅ Re-orders may receive a 10% discount
+
+Need help? Type "help" anytime to view this guide."""
 
             with ApiClient(configuration) as api_client:
                 line_bot_api = MessagingApi(api_client)
@@ -302,7 +302,7 @@ def handle_message(event):
         if user_text.lower() in ["status", "狀態", "状态", "系統狀態", "系统状态"]:
             stats = get_system_stats()
 
-            last_quote_str = "未有報價"
+            last_quote_str = "No quotes yet"
             if stats["last_quote_time"]:
                 from datetime import datetime
                 last_quote = stats["last_quote_time"]
@@ -310,39 +310,39 @@ def handle_message(event):
                 diff = now - last_quote
 
                 if diff.seconds < 60:
-                    time_str = f"{diff.seconds} 秒前"
+                    time_str = f"{diff.seconds} seconds ago"
                 elif diff.seconds < 3600:
-                    time_str = f"{diff.seconds // 60} 分鐘前"
+                    time_str = f"{diff.seconds // 60} minutes ago"
                 elif diff.days == 0:
-                    time_str = f"{diff.seconds // 3600} 小時前"
+                    time_str = f"{diff.seconds // 3600} hours ago"
                 else:
                     time_str = last_quote.strftime("%Y-%m-%d %H:%M")
                 last_quote_str = time_str
 
-            status_text = f"""📊 PCB 報價機器人 - 系統狀態
+            status_text = f"""📊 PCB Quote Bot - System Status
 
 ━━━━━━━━━━━━━━━━━━━━━━━
-✅ 系統狀態：正常運行
+✅ System status: Running normally
 
 ━━━━━━━━━━━━━━━━━━━━━━━
-📈 今日統計：
-• 報價查詢：{stats['today_count']} 次
-• 歷史總數：{stats['total_count']} 次
-• 平均報價：NT$ {stats['avg_price']:,.0f}
+📈 Today's Stats:
+• Quote requests: {stats['today_count']}
+• Total history: {stats['total_count']}
+• Average quote: NT$ {stats['avg_price']:,.0f}
 
 ━━━━━━━━━━━━━━━━━━━━━━━
-⏱️ 最後活動：
-• 最近報價：{last_quote_str}
+⏱️ Last Activity:
+• Latest quote: {last_quote_str}
 
 ━━━━━━━━━━━━━━━━━━━━━━━
-💾 系統信息：
-• 自動備份：每天 00:00
-• 同步頻率：實時
-• 數據保留：永久
+💾 System Info:
+• Automatic backup: Daily at 00:00
+• Sync frequency: Real time
+• Data retention: Permanent
 
 ━━━━━━━━━━━━━━━━━━━━━━━
-✨ 一切正常，祝你使用愉快！
-有任何問題，輸入 help 查看說明"""
+✨ Everything looks good.
+Type "help" anytime for usage instructions."""
 
             with ApiClient(configuration) as api_client:
                 line_bot_api = MessagingApi(api_client)
@@ -357,15 +357,15 @@ def handle_message(event):
         if user_text == "查詢報價":
             rows = get_recent_quotes()
             if not rows:
-                reply_text = "目前沒有報價紀錄"
+                reply_text = "No quote records found"
             else:
-                reply_text = "📋 最近報價紀錄\n\n"
+                reply_text = "📋 Recent Quote Records\n\n"
                 for row in rows:
                     created_at, layer, material, total_price = row
                     reply_text += (
-                        f"時間：{created_at}\n"
+                        f"Time: {created_at}\n"
                         f"{layer}L | {material}\n"
-                        f"總價：{total_price}\n\n"
+                        f"Total: {total_price}\n\n"
                     )
 
             with ApiClient(configuration) as api_client:
@@ -381,18 +381,18 @@ def handle_message(event):
         if user_text == "匯出報價單":
             parsed = user_memory.get(user_id)
             if not parsed:
-                reply_text = "⚠️ 目前沒有報價資料"
+                reply_text = "⚠️ ⚠️ No quote data available"
             else:
                 result = calculate_quote(parsed)
                 filename = export_quote_excel(parsed, result)
                 download_url = f"{settings.PUBLIC_BASE_URL}/download/exports/{filename}"
                 reply_text = f"""
-✅ 已匯出報價單
+✅ Quote exported
 
-檔案：
+File:
 {filename}
 
-下載連結：
+Download link:
 {download_url}
 """
 
@@ -413,7 +413,7 @@ def handle_message(event):
                 line_bot_api.reply_message(
                     ReplyMessageRequest(
                         reply_token=event.reply_token,
-                        messages=[TextMessage(text="✅ 已清除上一筆報價資料，可以開始新的案件。")]
+                        messages=[TextMessage(text="✅ Previous quote data cleared. You can start a new case.")]
                     )
                 )
             return
@@ -433,15 +433,15 @@ def handle_message(event):
             if keyword:
                 avg_price, count = get_average_price(keyword)
                 if count == 0:
-                    reply_text = f"找不到 {keyword} 的報價紀錄"
+                    reply_text = f"No quote records found for {keyword}"
                 else:
                     reply_text = (
-                        f"📊 {keyword} 平均價格\n\n"
-                        f"平均總價：{round(avg_price, 2)}\n"
-                        f"資料筆數：{count}"
+                        f"📊 {keyword} Average Price\n\n"
+                        f"Average total: {round(avg_price, 2)}\n"
+                        f"Record count: {count}"
                     )
             else:
-                reply_text = "請輸入想查詢的 Layer 或材料"
+                reply_text = "Please enter the layer count or material to search"
 
             with ApiClient(configuration) as api_client:
                 line_bot_api = MessagingApi(api_client)
@@ -467,20 +467,20 @@ def handle_message(event):
             if keyword:
                 rows = search_quotes(keyword)
                 if not rows:
-                    reply_text = f"找不到 {keyword} 的報價紀錄"
+                    reply_text = f"No quote records found for {keyword}"
                 else:
-                    reply_text = f"📋 {keyword} 報價紀錄\n\n"
+                    reply_text = f"📋 {keyword} Quote Records\n\n"
                     for row in rows:
                         created_at, layer, material, total = row
                         reply_text += (
-                            f"時間：{created_at}\n"
+                            f"Time: {created_at}\n"
                             f"{layer}L | {material}\n"
-                            f"總價：{total}\n\n"
+                            f"Total: {total}\n\n"
                         )
             else:
                 reply_text = (
-                    "請輸入想查詢的 Layer 或材料\n"
-                    "例如：46L、FR4、Megtron6"
+                    "Please enter the layer count or material to search\n"
+                    "Example: 46L, FR4, Megtron6"
                 )
 
             with ApiClient(configuration) as api_client:
@@ -545,22 +545,22 @@ def handle_message(event):
                 )
             )
 
-        if user_text == "正式報價單":
+        if user_text == "Formal Quote":
             parsed = user_memory.get(user_id)
             if not parsed:
-                reply_text = "⚠️ 目前沒有報價資料，請先報價。"
+                reply_text = "⚠️ ⚠️ No quote data available. Please create a quote first."
             else:
                 result = calculate_quote(parsed)
                 output_path = export_formal_quote(parsed, result)
                 filename = os.path.basename(output_path)
                 download_url = f"{settings.PUBLIC_BASE_URL}/download/exports/{filename}"
                 reply_text = f"""
-✅ 已生成正式報價單
+✅ Formal quote generated
 
-檔案：
+File:
 {filename}
 
-下載連結：
+Download link:
 {download_url}
 """
 
@@ -584,7 +584,7 @@ def handle_message(event):
                 line_bot_api.reply_message(
                     ReplyMessageRequest(
                         reply_token=event.reply_token,
-                        messages=[TextMessage(text="⚠️ 處理訊息時發生錯誤，請稍後再試。")]
+                        messages=[TextMessage(text="⚠️ An error occurred while processing the message. Please try again later.")]
                     )
                 )
         except:
@@ -596,7 +596,8 @@ def handle_image_message(event):
     try:
         user_id = event.source.user_id
         image_id = event.message.id
-        image_path = f"data/uploads/upload_{uuid.uuid4().hex}.jpg"
+        os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+        image_path = os.path.join(settings.UPLOAD_DIR, f"upload_{uuid.uuid4().hex}.jpg")
 
         logger.info(f"Received image from {user_id}: {image_id}")
 
@@ -635,7 +636,7 @@ def handle_image_message(event):
                 line_bot_api.reply_message(
                     ReplyMessageRequest(
                         reply_token=event.reply_token,
-                        messages=[TextMessage(text="⚠️ 無法處理圖片，請稍後再試。")]
+                        messages=[TextMessage(text="⚠️ Unable to process the image. Please try again later.")]
                     )
                 )
         except:

@@ -1,17 +1,17 @@
 {% extends "base.html" %}
-{% block title %}統計報告 - PCB 報價系統{% endblock %}
+{% block title %}Reports - {{ tr(request, "app_title") }}{% endblock %}
 {% block content %}
-<h1 class="text-2xl mb-6">統計報告</h1>
+<h1 class="text-2xl mb-6">{{ tr(request, "reports") }}</h1>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
     <div class="card p-6">
-        <h2 class="font-medium mb-3">層數分佈</h2>
+        <h2 class="font-medium mb-3">{{ tr(request, "layer_distribution") }}</h2>
         <canvas id="layerChart"></canvas>
     </div>
     <div class="card p-6">
-        <h2 class="font-medium mb-3">材料分佈</h2>
+        <h2 class="font-medium mb-3">{{ tr(request, "material_distribution") }}</h2>
         <canvas id="materialChart"></canvas>
     </div>
 </div>
@@ -54,7 +54,7 @@
     <table class="w-full text-sm whitespace-nowrap">
         <thead style="color: var(--ink-muted)" class="text-left">
             <tr>
-                <th class="py-2 pr-4">Customer</th>
+                <th class="py-2 pr-4">{{ tr(request, "customer") }}</th>
                 <th class="py-2 pr-4">RFQs</th>
                 <th class="py-2 pr-4">Won</th>
                 <th class="py-2 pr-4">Lost</th>
@@ -87,7 +87,7 @@
         type: "bar",
         data: {
             labels: byLayer.map(r => r.layer + "L"),
-            datasets: [{ label: "報價數", data: byLayer.map(r => r.count), backgroundColor: "#B5651D" }],
+            datasets: [{ label: "{{ tr(request, 'quote_count') }}", data: byLayer.map(r => r.count), backgroundColor: "#B5651D" }],
         },
     });
 

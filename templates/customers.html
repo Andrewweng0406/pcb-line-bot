@@ -1,27 +1,27 @@
 {% extends "base.html" %}
-{% block title %}客戶管理 - PCB 報價系統{% endblock %}
+{% block title %}Customers - {{ tr(request, "app_title") }}{% endblock %}
 {% block content %}
-<h1 class="text-2xl mb-6">客戶管理</h1>
+<h1 class="text-2xl mb-6">{{ tr(request, "customers") }}</h1>
 
 <form method="post" action="/customers" class="card p-4 mb-6 flex flex-wrap gap-3 items-end">
     <div>
-        <label class="block text-xs mb-1" style="color: var(--ink-muted)">公司名稱</label>
+        <label class="block text-xs mb-1" style="color: var(--ink-muted)">{{ tr(request, "company_name") }}</label>
         <input type="text" name="company_name" required class="border rounded-lg px-3 py-1.5 text-sm" style="border-color: var(--border)">
     </div>
     <div>
-        <label class="block text-xs mb-1" style="color: var(--ink-muted)">聯絡人</label>
+        <label class="block text-xs mb-1" style="color: var(--ink-muted)">{{ tr(request, "contact") }}</label>
         <input type="text" name="contact" class="border rounded-lg px-3 py-1.5 text-sm" style="border-color: var(--border)">
     </div>
     <div>
-        <label class="block text-xs mb-1" style="color: var(--ink-muted)">電話</label>
+        <label class="block text-xs mb-1" style="color: var(--ink-muted)">{{ tr(request, "phone") }}</label>
         <input type="text" name="phone" class="border rounded-lg px-3 py-1.5 text-sm font-data" style="border-color: var(--border)">
     </div>
     <div>
-        <label class="block text-xs mb-1" style="color: var(--ink-muted)">Email</label>
+        <label class="block text-xs mb-1" style="color: var(--ink-muted)">{{ tr(request, "email") }}</label>
         <input type="email" name="email" class="border rounded-lg px-3 py-1.5 text-sm font-data" style="border-color: var(--border)">
     </div>
     <button type="submit" class="btn-primary px-4 py-1.5 text-sm">
-        新增客戶
+        Add Customer
     </button>
 </form>
 
@@ -29,10 +29,10 @@
     <table class="w-full text-sm whitespace-nowrap">
         <thead style="background: var(--bg); color: var(--ink-muted)" class="text-left">
             <tr>
-                <th class="px-4 py-2">公司名稱</th>
-                <th class="px-4 py-2">聯絡人</th>
-                <th class="px-4 py-2">電話</th>
-                <th class="px-4 py-2">Email</th>
+                <th class="px-4 py-2">{{ tr(request, "company_name") }}</th>
+                <th class="px-4 py-2">{{ tr(request, "contact") }}</th>
+                <th class="px-4 py-2">{{ tr(request, "phone") }}</th>
+                <th class="px-4 py-2">{{ tr(request, "email") }}</th>
                 <th class="px-4 py-2">RFQs</th>
                 <th class="px-4 py-2">Win Rate</th>
                 <th class="px-4 py-2">Won Revenue</th>

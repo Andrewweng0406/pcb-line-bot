@@ -5,6 +5,7 @@ from openpyxl.styles import Alignment
 
 from datetime import datetime
 import os
+from app.core.config import settings
 
 
 quote_counter = 1
@@ -26,7 +27,7 @@ def export_quote_excel(parsed, result):
     # Title
     ws.merge_cells("A1:D1")
 
-    ws["A1"] = "PCB 正式報價單"
+    ws["A1"] = "PCB Official Quotation"
 
     ws["A1"].font = Font(size=18, bold=True)
     ws["A1"].alignment = Alignment(horizontal="center")
@@ -125,7 +126,7 @@ def export_quote_excel(parsed, result):
     filename = f'{quote_no}.xlsx'
 
     # Ensure the exports directory exists
-    exports_dir = "exports"
+    exports_dir = settings.EXPORT_DIR
     if not os.path.exists(exports_dir):
         os.makedirs(exports_dir)
 

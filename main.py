@@ -74,9 +74,9 @@ def format_quote_reply(parsed, result):
 
     if result.get("status") != "success":
         return f"""
-⚠️ 無法完成報價
+⚠️ Unable to complete quote
 
-原因：
+Reason:
 {result.get("message")}
 """
 
@@ -89,20 +89,20 @@ def format_quote_reply(parsed, result):
         size_text = f'{parsed.get("length_mm")} x {parsed.get("width_mm")} mm'
 
         dimension_text = f"""
-長：{parsed.get("length_mm")} mm = {result.get("length_inch")} inch
-寬：{parsed.get("width_mm")} mm = {result.get("width_inch")} inch
-面積：{result.get("area_inch")} sq.inch
+Length: {parsed.get("length_mm")} mm = {result.get("length_inch")} inch
+Width: {parsed.get("width_mm")} mm = {result.get("width_inch")} inch
+Area: {result.get("area_inch")} sq.inch
 """
     else:
         size_text = f'{parsed.get("area_inch")} sq.inch'
 
         dimension_text = f"""
-面積：{result.get("area_inch")} sq.inch
-來源：客戶直接提供 Area
+Area: {result.get("area_inch")} sq.inch
+Source: Area provided directly by customer
 """
 
     if result.get("explanations"):
-        explain_text += "\n【加價原因】\n"
+        explain_text += "\n[Surcharge Reasons]\n"
 
         for item in result.get("explanations"):
             explain_text += f"- {item}\n"
@@ -114,22 +114,22 @@ def format_quote_reply(parsed, result):
             warning_text += f"- {item}\n"
 
     if result.get("suggest_missing"):
-        missing_text += "\n⚠️ 建議補充資料：\n"
+        missing_text += "\n⚠️ Recommended additional information:\n"
 
         for item in result.get("suggest_missing"):
             missing_text += f"- {item}\n"
     
     if result.get("follow_up_questions"):
 
-        follow_text += "\n【AI 追問】\n"
+        follow_text += "\n[AI Follow-up Questions]\n"
 
         for item in result.get("follow_up_questions"):
             follow_text += f"- {item}\n"
 
     return f"""
-📋 PCB 初步報價
+📋 Preliminary PCB Quote
 
-【讀取到的規格】
+[Parsed Specifications]
 Layer：{parsed.get("layer")}L
 Material：{parsed.get("material")}
 Size：{size_text}
@@ -138,7 +138,7 @@ Qty：{parsed.get("qty")} pcs
 {missing_text}
 {follow_text}
 
-【製程】
+[Process]
 ENIG：{"Yes" if parsed.get("enig") else "No"}
 ENIG Thickness：{parsed.get("enig_thickness_uinch")} u"
 VIP：{"Yes" if parsed.get("vip") else "No"}
@@ -146,34 +146,34 @@ Impedance：{"Yes" if parsed.get("impedance") else "No"}
 Back Drill：{"Yes" if parsed.get("back_drill") else "No"}
 BVH：{"Yes" if parsed.get("bvh") else "No"}
 
-【計算明細】
+[Calculation Details]
 {dimension_text}
-難度等級：{result.get("difficulty_level")}
-難度分數：{result.get("difficulty_score")}
-工程費：{result.get("engineering_fee")}
-原始板材單價：{result.get("base_material_price")} / sq.inch
-加價後板材單價：{result.get("material_price")} / sq.inch
-客戶需求數量：{parsed.get("qty")} pcs
-投料率：{result.get("issue_ratio")}
-實際投料數量：{result.get("production_qty")} pcs
-板材費：{result.get("material_cost")}
-特殊加工費：{result.get("process_cost")}
-小計：{result.get("subtotal")}
-數量折扣：{result.get("discount")}
+Difficulty level: {result.get("difficulty_level")}
+Difficulty score: {result.get("difficulty_score")}
+Engineering fee: {result.get("engineering_fee")}
+Base board unit price: {result.get("base_material_price")} / sq.inch
+Adjusted board unit price: {result.get("material_price")} / sq.inch
+Customer requested quantity: {parsed.get("qty")} pcs
+Issue ratio: {result.get("issue_ratio")}
+Production quantity: {result.get("production_qty")} pcs
+Board material cost: {result.get("material_cost")}
+Special process cost: {result.get("process_cost")}
+Subtotal: {result.get("subtotal")}
+Quantity discount: {result.get("discount")}
 {warning_text}
 {explain_text}
-交期：{
-f"{result.get('delivery_days')} 天"
+Lead time: {
+f"{result.get('delivery_days')} days"
 if result.get("delivery_days") is not None
-else "未提供"
+else "Not provided"
 }
 
-交期倍率：{result.get("delivery_multiplier")}
-【報價結果】
-總價：{result.get("total")}
-單片價格：{result.get("unit_price")} / pcs
+Lead-time multiplier: {result.get("delivery_multiplier")}
+[Quote Result]
+Total: {result.get("total")}
+Unit price: {result.get("unit_price")} / pcs
 
-⚠️ 此為 AI 初步報價，最終價格需工程確認。
+⚠️ This is an AI preliminary quote. Final pricing requires engineering review.
 """
 
 
@@ -205,20 +205,20 @@ def handle_message(event):
         rows = get_recent_quotes()
 
         if not rows:
-            reply_text = "目前沒有報價紀錄"
+            reply_text = "No quote records found"
 
         else:
 
-            reply_text = "📋 最近報價紀錄\n\n"
+            reply_text = "📋 Recent Quote Records\n\n"
 
             for row in rows:
 
                 created_at, layer, material, total_price = row
 
                 reply_text += (
-                    f"時間：{created_at}\n"
+                    f"Time: {created_at}\n"
                     f"{layer}L | {material}\n"
-                    f"總價：{total_price}\n\n"
+                    f"Total: {total_price}\n\n"
                 )
 
         with ApiClient(configuration) as api_client:
@@ -243,7 +243,7 @@ def handle_message(event):
 
         if not parsed:
 
-            reply_text = "⚠️ 目前沒有報價資料"
+            reply_text = "⚠️ ⚠️ No quote data available"
 
         else:
 
@@ -256,12 +256,12 @@ def handle_message(event):
             download_url = f"{public_base_url}/download/{filename}"
 
             reply_text = f"""
-            ✅ 已匯出報價單
+            ✅ Quote exported
 
-            檔案：
+            File:
             {filename}
 
-            下載連結：
+            Download link:
             {download_url}
             """
 
@@ -292,7 +292,7 @@ def handle_message(event):
                 ReplyMessageRequest(
                     reply_token=event.reply_token,
                     messages=[
-                        TextMessage(text="✅ 已清除上一筆報價資料，可以開始新的案件。")
+                        TextMessage(text="✅ Previous quote data cleared. You can start a new case.")
                     ]
                 )
             )
@@ -322,19 +322,19 @@ def handle_message(event):
 
             if count == 0:
 
-                reply_text = f"找不到 {keyword} 的報價紀錄"
+                reply_text = f"No quote records found for {keyword}"
 
             else:
 
                 reply_text = (
-                    f"📊 {keyword} 平均價格\n\n"
-                    f"平均總價：{round(avg_price, 2)}\n"
-                    f"資料筆數：{count}"
+                    f"📊 {keyword} Average Price\n\n"
+                    f"Average total: {round(avg_price, 2)}\n"
+                    f"Record count: {count}"
                 )
 
         else:
 
-            reply_text = "請輸入想查詢的 Layer 或材料"
+            reply_text = "Please enter the layer count or material to search"
 
         with ApiClient(configuration) as api_client:
 
@@ -384,27 +384,27 @@ def handle_message(event):
 
             if not rows:
 
-                reply_text = f"找不到 {keyword} 的報價紀錄"
+                reply_text = f"No quote records found for {keyword}"
 
             else:
 
-                reply_text = f"📋 {keyword} 報價紀錄\n\n"
+                reply_text = f"📋 {keyword} Quote Records\n\n"
 
                 for row in rows:
 
                     created_at, layer, material, total = row
 
                     reply_text += (
-                        f"時間：{created_at}\n"
+                        f"Time: {created_at}\n"
                         f"{layer}L | {material}\n"
-                        f"總價：{total}\n\n"
+                        f"Total: {total}\n\n"
                     )
 
         else:
 
             reply_text = (
-                "請輸入想查詢的 Layer 或材料\n"
-                "例如：46L、FR4、Megtron6"
+                "Please enter the layer count or material to search\n"
+                "Example: 46L, FR4, Megtron6"
             )
 
         with ApiClient(configuration) as api_client:
@@ -432,7 +432,7 @@ def handle_message(event):
     if thickness_match:
         parsed["thickness"] = thickness_match.group(1)
     
-    # 手動補 ENIG / Gold thickness
+    # Manual fallback: ENIG / Gold thickness
     gold_match = re.search(
         r'(鍍金|化金|gold|enig|hard gold)\s*(\d+\.?\d*)\s*(u"|u|uinch)',
         user_text.lower()
@@ -448,7 +448,7 @@ def handle_message(event):
             parsed["surface_finish"] = "ENIG"
 
 
-    # 手動補 Copper Weight
+    # Manual fallback: Copper Weight
     copper_match = re.search(
         r'(銅厚|copper|銅箔|copperweight)?\s*[:：]?\s*(\d+\.?\d*)\s*oz',
         user_text.lower()
@@ -458,7 +458,7 @@ def handle_message(event):
         parsed["copper_weight"] = f"{copper_match.group(2)}oz"
 
 
-    # 手動補交期
+    # Manual fallback:交期
     delivery_match = re.search(
         r'(\d+)\s*(天|days|day)',
         user_text.lower()
@@ -488,12 +488,12 @@ def handle_message(event):
             )
         )
 
-    if user_text == "正式報價單":
+    if user_text == "Formal Quote":
 
         parsed = user_memory.get(user_id)
 
         if not parsed:
-            reply_text = "⚠️ 目前沒有報價資料，請先報價。"
+            reply_text = "⚠️ ⚠️ No quote data available. Please create a quote first."
 
         else:
             result = calculate_quote(parsed)
@@ -507,12 +507,12 @@ def handle_message(event):
             download_url = f"{public_base_url}/download/exports/{filename}"
 
             reply_text = f"""
-    ✅ 已生成正式報價單
+    ✅ 已生成Formal Quote
 
-    檔案：
+    File:
     {filename}
 
-    下載連結：
+    Download link:
     {download_url}
     """
 

@@ -1,28 +1,28 @@
 {% extends "base.html" %}
-{% block title %}新增報價 - PCB 報價系統{% endblock %}
+{% block title %}New Quote - {{ tr(request, "app_title") }}{% endblock %}
 {% block content %}
-<h1 class="text-2xl mb-6">新增報價</h1>
+<h1 class="text-2xl mb-6">{{ tr(request, "new_quote") }}</h1>
 
 {% if error %}
 <p class="text-sm mb-4" style="color: var(--copper-dark)">{{ error }}</p>
 {% endif %}
 
 <div class="card p-6 mb-6" style="border-top-color: var(--gold)">
-    <h2 class="font-medium mb-3" style="color: var(--gold)">AI 輔助填單</h2>
+    <h2 class="font-medium mb-3" style="color: var(--gold)">{{ tr(request, "ai_form_assist") }}</h2>
     <div class="flex flex-col sm:flex-row gap-3 sm:items-end">
         <div class="flex-1">
-            <label class="block text-sm mb-1 whitespace-nowrap" style="color: var(--ink-muted)">貼上規格文字</label>
+            <label class="block text-sm mb-1 whitespace-nowrap" style="color: var(--ink-muted)">{{ tr(request, "paste_specs") }}</label>
             <textarea
                 id="ai-spec-text"
                 name="spec_text"
                 rows="2"
                 class="w-full border rounded-lg px-3 py-2"
                 style="border-color: var(--border)"
-                placeholder="例如：6層 FR4 100x100mm 數量9 ENIG 10u"
+                placeholder="e.g. 6L FR4 100x100mm qty 9 ENIG 10u"
             ></textarea>
         </div>
         <div>
-            <label class="block text-sm mb-1 whitespace-nowrap" style="color: var(--ink-muted)">或上傳 PCB 圖片</label>
+            <label class="block text-sm mb-1 whitespace-nowrap" style="color: var(--ink-muted)">{{ tr(request, "upload_pcb_image") }}</label>
             <input type="file" id="ai-photo" name="photo" accept="image/*" class="text-sm w-full">
         </div>
         <button
@@ -35,7 +35,7 @@
             class="px-4 py-2 text-sm font-medium whitespace-nowrap rounded-lg"
             style="background: var(--gold); color: #FFFFFF"
         >
-            AI 解析並帶入表單
+            Parse with AI
         </button>
     </div>
 </div>
@@ -45,7 +45,7 @@
         {% include "_quote_form_fields.html" %}
     </div>
     <button type="submit" class="mt-6 btn-primary px-6 py-2">
-        計算並儲存報價
+        Calculate and Save Quote
     </button>
 </form>
 {% endblock %}

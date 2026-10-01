@@ -77,7 +77,7 @@ class FileStorage:
                 logger.info(f"Export saved to S3: {s3_key}")
                 return url
             else:
-                export_dir = Path("exports")
+                export_dir = Path(settings.EXPORT_DIR)
                 export_dir.mkdir(exist_ok=True)
                 local_path = export_dir / filename
                 with open(local_path, "wb") as f:

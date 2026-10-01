@@ -1,32 +1,32 @@
 {% extends "base.html" %}
-{% block title %}報價列表 - PCB 報價系統{% endblock %}
+{% block title %}Quote List - {{ tr(request, "app_title") }}{% endblock %}
 {% block content %}
-<h1 class="text-2xl mb-6">報價列表</h1>
+<h1 class="text-2xl mb-6">{{ tr(request, "quote_list") }}</h1>
 
 <form method="get" action="/quotes" class="card p-4 mb-6 flex flex-wrap gap-3 items-end">
     <div>
-        <label class="block text-xs mb-1" style="color: var(--ink-muted)">層數</label>
+        <label class="block text-xs mb-1" style="color: var(--ink-muted)">{{ tr(request, "layers") }}</label>
         <input type="number" name="layer" value="{{ filters.layer }}" class="border rounded-lg px-3 py-1.5 text-sm" style="border-color: var(--border)">
     </div>
     <div>
-        <label class="block text-xs mb-1" style="color: var(--ink-muted)">材料</label>
+        <label class="block text-xs mb-1" style="color: var(--ink-muted)">{{ tr(request, "material") }}</label>
         <input type="text" name="material" value="{{ filters.material }}" class="border rounded-lg px-3 py-1.5 text-sm" style="border-color: var(--border)">
     </div>
     <div>
-        <label class="block text-xs mb-1" style="color: var(--ink-muted)">客戶</label>
+        <label class="block text-xs mb-1" style="color: var(--ink-muted)">{{ tr(request, "customer") }}</label>
         <input type="text" name="customer" value="{{ filters.customer }}" class="border rounded-lg px-3 py-1.5 text-sm" style="border-color: var(--border)">
     </div>
     <div>
-        <label class="block text-xs mb-1" style="color: var(--ink-muted)">狀態</label>
+        <label class="block text-xs mb-1" style="color: var(--ink-muted)">{{ tr(request, "status") }}</label>
         <select name="status" class="border rounded-lg px-3 py-1.5 text-sm" style="border-color: var(--border)">
-            <option value="" {% if not filters.status %}selected{% endif %}>全部</option>
-            <option value="pending" {% if filters.status == "pending" %}selected{% endif %}>待審核</option>
-            <option value="approved" {% if filters.status == "approved" %}selected{% endif %}>已批准</option>
-            <option value="ordered" {% if filters.status == "ordered" %}selected{% endif %}>已下單</option>
+            <option value="" {% if not filters.status %}selected{% endif %}>{{ tr(request, "all") }}</option>
+            <option value="pending" {% if filters.status == "pending" %}selected{% endif %}>{{ tr(request, "pending_review") }}</option>
+            <option value="approved" {% if filters.status == "approved" %}selected{% endif %}>{{ tr(request, "approved") }}</option>
+            <option value="ordered" {% if filters.status == "ordered" %}selected{% endif %}>{{ tr(request, "ordered") }}</option>
         </select>
     </div>
     <button type="submit" class="btn-primary px-4 py-1.5 text-sm">
-        篩選
+        {{ tr(request, "filter") }}
     </button>
 </form>
 
@@ -34,14 +34,14 @@
     <table class="w-full text-sm whitespace-nowrap">
         <thead style="background: var(--bg); color: var(--ink-muted)" class="text-left">
             <tr>
-                <th class="px-4 py-2">編號</th>
-                <th class="px-4 py-2">客戶</th>
-                <th class="px-4 py-2">層數</th>
-                <th class="px-4 py-2">材料</th>
-                <th class="px-4 py-2">總價</th>
-                <th class="px-4 py-2">狀態</th>
-                <th class="px-4 py-2">建立者</th>
-                <th class="px-4 py-2">建立時間</th>
+                <th class="px-4 py-2">{{ tr(request, "number") }}</th>
+                <th class="px-4 py-2">{{ tr(request, "customer") }}</th>
+                <th class="px-4 py-2">{{ tr(request, "layers") }}</th>
+                <th class="px-4 py-2">{{ tr(request, "material") }}</th>
+                <th class="px-4 py-2">{{ tr(request, "total") }}</th>
+                <th class="px-4 py-2">{{ tr(request, "status") }}</th>
+                <th class="px-4 py-2">{{ tr(request, "created_by") }}</th>
+                <th class="px-4 py-2">{{ tr(request, "created_at") }}</th>
             </tr>
         </thead>
         <tbody>

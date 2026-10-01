@@ -40,12 +40,238 @@ from app.quote_outcomes import (
 from app.rfq_completeness import evaluate_rfq_completeness
 from app.quote_engine import calculate_quote
 
-STATUS_LABELS = {"pending": "待審核", "approved": "已批准", "ordered": "已下單"}
+TRANSLATIONS = {
+    "en": {
+        "app_title": "PCB Quote System",
+        "new_quote": "New Quote",
+        "quote_list": "Quote List",
+        "customers": "Customers",
+        "import_quotes": "Import Quotes",
+        "reports": "Reports",
+        "logout": "Log Out",
+        "menu": "Menu",
+        "language_label": "Language",
+        "dashboard": "Dashboard",
+        "quotes_today": "Quotes Today",
+        "total_quotes": "Total Quotes",
+        "average_quote_amount": "Average Quote Amount",
+        "view_quote_list": "View Quote List",
+        "email": "Email",
+        "password": "Password",
+        "login": "Log In",
+        "register": "Register",
+        "create_account": "Create Account",
+        "invite_code": "Invite Code",
+        "need_account": "Need an account?",
+        "register_with_invite": "Register with invite code",
+        "already_have_account": "Already have an account?",
+        "layers": "Layers",
+        "quantity": "Quantity",
+        "material": "Material",
+        "customer": "Customer",
+        "status": "Status",
+        "all": "All",
+        "pending_review": "Pending Review",
+        "approved": "Approved",
+        "ordered": "Ordered",
+        "filter": "Filter",
+        "number": "No.",
+        "total": "Total",
+        "created_by": "Created By",
+        "created_at": "Created At",
+        "company_name": "Company Name",
+        "contact": "Contact",
+        "phone": "Phone",
+        "add_customer": "Add Customer",
+        "customer_company_name": "Customer Company Name",
+        "length_mm": "Length (mm)",
+        "width_mm": "Width (mm)",
+        "issue_ratio": "Issue Ratio",
+        "lead_time_days": "Lead Time (days)",
+        "board_thickness_mm": "Board Thickness (mm)",
+        "enig_thickness": "ENIG Thickness (u\")",
+        "surface_finish": "Surface Finish",
+        "copper_thickness": "Copper Thickness",
+        "outer_copper": "Outer Copper (oz)",
+        "inner_copper": "Inner Copper (oz)",
+        "min_hole": "Min Hole (mil)",
+        "aspect_ratio": "Aspect Ratio",
+        "warpage": "Warpage (mil/inch)",
+        "legend_color": "Legend Color",
+        "solder_mask_color": "Solder Mask Color",
+        "special_requirements": "Special Requirements",
+        "ai_form_assist": "AI Form Assist",
+        "paste_specs": "Paste Specifications",
+        "upload_pcb_image": "Or Upload PCB Image",
+        "parse_with_ai": "Parse with AI",
+        "save_quote": "Calculate and Save Quote",
+        "quote_detail": "Quote Detail",
+        "last_updated_by": "Last Updated By",
+        "generate_formal_quote": "Generate Formal Quote",
+        "download_internal_excel": "Download Internal Excel",
+        "sales_next_steps": "Sales Next Steps",
+        "pricing_status": "Pricing Status",
+        "rfq_quality": "RFQ Data Quality",
+        "complete": "Complete",
+        "required_before_quoting": "Required Before Quoting",
+        "recommended_checks": "Recommended Checks",
+        "data_complete": "Data is complete. You can generate the formal quote.",
+        "estimate_missing": "Estimate Missing",
+        "manual_cost_review": "Manual Cost Review Needed",
+        "create_new_quote": "Create New Quote",
+        "customer_quote_summary": "Customer Quote Summary",
+        "unit_price": "Unit Price",
+        "lead_time": "交期",
+        "spec_summary": "Specification Summary",
+        "size": "Size",
+        "gold_thickness": "Gold Thickness",
+        "internal_pricing_summary": "Internal Pricing Summary",
+        "estimated_cost": "Estimated Cost",
+        "estimated_margin": "Estimated Margin",
+        "applied_pricing_factors": "Applied Pricing Factors",
+        "status_notes": "Status and Internal Notes",
+        "internal_notes": "Internal Notes",
+        "save": "Save",
+        "structured_history": "Structured Data and Historical Analysis",
+        "structured_data": "Structured Data",
+        "source": "Source",
+        "product": "Product",
+        "pricing_version": "Pricing Version",
+        "area": "Area",
+        "layer_distribution": "Layer Distribution",
+        "material_distribution": "Material Distribution",
+        "quote_count": "Quote Count",
+    },
+    "zh": {
+        "app_title": "PCB 報價系統",
+        "new_quote": "新增報價",
+        "quote_list": "報價列表",
+        "customers": "客戶管理",
+        "import_quotes": "匯入報價",
+        "reports": "統計報告",
+        "logout": "登出",
+        "menu": "選單",
+        "language_label": "語言",
+        "dashboard": "儀表板",
+        "quotes_today": "今日報價數",
+        "total_quotes": "歷史總報價數",
+        "average_quote_amount": "平均報價金額",
+        "view_quote_list": "查看報價列表",
+        "email": "帳號 (Email)",
+        "password": "密碼",
+        "login": "登入",
+        "register": "註冊",
+        "create_account": "建立帳號",
+        "invite_code": "邀請碼",
+        "need_account": "還沒有帳號？",
+        "register_with_invite": "使用邀請碼註冊",
+        "already_have_account": "已經有帳號？",
+        "layers": "層數",
+        "quantity": "數量",
+        "material": "材料",
+        "customer": "客戶",
+        "status": "狀態",
+        "all": "全部",
+        "pending_review": "待審核",
+        "approved": "已批准",
+        "ordered": "已下單",
+        "filter": "篩選",
+        "number": "編號",
+        "total": "總價",
+        "created_by": "建立者",
+        "created_at": "建立時間",
+        "company_name": "公司名稱",
+        "contact": "聯絡人",
+        "phone": "電話",
+        "add_customer": "新增客戶",
+        "customer_company_name": "客戶公司名稱",
+        "length_mm": "長 (mm)",
+        "width_mm": "寬 (mm)",
+        "issue_ratio": "投料率",
+        "lead_time_days": "交期 (天)",
+        "board_thickness_mm": "板厚 (mm)",
+        "enig_thickness": "ENIG 厚度 (u\")",
+        "surface_finish": "表面處理",
+        "copper_thickness": "銅厚",
+        "outer_copper": "外層銅厚 (oz)",
+        "inner_copper": "內層銅厚 (oz)",
+        "min_hole": "最小孔徑 (mil)",
+        "aspect_ratio": "縱橫比",
+        "warpage": "板翹 (mil/inch)",
+        "legend_color": "文字顏色",
+        "solder_mask_color": "防焊顏色",
+        "special_requirements": "特殊需求",
+        "ai_form_assist": "AI 輔助填單",
+        "paste_specs": "貼上規格文字",
+        "upload_pcb_image": "或上傳 PCB 圖片",
+        "parse_with_ai": "AI 解析並帶入表單",
+        "save_quote": "計算並儲存報價",
+        "quote_detail": "報價詳情",
+        "last_updated_by": "最後修改",
+        "generate_formal_quote": "產生正式報價單",
+        "download_internal_excel": "下載內部 Excel",
+        "sales_next_steps": "業務下一步",
+        "pricing_status": "價格狀態",
+        "rfq_quality": "RFQ 資料完整度",
+        "complete": "完整",
+        "required_before_quoting": "報價前必補",
+        "recommended_checks": "建議確認",
+        "data_complete": "資料完整，可以產生正式報價單。",
+        "estimate_missing": "價格初估缺少",
+        "manual_cost_review": "需人工確認成本",
+        "create_new_quote": "建立新報價",
+        "customer_quote_summary": "客戶報價摘要",
+        "unit_price": "單片價格",
+        "lead_time": "交期",
+        "spec_summary": "規格摘要",
+        "size": "尺寸",
+        "gold_thickness": "金厚",
+        "internal_pricing_summary": "內部計價摘要",
+        "estimated_cost": "預估成本",
+        "estimated_margin": "預估毛利",
+        "applied_pricing_factors": "已套用價格因子",
+        "status_notes": "狀態與內部備註",
+        "internal_notes": "內部備註",
+        "save": "儲存",
+        "structured_history": "結構化資料與歷史分析",
+        "structured_data": "結構化資料",
+        "source": "來源",
+        "product": "產品",
+        "pricing_version": "計價版本",
+        "area": "面積",
+        "layer_distribution": "層數分佈",
+        "material_distribution": "材料分佈",
+        "quote_count": "報價數",
+    },
+}
 
+
+def get_lang(request: Request) -> str:
+    lang = request.query_params.get("lang") or request.cookies.get("lang") or "en"
+    return "zh" if lang == "zh" else "en"
+
+
+def tr(request: Request, key: str) -> str:
+    lang = get_lang(request)
+    return TRANSLATIONS[lang].get(key, TRANSLATIONS["en"].get(key, key))
+
+
+def localized_status_labels(request: Request):
+    return {
+        "pending": tr(request, "pending_review"),
+        "approved": tr(request, "approved"),
+        "ordered": tr(request, "ordered"),
+    }
+
+
+templates = Jinja2Templates(directory="templates")
+templates.env.globals["tr"] = tr
+templates.env.globals["get_lang"] = get_lang
+templates.env.globals["other_lang"] = lambda request: "zh" if get_lang(request) == "en" else "en"
+templates.env.globals["lang_name"] = lambda lang: "中文" if lang == "zh" else "EN"
 logger = get_logger(__name__)
 
 router = APIRouter(tags=["web"])
-templates = Jinja2Templates(directory="templates")
 
 SESSION_COOKIE_NAME = "session"
 
@@ -81,7 +307,7 @@ def login_submit(request: Request, email: str = Form(...), password: str = Form(
     if user is None or not verify_password(password, user.password_hash):
         return templates.TemplateResponse(
             "login.html",
-            {"request": request, "error": "帳號或密碼錯誤"},
+            {"request": request, "error": "Incorrect email or password"},
             status_code=401,
         )
 
@@ -110,7 +336,7 @@ def register_submit(
     if invite_code != settings.INVITE_CODE:
         return templates.TemplateResponse(
             "register.html",
-            {"request": request, "error": "邀請碼錯誤", "email": email},
+            {"request": request, "error": "Invalid invite code", "email": email},
             status_code=400,
         )
 
@@ -120,7 +346,7 @@ def register_submit(
         query_db.close()
         return templates.TemplateResponse(
             "register.html",
-            {"request": request, "error": "此帳號已被註冊", "email": email},
+            {"request": request, "error": "This account is already registered", "email": email},
             status_code=400,
         )
 
@@ -142,6 +368,15 @@ def register_submit(
 def logout():
     response = RedirectResponse(url="/login", status_code=303)
     response.delete_cookie(SESSION_COOKIE_NAME)
+    return response
+
+
+@router.get("/language/{lang}")
+def set_language(lang: str, request: Request):
+    target_lang = "zh" if lang == "zh" else "en"
+    redirect_to = request.headers.get("referer") or "/"
+    response = RedirectResponse(url=redirect_to, status_code=303)
+    response.set_cookie("lang", target_lang, max_age=60 * 60 * 24 * 365)
     return response
 
 
@@ -315,7 +550,11 @@ async def ai_assist(
     ai_error = None
     try:
         if photo is not None and photo.filename:
-            image_path = f"data/uploads/web_{uuid.uuid4().hex}.jpg"
+            upload_dir = settings.UPLOAD_DIR
+            import os as _os
+
+            _os.makedirs(upload_dir, exist_ok=True)
+            image_path = _os.path.join(upload_dir, f"web_{uuid.uuid4().hex}.jpg")
             with open(image_path, "wb") as f:
                 f.write(await photo.read())
             try:
@@ -348,7 +587,7 @@ async def ai_assist(
                 )
     except Exception as e:
         logger.error(f"AI assist failed: {e}")
-        ai_error = "AI 解析失敗，請手動填寫規格"
+        ai_error = "AI parsing failed. Please enter the specifications manually."
         parsed = {}
 
     return templates.TemplateResponse(
@@ -394,7 +633,7 @@ def quotes_list(
             "request": request,
             "user": user,
             "quotes": quotes,
-            "status_labels": STATUS_LABELS,
+            "status_labels": localized_status_labels(request),
             "filters": {
                 "status": status or "",
                 "layer": layer or "",
@@ -438,7 +677,7 @@ def quote_detail(request: Request, quote_id: int, user=Depends(get_current_user_
             "request": request,
             "user": user,
             "quote": quote,
-            "status_labels": STATUS_LABELS,
+            "status_labels": localized_status_labels(request),
             "outcome_labels": OUTCOME_LABELS,
             "lost_reason_labels": LOST_REASON_LABELS,
             "rfq_completeness": evaluate_rfq_completeness(quote),

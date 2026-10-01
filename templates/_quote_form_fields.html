@@ -3,35 +3,35 @@
 {% endif %}
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
     <div>
-        <label class="block text-sm mb-1" style="color: var(--ink-muted)">層數 (Layer)</label>
+        <label class="block text-sm mb-1" style="color: var(--ink-muted)">{{ tr(request, "layers") }}</label>
         <input type="number" name="layer" required value="{{ form.layer or '' }}" class="w-full border rounded-lg px-3 py-2" style="border-color: var(--border)">
     </div>
     <div>
-        <label class="block text-sm mb-1" style="color: var(--ink-muted)">數量 (Qty)</label>
+        <label class="block text-sm mb-1" style="color: var(--ink-muted)">{{ tr(request, "quantity") }}</label>
         <input type="number" name="qty" required value="{{ form.qty or '' }}" class="w-full border rounded-lg px-3 py-2" style="border-color: var(--border)">
     </div>
     <div>
-        <label class="block text-sm mb-1" style="color: var(--ink-muted)">材料 (Material)</label>
+        <label class="block text-sm mb-1" style="color: var(--ink-muted)">{{ tr(request, "material") }}</label>
         <input type="text" name="material" value="{{ form.material or '' }}" class="w-full border rounded-lg px-3 py-2" style="border-color: var(--border)">
     </div>
     <div>
-        <label class="block text-sm mb-1" style="color: var(--ink-muted)">客戶公司名稱</label>
+        <label class="block text-sm mb-1" style="color: var(--ink-muted)">{{ tr(request, "customer_company_name") }}</label>
         <input type="text" name="company_name" value="{{ form.company_name or '' }}" class="w-full border rounded-lg px-3 py-2" style="border-color: var(--border)">
     </div>
     <div>
-        <label class="block text-sm mb-1" style="color: var(--ink-muted)">長 (mm)</label>
+        <label class="block text-sm mb-1" style="color: var(--ink-muted)">{{ tr(request, "length_mm") }}</label>
         <input type="number" step="0.01" name="length_mm" value="{{ form.length_mm or '' }}" class="w-full border rounded-lg px-3 py-2" style="border-color: var(--border)">
     </div>
     <div>
-        <label class="block text-sm mb-1" style="color: var(--ink-muted)">寬 (mm)</label>
+        <label class="block text-sm mb-1" style="color: var(--ink-muted)">{{ tr(request, "width_mm") }}</label>
         <input type="number" step="0.01" name="width_mm" value="{{ form.width_mm or '' }}" class="w-full border rounded-lg px-3 py-2" style="border-color: var(--border)">
     </div>
     <div>
-        <label class="block text-sm mb-1" style="color: var(--ink-muted)">投料率</label>
+        <label class="block text-sm mb-1" style="color: var(--ink-muted)">{{ tr(request, "issue_ratio") }}</label>
         <input type="number" step="0.01" name="issue_ratio" value="{{ form.issue_ratio or 1.0 }}" class="w-full border rounded-lg px-3 py-2" style="border-color: var(--border)">
     </div>
     <div>
-        <label class="block text-sm mb-1" style="color: var(--ink-muted)">交期 (天)</label>
+        <label class="block text-sm mb-1" style="color: var(--ink-muted)">{{ tr(request, "lead_time_days") }}</label>
         <input type="number" name="delivery_days" value="{{ form.delivery_days or '' }}" class="w-full border rounded-lg px-3 py-2" style="border-color: var(--border)">
     </div>
     <div>
@@ -39,31 +39,31 @@
         <input type="number" step="0.01" name="pitch_mm" value="{{ form.pitch_mm or '' }}" class="w-full border rounded-lg px-3 py-2" style="border-color: var(--border)">
     </div>
     <div>
-        <label class="block text-sm mb-1" style="color: var(--ink-muted)">板厚 (mm)</label>
+        <label class="block text-sm mb-1" style="color: var(--ink-muted)">{{ tr(request, "board_thickness_mm") }}</label>
         <input type="number" step="0.01" name="thickness_mm" value="{{ form.thickness_mm or '' }}" class="w-full border rounded-lg px-3 py-2" style="border-color: var(--border)">
     </div>
     <div>
-        <label class="block text-sm mb-1" style="color: var(--ink-muted)">ENIG 厚度 (u")</label>
+        <label class="block text-sm mb-1" style="color: var(--ink-muted)">{{ tr(request, "enig_thickness") }}</label>
         <input type="number" step="0.01" name="enig_thickness_uinch" value="{{ form.enig_thickness_uinch or '' }}" class="w-full border rounded-lg px-3 py-2" style="border-color: var(--border)">
     </div>
     <div>
-        <label class="block text-sm mb-1" style="color: var(--ink-muted)">表面處理 (Surface Finish)</label>
+        <label class="block text-sm mb-1" style="color: var(--ink-muted)">{{ tr(request, "surface_finish") }}</label>
         <input type="text" name="surface_finish" value="{{ form.surface_finish or '' }}" class="w-full border rounded-lg px-3 py-2" style="border-color: var(--border)">
     </div>
     <div>
-        <label class="block text-sm mb-1" style="color: var(--ink-muted)">銅厚 (Copper)</label>
+        <label class="block text-sm mb-1" style="color: var(--ink-muted)">{{ tr(request, "copper_thickness") }}</label>
         <input type="text" name="copper_weight" value="{{ form.copper_weight or '' }}" class="w-full border rounded-lg px-3 py-2" style="border-color: var(--border)">
     </div>
     <div>
-        <label class="block text-sm mb-1" style="color: var(--ink-muted)">外層銅厚 (oz)</label>
+        <label class="block text-sm mb-1" style="color: var(--ink-muted)">{{ tr(request, "outer_copper") }}</label>
         <input type="number" step="0.01" name="copper_outer_oz" value="{{ form.copper_outer_oz or '' }}" class="w-full border rounded-lg px-3 py-2" style="border-color: var(--border)">
     </div>
     <div>
-        <label class="block text-sm mb-1" style="color: var(--ink-muted)">內層銅厚 (oz)</label>
+        <label class="block text-sm mb-1" style="color: var(--ink-muted)">{{ tr(request, "inner_copper") }}</label>
         <input type="number" step="0.01" name="copper_inner_oz" value="{{ form.copper_inner_oz or '' }}" class="w-full border rounded-lg px-3 py-2" style="border-color: var(--border)">
     </div>
     <div>
-        <label class="block text-sm mb-1" style="color: var(--ink-muted)">最小孔徑 (mil)</label>
+        <label class="block text-sm mb-1" style="color: var(--ink-muted)">{{ tr(request, "min_hole") }}</label>
         <input type="number" step="0.01" name="min_hole_mil" value="{{ form.min_hole_mil or '' }}" class="w-full border rounded-lg px-3 py-2" style="border-color: var(--border)">
     </div>
     <div>
@@ -75,23 +75,23 @@
         <input type="number" step="0.01" name="hole_land_mil" value="{{ form.hole_land_mil or '' }}" class="w-full border rounded-lg px-3 py-2" style="border-color: var(--border)">
     </div>
     <div>
-        <label class="block text-sm mb-1" style="color: var(--ink-muted)">縱橫比</label>
+        <label class="block text-sm mb-1" style="color: var(--ink-muted)">{{ tr(request, "aspect_ratio") }}</label>
         <input type="number" step="0.01" name="aspect_ratio" value="{{ form.aspect_ratio or '' }}" class="w-full border rounded-lg px-3 py-2" style="border-color: var(--border)">
     </div>
     <div>
-        <label class="block text-sm mb-1" style="color: var(--ink-muted)">板翹 (mil/inch)</label>
+        <label class="block text-sm mb-1" style="color: var(--ink-muted)">{{ tr(request, "warpage") }}</label>
         <input type="number" step="0.01" name="warpage_mil_per_inch" value="{{ form.warpage_mil_per_inch or '' }}" class="w-full border rounded-lg px-3 py-2" style="border-color: var(--border)">
     </div>
     <div>
-        <label class="block text-sm mb-1" style="color: var(--ink-muted)">文字顏色</label>
+        <label class="block text-sm mb-1" style="color: var(--ink-muted)">{{ tr(request, "legend_color") }}</label>
         <input type="text" name="legend_color" value="{{ form.legend_color or '' }}" class="w-full border rounded-lg px-3 py-2" style="border-color: var(--border)">
     </div>
     <div>
-        <label class="block text-sm mb-1" style="color: var(--ink-muted)">防焊顏色</label>
+        <label class="block text-sm mb-1" style="color: var(--ink-muted)">{{ tr(request, "solder_mask_color") }}</label>
         <input type="text" name="solder_mask_color" value="{{ form.solder_mask_color or '' }}" class="w-full border rounded-lg px-3 py-2" style="border-color: var(--border)">
     </div>
     <div class="sm:col-span-2">
-        <label class="block text-sm mb-1" style="color: var(--ink-muted)">特殊需求</label>
+        <label class="block text-sm mb-1" style="color: var(--ink-muted)">{{ tr(request, "special_requirements") }}</label>
         <textarea name="special_requirements" rows="2" class="w-full border rounded-lg px-3 py-2" style="border-color: var(--border)">{{ form.special_requirements or '' }}</textarea>
     </div>
 </div>

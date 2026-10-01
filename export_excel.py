@@ -25,7 +25,7 @@ def export_quote_excel(parsed, result):
     # Title
     ws.merge_cells("A1:D1")
 
-    ws["A1"] = "PCB 正式報價單"
+    ws["A1"] = "PCB Official Quotation"
 
     ws["A1"].font = Font(size=18, bold=True)
     ws["A1"].alignment = Alignment(horizontal="center")
