@@ -25,4 +25,49 @@
         {{ tr(request, "view_quote_list") }}
     </a>
 </div>
+
+<section class="card p-6 mt-6">
+    <div class="flex items-center justify-between gap-4 mb-4">
+        <h2 class="text-lg font-semibold">{{ tr(request, "recent_rfqs") }}</h2>
+        <a href="/quotes" class="text-sm hover:underline" style="color: var(--copper-dark)">
+            {{ tr(request, "view_quote_list") }}
+        </a>
+    </div>
+    {% if recent_quotes %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="text-left border-b">
+                    <th class="py-2 pr-4">{{ tr(request, "quote_no") }}</th>
+                    <th class="py-2 pr-4">{{ tr(request, "customer") }}</th>
+                    <th class="py-2 pr-4">{{ tr(request, "layers") }}</th>
+                    <th class="py-2 pr-4">{{ tr(request, "quantity") }}</th>
+                    <th class="py-2 pr-4">{{ tr(request, "total") }}</th>
+                    <th class="py-2 pr-4">{{ tr(request, "status") }}</th>
+                    <th class="py-2">{{ tr(request, "created_at") }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for quote in recent_quotes %}
+                <tr class="border-b last:border-b-0">
+                    <td class="py-2 pr-4 font-data">
+                        <a href="/quotes/{{ quote.id }}" class="hover:underline" style="color: var(--copper-dark)">
+                            {{ quote.quote_no or ("Q-" ~ quote.id) }}
+                        </a>
+                    </td>
+                    <td class="py-2 pr-4">{{ quote.customer.company_name if quote.customer else "-" }}</td>
+                    <td class="py-2 pr-4 font-data">{{ quote.layer }}</td>
+                    <td class="py-2 pr-4 font-data">{{ quote.qty }}</td>
+                    <td class="py-2 pr-4 font-data">NT$ {{ "{:,.0f}".format(quote.total or 0) }}</td>
+                    <td class="py-2 pr-4">{{ status_labels.get(quote.status, quote.status) }}</td>
+                    <td class="py-2 font-data whitespace-nowrap">{{ quote.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-sm" style="color: var(--ink-muted)">{{ tr(request, "no_recent_rfqs") }}</p>
+    {% endif %}
+</section>
 {% endblock %}

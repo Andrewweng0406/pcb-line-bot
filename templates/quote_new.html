@@ -35,7 +35,7 @@
             class="px-4 py-2 text-sm font-medium whitespace-nowrap rounded-lg"
             style="background: var(--gold); color: #FFFFFF"
         >
-            Parse with AI
+            {{ tr(request, "parse_with_ai") }}
         </button>
     </div>
 </div>
@@ -45,7 +45,7 @@
         {% include "_quote_form_fields.html" %}
     </div>
     <button type="submit" class="mt-6 btn-primary px-6 py-2">
-        Calculate and Save Quote
+        {{ tr(request, "save_quote") }}
     </button>
 </form>
 {% endblock %}

@@ -4,6 +4,7 @@ from typing import Optional
 from fastapi import APIRouter, Cookie, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from sqlalchemy.orm import joinedload
 
 import app.core.database as db
 from app.business_analytics import (
@@ -121,7 +122,7 @@ TRANSLATIONS = {
         "create_new_quote": "Create New Quote",
         "customer_quote_summary": "Customer Quote Summary",
         "unit_price": "Unit Price",
-        "lead_time": "交期",
+        "lead_time": "Lead Time",
         "spec_summary": "Specification Summary",
         "size": "Size",
         "gold_thickness": "Gold Thickness",
@@ -141,6 +142,30 @@ TRANSLATIONS = {
         "layer_distribution": "Layer Distribution",
         "material_distribution": "Material Distribution",
         "quote_count": "Quote Count",
+        "recent_rfqs": "Recent RFQs",
+        "no_recent_rfqs": "No RFQs yet.",
+        "quote_no": "Quote No.",
+        "commercial_outcome": "Commercial Outcome",
+        "final_price": "Final Price",
+        "actual_cost": "Actual Cost",
+        "actual_production_days": "Actual Production Days",
+        "actual_margin": "Actual Margin",
+        "lost_reason": "Lost Reason",
+        "competitor": "Competitor",
+        "competitor_price": "Competitor Price",
+        "lost_reason_note": "Lost reason note",
+        "save_commercial_outcome": "Save Commercial Outcome",
+        "historical_intelligence": "Historical Intelligence",
+        "similar_rfqs": "Similar RFQs",
+        "limited_historical_data": "Limited historical data. Use as reference only.",
+        "average_quote_unit": "Average Quote / Unit",
+        "median_quote_unit": "Median Quote / Unit",
+        "won_lost": "Won / Lost",
+        "historical_win_rate": "Historical Win Rate",
+        "similar_quotes": "Similar Quotes",
+        "similarity": "Similarity",
+        "outcome": "Outcome",
+        "no_comparable_rfqs": "No comparable RFQs yet.",
     },
     "zh": {
         "app_title": "PCB 報價系統",
@@ -242,6 +267,30 @@ TRANSLATIONS = {
         "layer_distribution": "層數分佈",
         "material_distribution": "材料分佈",
         "quote_count": "報價數",
+        "recent_rfqs": "近期 RFQ",
+        "no_recent_rfqs": "尚無 RFQ。",
+        "quote_no": "報價單號",
+        "commercial_outcome": "商務結果",
+        "final_price": "最終價格",
+        "actual_cost": "實際成本",
+        "actual_production_days": "實際生產天數",
+        "actual_margin": "實際毛利",
+        "lost_reason": "流失原因",
+        "competitor": "競爭對手",
+        "competitor_price": "競爭對手價格",
+        "lost_reason_note": "流失原因備註",
+        "save_commercial_outcome": "儲存商務結果",
+        "historical_intelligence": "歷史智慧分析",
+        "similar_rfqs": "相似 RFQ",
+        "limited_historical_data": "歷史資料有限，僅供參考。",
+        "average_quote_unit": "平均單片報價",
+        "median_quote_unit": "中位數單片報價",
+        "won_lost": "成交 / 流失",
+        "historical_win_rate": "歷史成交率",
+        "similar_quotes": "相似報價",
+        "similarity": "相似度",
+        "outcome": "結果",
+        "no_comparable_rfqs": "尚無可比較 RFQ。",
     },
 }
 
@@ -385,8 +434,24 @@ def dashboard(request: Request, user=Depends(get_current_user_optional)):
     if user is None:
         return RedirectResponse(url="/login", status_code=303)
     stats = db.get_system_stats()
+    query_db = db.SessionLocal()
+    recent_quotes = (
+        query_db.query(db.QuoteHistory)
+        .options(joinedload(db.QuoteHistory.customer))
+        .order_by(db.QuoteHistory.created_at.desc())
+        .limit(5)
+        .all()
+    )
+    query_db.close()
     return templates.TemplateResponse(
-        "dashboard.html", {"request": request, "user": user, "stats": stats}
+        "dashboard.html",
+        {
+            "request": request,
+            "user": user,
+            "stats": stats,
+            "recent_quotes": recent_quotes,
+            "status_labels": localized_status_labels(request),
+        },
     )
 
 

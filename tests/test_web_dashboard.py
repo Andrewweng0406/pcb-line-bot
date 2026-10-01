@@ -16,9 +16,18 @@ def _logged_in_client(temp_db):
 
 
 def test_dashboard_shows_stats(temp_db):
-    temp_db.save_quote("line:U1", {"layer": 6, "qty": 1}, {"status": "success", "total": 100.0, "unit_price": 100.0})
+    temp_db.save_quote(
+        "line:U1",
+        {"layer": 6, "qty": 1},
+        {"status": "success", "total": 100.0, "unit_price": 100.0},
+    )
+    db = temp_db.SessionLocal()
+    quote = db.query(temp_db.QuoteHistory).order_by(temp_db.QuoteHistory.id.desc()).first()
+    db.close()
     client = _logged_in_client(temp_db)
 
     response = client.get("/")
     assert response.status_code == 200
     assert "Quote" in response.text
+    assert "Recent RFQs" in response.text
+    assert f"/quotes/{quote.id}" in response.text
