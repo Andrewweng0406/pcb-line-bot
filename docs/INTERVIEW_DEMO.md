@@ -6,6 +6,9 @@ is to show an end-to-end workflow, not every feature.
 For a company-specific framing against Vereyo, see
 [VEREYO_ALIGNMENT.md](VEREYO_ALIGNMENT.md).
 
+For production AI trust and evaluation talking points, see
+[AI_EVALUATION.md](AI_EVALUATION.md).
+
 ## Live Demo
 
 - URL: https://web-production-803c7.up.railway.app/login
@@ -97,6 +100,8 @@ via-in-pad, 0.45 mm pitch, 4 mil line/space, 8 mil minimum hole,
 - Railway uses PostgreSQL plus a mounted persistent volume, so database data
   and generated files survive deploys.
 - Demo data is seeded by `scripts/seed_demo_data.py`, which is idempotent.
+- AI is treated as an extraction layer. Production readiness comes from
+  field-level evals, human review, deterministic pricing, and correction loops.
 
 ## If Something Goes Wrong
 

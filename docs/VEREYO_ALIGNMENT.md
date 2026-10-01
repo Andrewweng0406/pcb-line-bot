@@ -66,6 +66,9 @@ Then show the system:
 - The project is vertical workflow software, not a generic chatbot.
 - The core value is speed plus trust: AI reduces data-entry time, while rules,
   historical comparisons, and exports make the output usable by operators.
+- I would not start by training a foundation model. The practical early-stage
+  leverage is structured extraction, field-level evaluation, human review,
+  pricing rules, and proprietary correction data.
 - The product model is portable across domains: construction plans, PCB RFQs,
   CNC jobs, sheet-metal jobs, and other estimate-heavy workflows share the same
   pattern.

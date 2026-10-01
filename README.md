@@ -12,6 +12,7 @@ created from either one shows up in the same history.
 - Password: `hunter2`
 - Interview walkthrough: [docs/INTERVIEW_DEMO.md](docs/INTERVIEW_DEMO.md)
 - Vereyo-specific positioning: [docs/VEREYO_ALIGNMENT.md](docs/VEREYO_ALIGNMENT.md)
+- AI evaluation plan: [docs/AI_EVALUATION.md](docs/AI_EVALUATION.md)
 
 This demo account is intended for interview review only. Rotate the password
 or replace the account before using the deployment for real customer data.
@@ -47,6 +48,11 @@ For a guided 3-5 minute demo flow, use
 For Vereyo interviews, use
 [docs/VEREYO_ALIGNMENT.md](docs/VEREYO_ALIGNMENT.md) to frame this project as
 the same vertical estimating workflow pattern in a different technical domain.
+
+For AI trust and production-readiness discussion, use
+[docs/AI_EVALUATION.md](docs/AI_EVALUATION.md). It explains how this kind of
+system should measure extraction quality, human corrections, review workflow,
+and pricing guardrails.
 
 ## Tech Stack
 
