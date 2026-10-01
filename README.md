@@ -125,12 +125,28 @@ the shared `INVITE_CODE` (see Environment Variables) — registration is gated
 by that code rather than left open, since the dashboard may be reachable on
 a public URL.
 
+### Demo data
+
+Seed interview-ready customers and RFQs:
+
+```bash
+python scripts/seed_demo_data.py
+```
+
+The seed is idempotent. It upserts demo customers and RFQs using stable
+`DEMO-RFQ-*` quote numbers, so it can be rerun before a demo without creating
+duplicates. On Railway, run it in the production environment:
+
+```bash
+railway run --service web --environment production python scripts/seed_demo_data.py
+```
+
 ### Pages
 
 | Path | Purpose |
 |------|---------|
 | `/login`, `/register` | Session-cookie auth; registration requires `INVITE_CODE` |
-| `/` | Dashboard — today/total quote counts, average price |
+| `/` | Dashboard — today/total quote counts, average price, recent RFQs |
 | `/quotes/new` | Create a quote: paste spec text or upload a PCB photo for AI-assisted autofill, then review/submit the structured form |
 | `/quotes` | List with filters (date, layer, material, customer, status) |
 | `/quotes/{id}` | Full spec/price breakdown; edit status and notes; download Excel or a formal quote document |
