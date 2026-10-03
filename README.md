@@ -178,6 +178,11 @@ Use **Create Revision** on a saved quote to correct its specifications. This
 creates a new pending quote linked to the original and preserves its extraction
 and review history. Changing a confirmed value requires a new confirmation;
 the original quote stays intact. Resolving a conflict requires a review note.
+The revision form includes area-only quotes and pricing inputs such as press
+count, internal layers, trace-to-hole spacing, flatness, and back-drill fees.
+Clearing an optional extracted field is recorded as a correction and requires
+a note; changing only a number's representation (for example `6` to `6.0`)
+does not invalidate an existing confirmation.
 
 The customer clarification draft lists unresolved fields for staff to edit and
 copy. It is generated from review findings and does not send email. Text evidence

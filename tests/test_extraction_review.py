@@ -76,3 +76,43 @@ def test_missing_values_cannot_be_confirmed_and_repeated_confirmation_is_idempot
     repeated = confirm_review(confirmed, ["issue_ratio"], 1, "staff@example.com", "")
     assert len(repeated["events"]) == 1
     assert "issue_ratio" not in [item["field"] for item in pending_fields(repeated)]
+
+
+@pytest.mark.parametrize("field,value,text", [
+    ("material", "FR4", "FR4 in email; Megtron 6 in drawing"),
+    ("surface_finish", "ENIG", "ENIG or HASL"),
+    ("surface_finish", "ENIG", "No ENIG"),
+])
+def test_conflicting_or_negated_text_is_not_high_confidence(field, value, text):
+    item = _field(build_extraction_review({field: value}, text), field)
+    assert item["source"] == "conflict"
+    assert item["needs_review"]
+
+
+def test_numeric_representation_does_not_invalidate_confirmation():
+    spec = {"layer": "6", "qty": "9", "thickness_mm": "1.6"}
+    review = build_extraction_review(spec, "6L qty 9 thickness 1.6mm")
+    confirmed = confirm_review(review, ["layer", "qty", "thickness_mm"], 1, "staff@example.com", "Verified")
+    reconciled = reconcile_review(confirmed, {"layer": 6, "qty": 9, "thickness_mm": 1.6})
+    assert all(_field(reconciled, field).get("confirmation") for field in spec)
+
+
+def test_optional_field_removal_can_be_confirmed_but_requires_note():
+    review = build_extraction_review({"delivery_days": 10}, "10 days")
+    removed = reconcile_review(review, {"delivery_days": None})
+    with pytest.raises(ValueError, match="review note"):
+        confirm_review(removed, ["delivery_days"], 1, "staff@example.com", "")
+    confirmed = confirm_review(removed, ["delivery_days"], 1, "staff@example.com", "Customer withdrew the deadline")
+    assert _field(confirmed, "delivery_days")["confirmation"]["final_value"] is None
+
+
+def test_pricing_flags_are_included_in_review():
+    review = build_extraction_review({"countersunk": True, "press_count": 2})
+    assert {item["field"] for item in pending_fields(review)} >= {"countersunk", "press_count"}
+
+
+def test_legacy_inferred_fields_still_require_confirmation():
+    review = build_extraction_review({"layer": 6, "qty": 9})
+    _field(review, "layer")["needs_review"] = False
+    updated = reconcile_review(review, {"layer": 6, "qty": 9})
+    assert _field(updated, "layer") in pending_fields(updated)

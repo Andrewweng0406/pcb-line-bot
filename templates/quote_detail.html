@@ -186,7 +186,8 @@
                 <tr style="border-top: 1px solid var(--border)">
                     <td class="py-2 pr-3 font-medium" data-label="{{ tr(request, 'field') }}">{{ item.label }}</td>
                     <td class="py-2 pr-3 font-data" data-label="{{ tr(request, 'value') }}">
-                        {{ item.final_value if item.final_value is defined and item.final_value is not none else (item.value if item.value is not none else "-") }}
+                        {% set current_value = item.final_value if item.final_value is defined else item.value %}
+                        {{ current_value if current_value is not none else "-" }}
                         {% if item.changed %}<p class="text-xs">{{ tr(request, "original_value") }}: {{ item.value }}</p>{% endif %}
                     </td>
                     <td class="py-2 pr-3" data-label="{{ tr(request, 'source') }}">{{ tr(request, item.source) }}</td>

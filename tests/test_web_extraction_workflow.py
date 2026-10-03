@@ -96,3 +96,41 @@ def test_revision_preserves_original_and_invalidates_changed_confirmation(temp_d
         assert layer["final_value"] == 8
         assert review["events"][0]["final_value"] == 6
         assert client.get(f"/quotes/{child.id}/export/formal").status_code == 409
+
+
+def test_revision_keeps_pricing_fields_and_area_only_quotes(temp_db):
+    client = _logged_in_client(temp_db)
+    spec = {"layer": 6, "qty": 9, "area_inch": 10, "trace_to_hole_mil": 4, "press_count": 2, "internal_layers": 4,
+            "flatness": "2/1000", "back_drill": "on", "back_drill_fee": 7000, "hole_size_mil": 10, "copper_weight_oz": 1.5}
+    assert client.post("/quotes/new", data=spec, follow_redirects=False).status_code == 303
+    with temp_db.SessionLocal() as session:
+        parent_id = session.query(temp_db.QuoteHistory).first().id
+    response = client.get(f"/quotes/{parent_id}/revise")
+    parser = ReviewTokenParser()
+    parser.feed(response.text)
+    for field in ("area_inch", "trace_to_hole_mil", "press_count", "internal_layers", "flatness", "back_drill_fee", "hole_size_mil", "copper_weight_oz"):
+        assert f'name="{field}"' in response.text
+    assert client.post("/quotes/new", data={**spec, "extraction_review_token": parser.token}, follow_redirects=False).status_code == 303
+    with temp_db.SessionLocal() as session:
+        child = session.query(temp_db.QuoteHistory).order_by(temp_db.QuoteHistory.id.desc()).first()
+        for field, value in spec.items():
+            assert child.spec_json[field] == (True if field == "back_drill" else value)
+
+
+def test_save_failure_retains_form_and_does_not_report_success(temp_db, monkeypatch):
+    import app.web as web
+
+    client = _logged_in_client(temp_db)
+    monkeypatch.setattr(web.db, "save_quote", lambda **kwargs: False)
+    response = client.post("/quotes/new", data={"layer": 6, "qty": 9, "length_mm": 100, "width_mm": 100}, follow_redirects=False)
+    assert response.status_code == 503
+    assert "could not be saved" in response.text
+    assert 'value="100.0"' in response.text
+
+
+def test_invalid_numeric_specs_fail_with_client_error(temp_db):
+    client = _logged_in_client(temp_db)
+    base = {"layer": 6, "qty": 9, "length_mm": 100, "width_mm": 100}
+    for field, value in (("length_mm", "abc"), ("length_mm", "nan"), ("issue_ratio", "inf"), ("press_count", "1.5"),
+                         ("area_inch", "-1"), ("qty", "0"), ("internal_layers", "-1"), ("back_drill_fee", "-1")):
+        assert client.post("/quotes/new", data={**base, field: value}).status_code == 400

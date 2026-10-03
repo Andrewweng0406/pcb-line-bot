@@ -40,6 +40,20 @@ FIELD_LABELS = {
     "legend_color": "Legend Color",
     "solder_mask_color": "Solder Mask Color",
     "special_requirements": "Special Requirements",
+    "area_inch": "Area (in2)",
+    "trace_to_hole_mil": "Trace to Hole",
+    "hole_land_mil": "Hole / Land",
+    "aspect_ratio": "Aspect Ratio",
+    "press_count": "Press Count",
+    "internal_layers": "Internal Layers",
+    "countersunk": "Countersunk",
+    "counterbored": "Counterbored",
+    "inspection_report_required": "Inspection Report",
+    "is_reorder": "Re-order",
+    "flatness": "Flatness",
+    "hole_size_mil": "Hole Size",
+    "copper_weight_oz": "Copper Weight (oz)",
+    "back_drill_fee": "Back Drill Fee",
 }
 
 
@@ -47,6 +61,14 @@ REVIEW_FIELDS = list(FIELD_LABELS.keys())
 REQUIRED_FIELDS = ("layer", "qty")
 SIZE_FIELDS = ("length_mm", "width_mm", "area_inch")
 DEFAULT_FIELDS = {"issue_ratio": 1.0}
+NUMERIC_FIELDS = {
+    "layer", "qty", "length_mm", "width_mm", "issue_ratio", "delivery_days",
+    "thickness_mm", "enig_thickness_uinch", "copper_outer_oz", "copper_inner_oz",
+    "pitch_mm", "line_space_mil", "min_hole_mil", "warpage_mil_per_inch",
+    "area_inch", "trace_to_hole_mil", "hole_land_mil", "aspect_ratio",
+    "press_count", "internal_layers",
+    "hole_size_mil", "copper_weight_oz", "back_drill_fee",
+}
 
 
 FIELD_PATTERNS = {
@@ -99,6 +121,11 @@ def _evidence(field: str, value: Any, text: str) -> tuple[list[str], bool, bool]
         patterns.append(r"\blayers?\s*[:=]\s*(?P<value>\d+)")
     matches = [match for pattern in patterns for match in re.finditer(pattern, text, re.IGNORECASE)]
     snippets = list(dict.fromkeys(match.group(0) for match in matches))
+    if not isinstance(value, bool) and any(
+        re.search(r"(?:\b(?:no|not|without)\b|不要|不使用|非|無)\s*$", text[max(0, match.start() - 32):match.start()], re.IGNORECASE)
+        for match in matches
+    ):
+        return snippets, False, True
     candidates = [float(match.group("value")) for match in matches if "value" in match.groupdict()]
     if candidates:
         try:
@@ -117,7 +144,9 @@ def _evidence(field: str, value: Any, text: str) -> tuple[list[str], bool, bool]
         numbers = [float(number) for snippet in snippets for number in re.findall(r"\d+(?:\.\d+)?", snippet)]
         return snippets, bool(numbers) and all(number == value for number in numbers), len(set(numbers)) > 1
     normalized_value = re.sub(r"[\s-]", "", str(value).lower())
-    return snippets, any(normalized_value == re.sub(r"[\s-]", "", snippet.lower()) for snippet in snippets), False
+    normalized_snippets = {re.sub(r"[\s-]", "", snippet.lower()) for snippet in snippets}
+    conflict = field in {"material", "surface_finish"} and len(normalized_snippets) > 1
+    return snippets, normalized_snippets == {normalized_value}, conflict
 
 
 def _review_item(field: str, value: Any, source: str, confidence: str, reason: str) -> dict:
@@ -268,20 +297,30 @@ def reconcile_review(review: dict, spec: dict) -> dict:
         if field not in known and _has_value(spec.get(field)) and spec.get(field) is not False:
             result["fields"].append(_review_item(field, None, "missing", "missing", "Added during human review."))
     for item in result["fields"]:
+        item["needs_review"] = item.get("needs_review", False) or item["confidence"] != "high"
         field = item["field"]
         value = spec.get(field, DEFAULT_FIELDS.get(field))
         if field == "size":
-            value = spec.get("area_inch") or (f'{spec["length_mm"]} x {spec["width_mm"]} mm' if spec.get("length_mm") and spec.get("width_mm") else None)
+            value = spec.get("area_inch") or (f'{float(spec["length_mm"]):g} x {float(spec["width_mm"]):g} mm' if spec.get("length_mm") and spec.get("width_mm") else None)
         previous = item.get("final_value", item.get("value"))
         item["final_value"] = value
-        if previous != value:
-            item["changed"] = value != item.get("value")
+        if not _same_value(field, previous, value):
+            item["changed"] = not _same_value(field, value, item.get("value"))
             item["needs_review"] = True
             item.pop("confirmation", None)
     for confidence in ("high", "medium", "low", "missing"):
         result["summary"][confidence] = sum(item["confidence"] == confidence for item in result["fields"])
     result["summary"]["needs_review"] = len(pending_fields(result))
     return result
+
+
+def _same_value(field: str, left: Any, right: Any) -> bool:
+    if field in NUMERIC_FIELDS and _has_value(left) and _has_value(right):
+        try:
+            return float(left) == float(right)
+        except (TypeError, ValueError):
+            return False
+    return left == right
 
 
 def pending_fields(review: dict | None) -> list[dict]:
@@ -294,7 +333,9 @@ def confirm_review(review: dict, fields: list[str], user_id: int, email: str, no
     for item in result["fields"]:
         if item["field"] not in fields or item.get("confirmation"):
             continue
-        if not _has_value(item.get("final_value", item.get("value"))):
+        value = item.get("final_value", item.get("value"))
+        removable = item.get("changed") and _has_value(item.get("value")) and item["field"] not in {*REQUIRED_FIELDS, *DEFAULT_FIELDS, "size"}
+        if not _has_value(value) and not removable:
             raise ValueError(f'{item["label"]}: supply a value before confirming.')
         if (item.get("changed") or item.get("source") == "conflict") and not note.strip():
             raise ValueError("A review note is required when correcting extracted values or resolving conflicts.")
@@ -316,6 +357,8 @@ def clarification_draft(review: dict | None) -> str:
             questions.append(f'- {item["label"]}: conflicting specifications ({evidence}). Please confirm the intended value.')
         elif item.get("source") == "missing":
             questions.append(f'- Please provide {item["label"].lower()}.')
+        elif item.get("final_value", item.get("value")) is None:
+            questions.append(f'- Please confirm that {item["label"].lower()} is not specified.')
         else:
             questions.append(f'- Please confirm {item["label"].lower()}: {item.get("final_value", item.get("value"))}.')
     return "Subject: PCB RFQ specification confirmation\n\nHello,\n\nBefore we finalize your quotation, please confirm the following:\n\n" + "\n".join(questions) + "\n\nThank you."

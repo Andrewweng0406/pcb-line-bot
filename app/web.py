@@ -1,4 +1,5 @@
 import uuid
+import math
 from typing import Optional
 
 from fastapi import APIRouter, Cookie, Depends, File, Form, HTTPException, Request, UploadFile
@@ -597,11 +598,22 @@ def _optional_float(value: str) -> Optional[float]:
     # A browser submits an empty text input as "" (not omitted), which
     # FastAPI/Pydantic won't coerce to a plain Optional[float] Form field —
     # it 422s. Take the field as a raw string and convert by hand instead.
-    return float(value) if value and value.strip() else None
+    if not value or not value.strip():
+        return None
+    try:
+        parsed = float(value)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid numeric specification")
+    if not math.isfinite(parsed):
+        raise HTTPException(status_code=400, detail="Numeric specifications must be finite")
+    return parsed
 
 
 def _optional_int(value: str) -> Optional[int]:
-    return int(value) if value and value.strip() else None
+    try:
+        return int(value) if value and value.strip() else None
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid integer specification")
 
 
 @router.post("/quotes/new")
@@ -641,6 +653,14 @@ def create_quote(
     delivery_days: str = Form(""),
     company_name: str = Form(""),
     extraction_review_json: str = Form(""),
+    area_inch: str = Form(""),
+    trace_to_hole_mil: str = Form(""),
+    press_count: str = Form(""),
+    internal_layers: str = Form(""),
+    flatness: str = Form(""),
+    hole_size_mil: str = Form(""),
+    copper_weight_oz: str = Form(""),
+    back_drill_fee: str = Form(""),
     extraction_review_token: str = Form(""),
     reviewed_fields: list[str] = Form([]),
     review_note: str = Form(""),
@@ -648,6 +668,9 @@ def create_quote(
 ):
     if user is None:
         return RedirectResponse(url="/login", status_code=303)
+
+    if not math.isfinite(issue_ratio) or issue_ratio <= 0:
+        raise HTTPException(status_code=400, detail="Issue ratio must be positive and finite")
 
     parsed = {
         "layer": layer,
@@ -683,7 +706,24 @@ def create_quote(
         "special_requirements": special_requirements or None,
         "delivery_days": _optional_int(delivery_days),
         "company_name": company_name or None,
+        "area_inch": _optional_float(area_inch),
+        "trace_to_hole_mil": _optional_float(trace_to_hole_mil),
+        "flatness": flatness or None,
+        "hole_size_mil": _optional_float(hole_size_mil),
+        "copper_weight_oz": _optional_float(copper_weight_oz),
     }
+    for field, raw_value in (("press_count", press_count), ("internal_layers", internal_layers), ("back_drill_fee", back_drill_fee)):
+        value = _optional_int(raw_value)
+        if value is not None:
+            parsed[field] = value
+    if qty <= 0:
+        raise HTTPException(status_code=400, detail="Quantity must be positive")
+    for field in ("length_mm", "width_mm", "area_inch", "thickness_mm", "hole_size_mil", "press_count"):
+        if parsed.get(field) is not None and parsed[field] <= 0:
+            raise HTTPException(status_code=400, detail=f"{field} must be positive")
+    for field in ("internal_layers", "back_drill_fee"):
+        if parsed.get(field) is not None and parsed[field] < 0:
+            raise HTTPException(status_code=400, detail=f"{field} must not be negative")
     if not parsed["copper_weight"] and parsed["copper_outer_oz"] and parsed["copper_inner_oz"]:
         if parsed["copper_outer_oz"] == parsed["copper_inner_oz"]:
             parsed["copper_weight"] = f'{parsed["copper_outer_oz"]:g}oz'
@@ -747,13 +787,22 @@ def create_quote(
         customer_id = customer.id
         query_db.close()
 
-    db.save_quote(
+    saved = db.save_quote(
         source_channel_id=f"web:{user.id}",
         parsed=parsed,
         result=result,
         customer_id=customer_id,
         created_by_user_id=user.id,
     )
+    if not saved:
+        return templates.TemplateResponse("quote_new.html", {
+            "request": request, "user": user, "form": parsed,
+            "error": "The quote could not be saved. Please try again.",
+            "extraction_review": extraction_review,
+            "extraction_review_token": extraction_review_token,
+            "clarification_draft": clarification_draft(extraction_review),
+            "revision_of": (extraction_review or {}).get("revision_of"),
+        }, status_code=503)
 
     return RedirectResponse(url="/quotes", status_code=303)
 
