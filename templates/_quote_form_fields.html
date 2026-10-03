@@ -2,7 +2,7 @@
 <p class="text-sm mb-3" style="color: var(--gold)">{{ ai_error }}</p>
 {% endif %}
 {% if extraction_review %}
-<textarea name="extraction_review_json" class="hidden">{{ extraction_review | tojson }}</textarea>
+<input type="hidden" name="extraction_review_token" value="{{ extraction_review_token }}">
 <section class="mb-5 rounded-lg border p-4" style="border-color: var(--border); background: #FAFBF8">
     <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -21,7 +21,7 @@
         {% endif %}
     </div>
     <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
-        {% for item in extraction_review.fields if item.needs_review %}
+        {% for item in extraction_review.fields %}
         <div class="rounded border px-3 py-2 text-sm" style="border-color: var(--border); background: #FFFFFF">
             <div class="flex items-center justify-between gap-2">
                 <span class="font-medium">{{ item.label }}</span>
@@ -29,6 +29,13 @@
             </div>
             <p class="font-data">{{ item.value if item.value is not none else "-" }}</p>
             <p style="color: var(--ink-muted)">{{ tr(request, item.source) }} · {{ item.reason }}</p>
+            {% for snippet in item.evidence or [] %}
+            <blockquote class="mt-2 border-l-2 pl-2 break-words">{{ snippet }}</blockquote>
+            {% endfor %}
+            <label class="flex items-center gap-2 mt-2">
+                <input type="checkbox" name="reviewed_fields" value="{{ item.field }}">
+                {{ tr(request, "confirm_field") }}
+            </label>
         </div>
         {% endfor %}
     </div>
@@ -37,9 +44,16 @@
     {% else %}
     <p class="mt-3 text-sm" style="color: var(--ink-muted)">{{ tr(request, "review_before_quote") }}</p>
     {% endif %}
+    <label class="block text-sm mt-3">{{ tr(request, "review_note") }}
+        <textarea name="review_note" rows="2" class="w-full border rounded px-3 py-2"></textarea>
+    </label>
+    {% if extraction_review.raw_input %}
+    <details class="mt-3 text-sm"><summary>{{ tr(request, "original_rfq") }}</summary><pre class="whitespace-pre-wrap break-words mt-2">{{ extraction_review.raw_input }}</pre></details>
+    {% endif %}
+    {% if clarification_draft %}
+    <details class="mt-3 text-sm"><summary>{{ tr(request, "clarification_draft") }}</summary><textarea readonly rows="8" class="w-full border rounded px-3 py-2 mt-2">{{ clarification_draft }}</textarea></details>
+    {% endif %}
 </section>
-{% else %}
-<textarea name="extraction_review_json" class="hidden"></textarea>
 {% endif %}
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
     <div>

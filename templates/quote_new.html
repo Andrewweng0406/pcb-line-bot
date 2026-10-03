@@ -2,11 +2,13 @@
 {% block title %}New Quote - {{ tr(request, "app_title") }}{% endblock %}
 {% block content %}
 <h1 class="text-2xl mb-6">{{ tr(request, "new_quote") }}</h1>
+{% if revision_of %}<p class="mb-4 text-sm">{{ tr(request, "revision_of") }}: <a href="/quotes/{{ revision_of }}">#{{ revision_of }}</a></p>{% endif %}
 
 {% if error %}
 <p class="text-sm mb-4" style="color: var(--copper-dark)">{{ error }}</p>
 {% endif %}
 
+{% if not revision_of %}
 <div class="card p-6 mb-6" style="border-top-color: var(--gold)">
     <h2 class="font-medium mb-3" style="color: var(--gold)">{{ tr(request, "ai_form_assist") }}</h2>
     <div class="flex flex-col sm:flex-row gap-3 sm:items-end">
@@ -39,6 +41,7 @@
         </button>
     </div>
 </div>
+{% endif %}
 
 <form method="post" action="/quotes/new" class="card p-6">
     <div id="quote-form-fields">

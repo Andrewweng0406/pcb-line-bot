@@ -13,14 +13,22 @@
         </p>
     </div>
     <div class="flex flex-wrap gap-3">
+        <a href="/quotes/{{ quote.id }}/revise" class="btn-secondary px-4 py-2 text-sm">{{ tr(request, "create_revision") }}</a>
+        {% if extraction_review and extraction_review.summary.needs_review %}
+        <button disabled class="btn-secondary review-disabled px-4 py-2 text-sm whitespace-nowrap" title="{{ tr(request, 'release_blocked') }}">{{ tr(request, "generate_formal_quote") }}</button>
+        {% else %}
         <a href="/quotes/{{ quote.id }}/export/formal" class="btn-primary px-4 py-2 text-sm whitespace-nowrap">
             {{ tr(request, "generate_formal_quote") }}
         </a>
+        {% endif %}
         <a href="/quotes/{{ quote.id }}/export/excel" class="btn-secondary px-4 py-2 text-sm whitespace-nowrap">
             {{ tr(request, "download_internal_excel") }}
         </a>
     </div>
 </div>
+{% if extraction_review and extraction_review.summary.needs_review %}
+<p class="text-sm mb-4" role="status">{{ tr(request, "release_blocked") }}</p>
+{% endif %}
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
     <div class="card p-6">
@@ -70,9 +78,13 @@
         </div>
         {% endif %}
         <div class="flex flex-wrap gap-3">
+            {% if extraction_review and extraction_review.summary.needs_review %}
+            <button disabled class="btn-secondary review-disabled px-4 py-2 text-sm" title="{{ tr(request, 'release_blocked') }}">{{ tr(request, "generate_formal_quote") }}</button>
+            {% else %}
             <a href="/quotes/{{ quote.id }}/export/formal" class="btn-primary px-4 py-2 text-sm whitespace-nowrap">
                 {{ tr(request, "generate_formal_quote") }}
             </a>
+            {% endif %}
             <a href="/quotes/new" class="btn-secondary px-4 py-2 text-sm whitespace-nowrap">
                 {{ tr(request, "create_new_quote") }}
             </a>
@@ -126,7 +138,7 @@
     <form method="post" action="/quotes/{{ quote.id }}/update" class="space-y-3 mt-4">
         <select name="status" class="border rounded-lg px-3 py-2 text-sm" style="border-color: var(--border)">
             {% for value, label in status_labels.items() %}
-            <option value="{{ value }}" {% if quote.status == value %}selected{% endif %}>{{ label }}</option>
+            <option value="{{ value }}" {% if quote.status == value %}selected{% endif %} {% if value != 'pending' and extraction_review and extraction_review.summary.needs_review %}disabled{% endif %}>{{ label }}</option>
             {% endfor %}
         </select>
         <textarea name="notes" rows="3" class="w-full border rounded-lg px-3 py-2 text-sm" style="border-color: var(--border)" placeholder="{{ tr(request, 'internal_notes') }}">{{ quote.notes or "" }}</textarea>
@@ -137,7 +149,8 @@
 {% if extraction_review %}
 <details class="card p-6 mt-6" open>
     <summary class="font-medium cursor-pointer">{{ tr(request, "ai_extraction_review") }}</summary>
-    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mt-4">
+    {% if extraction_review.revision_of %}<p class="text-sm mt-3">{{ tr(request, "revision_of") }}: <a href="/quotes/{{ extraction_review.revision_of }}">#{{ extraction_review.revision_of }}</a></p>{% endif %}
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
         <div class="border rounded-lg p-3" style="border-color: var(--border)">
             <p class="text-sm" style="color: var(--ink-muted)">{{ tr(request, "review_required") }}</p>
             <p class="text-2xl font-data" style="color: var(--copper-dark)">{{ extraction_review.summary.needs_review }}</p>
@@ -155,8 +168,9 @@
             <p class="text-2xl font-data" style="color: var(--copper-dark)">{{ extraction_review.summary.low + extraction_review.summary.missing }}</p>
         </div>
     </div>
+    <form method="post" action="/quotes/{{ quote.id }}/review">
     <div class="mt-4 overflow-x-auto">
-        <table class="w-full text-sm">
+        <table class="extraction-audit w-full text-sm">
             <thead style="color: var(--ink-muted)" class="text-left">
                 <tr>
                     <th class="py-2 pr-3">{{ tr(request, "field") }}</th>
@@ -164,23 +178,53 @@
                     <th class="py-2 pr-3">{{ tr(request, "source") }}</th>
                     <th class="py-2 pr-3">{{ tr(request, "confidence") }}</th>
                     <th class="py-2">{{ tr(request, "reason") }}</th>
+                    <th class="py-2">{{ tr(request, "confirm_field") }}</th>
                 </tr>
             </thead>
             <tbody>
                 {% for item in extraction_review.fields %}
                 <tr style="border-top: 1px solid var(--border)">
-                    <td class="py-2 pr-3 font-medium">{{ item.label }}</td>
-                    <td class="py-2 pr-3 font-data">{{ item.value if item.value is not none else "-" }}</td>
-                    <td class="py-2 pr-3">{{ tr(request, item.source) }}</td>
-                    <td class="py-2 pr-3">
+                    <td class="py-2 pr-3 font-medium" data-label="{{ tr(request, 'field') }}">{{ item.label }}</td>
+                    <td class="py-2 pr-3 font-data" data-label="{{ tr(request, 'value') }}">
+                        {{ item.final_value if item.final_value is defined and item.final_value is not none else (item.value if item.value is not none else "-") }}
+                        {% if item.changed %}<p class="text-xs">{{ tr(request, "original_value") }}: {{ item.value }}</p>{% endif %}
+                    </td>
+                    <td class="py-2 pr-3" data-label="{{ tr(request, 'source') }}">{{ tr(request, item.source) }}</td>
+                    <td class="py-2 pr-3" data-label="{{ tr(request, 'confidence') }}">
                         <span class="badge badge-{{ item.confidence }}">{{ tr(request, item.confidence) }}</span>
                     </td>
-                    <td class="py-2">{{ item.reason }}</td>
+                    <td class="py-2 break-words" data-label="{{ tr(request, 'reason') }}">{{ item.reason }}
+                        {% for snippet in item.evidence or [] %}<blockquote class="mt-2 border-l-2 pl-2">{{ snippet }}</blockquote>{% endfor %}
+                    </td>
+                    <td class="py-2">
+                        {% if item.confirmation %}
+                        <span class="badge badge-high">{{ tr(request, "confirmed") }}</span>
+                        {% elif item.needs_review %}
+                        <label class="flex items-center gap-2"><input type="checkbox" name="reviewed_fields" value="{{ item.field }}" aria-label="{{ tr(request, 'confirm_field') }}: {{ item.label }}">{{ tr(request, "awaiting_confirmation") }}</label>
+                        {% else %}-{% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
+    {% if extraction_review.summary.needs_review %}
+    <label class="block text-sm mt-4">{{ tr(request, "review_note") }}<textarea name="review_note" rows="2" class="w-full border rounded px-3 py-2 mt-1"></textarea></label>
+    <button type="submit" class="btn-primary px-4 py-2 mt-3 text-sm">{{ tr(request, "confirm_selected") }}</button>
+    {% endif %}
+    </form>
+    {% if extraction_review.raw_input %}
+    <details class="mt-4"><summary>{{ tr(request, "original_rfq") }}</summary><pre class="whitespace-pre-wrap break-words text-sm mt-2">{{ extraction_review.raw_input }}</pre></details>
+    {% endif %}
+    {% if extraction_review.events %}
+    <h3 class="font-medium mt-4">{{ tr(request, "review_history") }}</h3>
+    {% for event in extraction_review.events %}
+    <p class="text-sm mt-2 break-words">{{ event.field }}: {{ event.original_value }} → {{ event.final_value }} · {{ event.email }} · {{ event.at }}{% if event.note %}<br>{{ event.note }}{% endif %}</p>
+    {% endfor %}
+    {% endif %}
+    {% if clarification_draft %}
+    <details class="mt-4"><summary>{{ tr(request, "clarification_draft") }}</summary><textarea readonly rows="8" class="w-full border rounded px-3 py-2 mt-2 text-sm">{{ clarification_draft }}</textarea></details>
+    {% endif %}
 </details>
 {% endif %}
 

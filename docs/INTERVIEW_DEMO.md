@@ -11,6 +11,10 @@ For production AI trust and evaluation talking points, see
 
 ## Live Demo
 
+The extraction review workflow is currently on `feature/extraction-confidence`.
+Preview it at `http://localhost:8000/login`; the Railway URL below does not
+include this branch until it is merged and deployed.
+
 - URL: https://web-production-803c7.up.railway.app/login
 - Email: `owner@example.com`
 - Password: `hunter2`
@@ -57,7 +61,9 @@ system turns PCB RFQs into structured, auditable quotes.
 5. Exports
    - On the quote detail page, open `AI Extraction Review` to show the audit
      trail for source, confidence, and review-required fields.
-   - Show `Generate Formal Quote`.
+   - Confirm the pending fields and add a note for corrections/conflicts.
+   - Show the reviewer, timestamp, original value, and final value in history.
+   - Show `Generate Formal Quote` unlocking after review.
    - Show `Download Internal Excel` if asked about finance/operations handoff.
 
 6. Architecture close
@@ -66,6 +72,27 @@ system turns PCB RFQs into structured, auditable quotes.
    - PostgreSQL on Railway.
    - Persistent Railway volume for exports/uploads/logs.
    - Seed script for repeatable demo data.
+
+## Extraction Review Scenario
+
+Open `DEMO-RFQ-005` in the local preview. Its synthetic RFQ specifies `4L`
+but also references `drawing revision A: 6 layers`. The layer field is flagged
+as a conflict, with both matching snippets retained. Formal export is blocked.
+
+Open **Customer Clarification Draft** to show the questions staff can copy and
+edit. Internal issue ratio confirmation is deliberately excluded from the
+customer email. Add a note such as "Customer confirmed revision B: 4 layers",
+select the pending fields, and confirm them. The audit history records the
+authenticated reviewer and timestamp, and formal export becomes available.
+
+To demonstrate correction, choose **Create Revision**, change the layer count,
+select its confirmation checkbox, and enter the customer's revision reference
+in the review note. Save the new quote and show its link to the unchanged
+original. Previously confirmed values that change require confirmation again.
+
+Evidence matching currently covers supported patterns in a single RFQ text.
+Do not describe it as cross-document comparison, image conflict detection, or
+calibrated model confidence. Image-derived fields require human verification.
 
 ## Sample RFQ To Paste
 

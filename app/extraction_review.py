@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 import re
+from copy import deepcopy
+from datetime import datetime, timezone
 from typing import Any
+
+from itsdangerous import BadSignature, URLSafeTimedSerializer
 
 
 EXTRACTION_REVIEW_KEY = "_extraction_review"
@@ -56,7 +60,7 @@ FIELD_PATTERNS = {
     "thickness_mm": [r"(?:thickness|板厚|厚度)\s*\d+(?:\.\d+)?\s*mm"],
     "surface_finish": [r"\benig\b", r"\bosp\b", r"\bhasl\b", r"hard\s*gold", r"化金", r"表面處理"],
     "enig": [r"\benig\b", r"化金", r"鍍金"],
-    "enig_thickness_uinch": [r"\d+(?:\.\d+)?\s*(?:u\"|uinch|um|μm|μ|u)\b"],
+    "enig_thickness_uinch": [r"\d+(?:\.\d+)?\s*(?:u\"|uinch\b|u\b)"],
     "vip": [r"\bvip\b", r"via[-\s]*in[-\s]*pad", r"塞孔"],
     "back_drill": [r"back\s*drill", r"背鑽"],
     "bvh": [r"\bbvh\b"],
@@ -79,12 +83,41 @@ def _has_value(value: Any) -> bool:
     return value is not None and value != ""
 
 
-def _normalize_text(text: str | None) -> str:
-    return (text or "").lower().replace("μ", "u")
+VALUE_PATTERNS = {
+    "layer": r"(?<!\w)(?P<value>\d+)\s*(?:layers?\b|l\b|層)",
+    "qty": r"(?:\b(?:qty|quantity)\s*[:=]?\s*|數量\s*[:：]?\s*)(?P<value>\d+)",
+    "thickness_mm": r"(?:thickness|板厚|厚度)\s*[:：=]?\s*(?P<value>\d+(?:\.\d+)?)\s*mm",
+    "delivery_days": r"(?P<value>\d+)\s*(?:working\s*)?(?:days?\b|天)",
+}
 
 
-def _has_evidence(field: str, text: str) -> bool:
-    return any(re.search(pattern, text, re.IGNORECASE) for pattern in FIELD_PATTERNS.get(field, []))
+def _evidence(field: str, value: Any, text: str) -> tuple[list[str], bool, bool]:
+    patterns = [VALUE_PATTERNS[field]] if field in VALUE_PATTERNS else FIELD_PATTERNS.get(field, [])
+    if field == "qty":
+        patterns.append(r"(?P<value>\d+)\s*(?:pcs?\b|pieces?\b|片)")
+    if field == "layer":
+        patterns.append(r"\blayers?\s*[:=]\s*(?P<value>\d+)")
+    matches = [match for pattern in patterns for match in re.finditer(pattern, text, re.IGNORECASE)]
+    snippets = list(dict.fromkeys(match.group(0) for match in matches))
+    candidates = [float(match.group("value")) for match in matches if "value" in match.groupdict()]
+    if candidates:
+        try:
+            matches_value = all(candidate == float(value) for candidate in candidates)
+        except (TypeError, ValueError):
+            matches_value = False
+        return snippets, matches_value, len(set(candidates)) > 1 or not matches_value
+    if field in {"length_mm", "width_mm"} and matches:
+        index = 0 if field == "length_mm" else 1
+        candidates = [float(re.findall(r"\d+(?:\.\d+)?", match.group(0))[index]) for match in matches]
+        return snippets, all(candidate == float(value) for candidate in candidates), len(set(candidates)) > 1 or any(candidate != float(value) for candidate in candidates)
+    # Presence of a keyword alone does not establish the extracted value or polarity.
+    if isinstance(value, bool):
+        return snippets, False, False
+    if isinstance(value, (int, float)):
+        numbers = [float(number) for snippet in snippets for number in re.findall(r"\d+(?:\.\d+)?", snippet)]
+        return snippets, bool(numbers) and all(number == value for number in numbers), len(set(numbers)) > 1
+    normalized_value = re.sub(r"[\s-]", "", str(value).lower())
+    return snippets, any(normalized_value == re.sub(r"[\s-]", "", snippet.lower()) for snippet in snippets), False
 
 
 def _review_item(field: str, value: Any, source: str, confidence: str, reason: str) -> dict:
@@ -94,7 +127,7 @@ def _review_item(field: str, value: Any, source: str, confidence: str, reason: s
         "value": value,
         "source": source,
         "confidence": confidence,
-        "needs_review": confidence in {"low", "missing"} or source in {"default", "missing"},
+        "needs_review": confidence != "high",
         "reason": reason,
     }
 
@@ -108,7 +141,7 @@ def build_extraction_review(parsed: dict, raw_input: str = "", input_type: str =
     fields are low/missing.
     """
     parsed = parsed or {}
-    text = _normalize_text(raw_input)
+    text = raw_input or ""
     fields = []
 
     for field in REVIEW_FIELDS:
@@ -136,6 +169,7 @@ def build_extraction_review(parsed: dict, raw_input: str = "", input_type: str =
                 )
             continue
 
+        evidence, supported, conflict = _evidence(field, value, text)
         if input_type == "image":
             fields.append(
                 _review_item(
@@ -146,7 +180,9 @@ def build_extraction_review(parsed: dict, raw_input: str = "", input_type: str =
                     "Extracted from uploaded image; verify against the drawing/spec.",
                 )
             )
-        elif _has_evidence(field, text):
+        elif conflict:
+            fields.append(_review_item(field, value, "conflict", "low", "RFQ values disagree with each other or with the extracted value."))
+        elif supported:
             fields.append(
                 _review_item(
                     field,
@@ -166,8 +202,9 @@ def build_extraction_review(parsed: dict, raw_input: str = "", input_type: str =
                     "Value was extracted, but direct evidence was not obvious.",
                 )
             )
+        fields[-1]["evidence"] = evidence
 
-    if not any(_has_value(parsed.get(field)) for field in SIZE_FIELDS):
+    if not (_has_value(parsed.get("area_inch")) or all(_has_value(parsed.get(field)) for field in ("length_mm", "width_mm"))):
         fields.append(
             _review_item(
                 "size",
@@ -186,7 +223,9 @@ def build_extraction_review(parsed: dict, raw_input: str = "", input_type: str =
         "needs_review": sum(1 for item in fields if item["needs_review"]),
     }
     return {
+        "version": 2,
         "input_type": input_type,
+        "raw_input": raw_input if input_type == "text" else "",
         "summary": counts,
         "fields": fields,
     }
@@ -204,3 +243,84 @@ def extraction_review_from_spec(spec_json: dict | None) -> dict | None:
         return None
     review = spec_json.get(EXTRACTION_REVIEW_KEY)
     return review if isinstance(review, dict) else None
+
+
+def sign_review(review: dict, user_id: int) -> str:
+    from app.core.config import settings
+    return URLSafeTimedSerializer(settings.SECRET_KEY, salt="extraction-review").dumps({"review": review, "user_id": user_id})
+
+
+def read_review(token: str, user_id: int) -> dict:
+    from app.core.config import settings
+    try:
+        payload = URLSafeTimedSerializer(settings.SECRET_KEY, salt="extraction-review").loads(token, max_age=86400)
+        if payload["user_id"] != user_id or not isinstance(payload["review"], dict):
+            raise ValueError("Invalid review owner")
+        return payload["review"]
+    except (BadSignature, ValueError, KeyError, TypeError) as exc:
+        raise ValueError("Extraction review expired or was modified. Parse the RFQ again.") from exc
+
+
+def reconcile_review(review: dict, spec: dict) -> dict:
+    result = deepcopy(review)
+    known = {item["field"] for item in result["fields"]}
+    for field in REVIEW_FIELDS:
+        if field not in known and _has_value(spec.get(field)) and spec.get(field) is not False:
+            result["fields"].append(_review_item(field, None, "missing", "missing", "Added during human review."))
+    for item in result["fields"]:
+        field = item["field"]
+        value = spec.get(field, DEFAULT_FIELDS.get(field))
+        if field == "size":
+            value = spec.get("area_inch") or (f'{spec["length_mm"]} x {spec["width_mm"]} mm' if spec.get("length_mm") and spec.get("width_mm") else None)
+        previous = item.get("final_value", item.get("value"))
+        item["final_value"] = value
+        if previous != value:
+            item["changed"] = value != item.get("value")
+            item["needs_review"] = True
+            item.pop("confirmation", None)
+    for confidence in ("high", "medium", "low", "missing"):
+        result["summary"][confidence] = sum(item["confidence"] == confidence for item in result["fields"])
+    result["summary"]["needs_review"] = len(pending_fields(result))
+    return result
+
+
+def pending_fields(review: dict | None) -> list[dict]:
+    return [item for item in (review or {}).get("fields", []) if item.get("needs_review") and not item.get("confirmation")]
+
+
+def confirm_review(review: dict, fields: list[str], user_id: int, email: str, note: str) -> dict:
+    result = deepcopy(review)
+    stamp = datetime.now(timezone.utc).isoformat()
+    for item in result["fields"]:
+        if item["field"] not in fields or item.get("confirmation"):
+            continue
+        if not _has_value(item.get("final_value", item.get("value"))):
+            raise ValueError(f'{item["label"]}: supply a value before confirming.')
+        if (item.get("changed") or item.get("source") == "conflict") and not note.strip():
+            raise ValueError("A review note is required when correcting extracted values or resolving conflicts.")
+        event = {"field": item["field"], "original_value": item.get("value"), "final_value": item.get("final_value", item.get("value")), "user_id": user_id, "email": email, "at": stamp, "note": note.strip(), "action": "corrected" if item.get("changed") else "confirmed"}
+        item["confirmation"] = event
+        result.setdefault("events", []).append(event)
+    result["summary"]["needs_review"] = len(pending_fields(result))
+    return result
+
+
+def clarification_draft(review: dict | None) -> str:
+    pending = [item for item in pending_fields(review) if item["field"] != "issue_ratio"]
+    if not pending:
+        return ""
+    questions = []
+    for item in pending:
+        evidence = "; ".join(item.get("evidence", []))
+        if item.get("source") == "conflict":
+            questions.append(f'- {item["label"]}: conflicting specifications ({evidence}). Please confirm the intended value.')
+        elif item.get("source") == "missing":
+            questions.append(f'- Please provide {item["label"].lower()}.')
+        else:
+            questions.append(f'- Please confirm {item["label"].lower()}: {item.get("final_value", item.get("value"))}.')
+    return "Subject: PCB RFQ specification confirmation\n\nHello,\n\nBefore we finalize your quotation, please confirm the following:\n\n" + "\n".join(questions) + "\n\nThank you."
+
+
+def release_pending(spec: dict | None) -> list[dict]:
+    review = extraction_review_from_spec(spec)
+    return pending_fields(reconcile_review(review, spec)) if review else []

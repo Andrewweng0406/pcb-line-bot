@@ -131,3 +131,24 @@ input[type="checkbox"] {
 .trace-divider circle {
     fill: var(--copper);
 }
+.review-disabled { opacity: 0.5; cursor: not-allowed; }
+
+@media (max-width: 640px) {
+    .extraction-audit thead { display: none; }
+    .extraction-audit tbody { display: block; }
+    .extraction-audit tr {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 4px 12px;
+        padding: 12px 0;
+    }
+    .extraction-audit td { display: block; padding: 2px 0; overflow-wrap: anywhere; }
+    .extraction-audit td::before {
+        content: attr(data-label);
+        display: block;
+        color: var(--ink-muted);
+        font-size: 12px;
+        font-weight: normal;
+    }
+    .extraction-audit td:nth-child(5), .extraction-audit td:nth-child(6) { grid-column: 1 / -1; }
+}

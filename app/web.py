@@ -1,4 +1,3 @@
-import json
 import uuid
 from typing import Optional
 
@@ -28,6 +27,12 @@ from app.extraction_review import (
     attach_extraction_review,
     build_extraction_review,
     extraction_review_from_spec,
+    sign_review,
+    read_review,
+    reconcile_review,
+    confirm_review,
+    clarification_draft,
+    release_pending,
 )
 from app.formal_quote_export import export_formal_quote
 from app.historical_intelligence import find_similar_quotes, historical_pricing_summary
@@ -160,6 +165,21 @@ TRANSLATIONS = {
         "no_response": "No Response",
         "cancelled": "Cancelled",
         "ai_extraction_review": "AI Extraction Review",
+        "conflict": "Conflict",
+        "evidence": "Source Evidence",
+        "confirm_field": "Confirm field",
+        "review_note": "Review Note",
+        "confirm_selected": "Confirm Selected Fields",
+        "original_value": "Extracted Value",
+        "final_value": "Current Value",
+        "review_history": "Review History",
+        "confirmed": "Confirmed",
+        "awaiting_confirmation": "Awaiting Confirmation",
+        "clarification_draft": "Customer Clarification Draft",
+        "original_rfq": "Original RFQ",
+        "release_blocked": "Confirm the pending extraction fields before approval or formal export.",
+        "create_revision": "Create Revision",
+        "revision_of": "Revision Of",
         "review_required": "Review Required",
         "field": "Field",
         "value": "Value",
@@ -310,6 +330,21 @@ TRANSLATIONS = {
         "no_response": "無回覆",
         "cancelled": "已取消",
         "ai_extraction_review": "AI 解析覆核",
+        "conflict": "規格衝突",
+        "evidence": "原文證據",
+        "confirm_field": "確認欄位",
+        "review_note": "覆核備註",
+        "confirm_selected": "確認勾選欄位",
+        "original_value": "解析值",
+        "final_value": "目前值",
+        "review_history": "覆核歷程",
+        "confirmed": "已確認",
+        "awaiting_confirmation": "待確認",
+        "clarification_draft": "客戶規格確認信草稿",
+        "original_rfq": "原始詢價內容",
+        "release_blocked": "請先確認待覆核欄位，再批准或匯出正式報價。",
+        "create_revision": "建立修訂版",
+        "revision_of": "修訂來源",
         "review_required": "需要覆核",
         "field": "欄位",
         "value": "值",
@@ -606,6 +641,9 @@ def create_quote(
     delivery_days: str = Form(""),
     company_name: str = Form(""),
     extraction_review_json: str = Form(""),
+    extraction_review_token: str = Form(""),
+    reviewed_fields: list[str] = Form([]),
+    review_note: str = Form(""),
     user=Depends(get_current_user_optional),
 ):
     if user is None:
@@ -655,11 +693,24 @@ def create_quote(
                 f'inner {parsed["copper_inner_oz"]:g}oz'
             )
     extraction_review = None
-    if extraction_review_json.strip():
+    if extraction_review_token:
         try:
-            extraction_review = json.loads(extraction_review_json)
-        except json.JSONDecodeError:
-            logger.warning("Ignoring invalid extraction review payload")
+            original_review = read_review(extraction_review_token, user.id)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+        extraction_review = reconcile_review(original_review, parsed)
+        try:
+            extraction_review = confirm_review(extraction_review, reviewed_fields, user.id, user.email, review_note)
+        except ValueError as exc:
+            return templates.TemplateResponse("quote_new.html", {
+                "request": request, "user": user, "error": str(exc), "form": parsed,
+                "extraction_review": extraction_review,
+                "extraction_review_token": extraction_review_token,
+                "clarification_draft": clarification_draft(extraction_review),
+                "revision_of": extraction_review.get("revision_of"),
+            }, status_code=400)
+    elif extraction_review_json.strip():
+        raise HTTPException(status_code=400, detail="Unsigned extraction review. Parse the RFQ again.")
     parsed = attach_extraction_review(parsed, extraction_review)
 
     result = calculate_quote(parsed)
@@ -672,6 +723,10 @@ def create_quote(
                 "user": user,
                 "error": result.get("message"),
                 "form": parsed,
+                "extraction_review": extraction_review,
+                "extraction_review_token": extraction_review_token,
+                "clarification_draft": clarification_draft(extraction_review),
+                "revision_of": (extraction_review or {}).get("revision_of"),
             },
             status_code=400,
         )
@@ -772,6 +827,8 @@ async def ai_assist(
             "form": parsed,
             "ai_error": ai_error,
             "extraction_review": extraction_review,
+            "extraction_review_token": sign_review(extraction_review, user.id) if extraction_review else "",
+            "clarification_draft": clarification_draft(extraction_review),
         },
     )
 
@@ -849,6 +906,9 @@ def quote_detail(request: Request, quote_id: int, user=Depends(get_current_user_
 
     similar_quotes = find_similar_quotes(query_db, db.QuoteHistory, quote, limit=8)
     historical_summary = historical_pricing_summary(similar_quotes)
+    review = extraction_review_from_spec(quote.spec_json)
+    if review:
+        review = reconcile_review(review, quote.spec_json)
     query_db.close()
 
     return templates.TemplateResponse(
@@ -861,7 +921,8 @@ def quote_detail(request: Request, quote_id: int, user=Depends(get_current_user_
             "outcome_labels": OUTCOME_LABELS,
             "lost_reason_labels": LOST_REASON_LABELS,
             "rfq_completeness": evaluate_rfq_completeness(quote),
-            "extraction_review": extraction_review_from_spec(quote.spec_json),
+            "extraction_review": review,
+            "clarification_draft": clarification_draft(review),
             "similar_quotes": similar_quotes,
             "historical_summary": historical_summary,
         },
@@ -892,6 +953,12 @@ def update_quote(
         query_db.close()
         raise HTTPException(status_code=404, detail="Quote not found")
 
+    if status not in {"pending", "approved", "ordered"}:
+        query_db.close()
+        raise HTTPException(status_code=400, detail="Invalid quote status")
+    if status in {"approved", "ordered"} and release_pending(quote.spec_json):
+        query_db.close()
+        raise HTTPException(status_code=409, detail="Confirm the pending extraction fields before approving this quote.")
     quote.status = status
     quote.notes = notes
     if quote_outcome is not None:
@@ -977,6 +1044,9 @@ def quote_export_formal(quote_id: int, user=Depends(get_current_user_optional)):
     if quote is None or not quote.spec_json or not quote.breakdown_json:
         raise HTTPException(status_code=404, detail="Quote not found or missing spec data")
 
+    if release_pending(quote.spec_json):
+        raise HTTPException(status_code=409, detail="Confirm the pending extraction fields before exporting a formal quote.")
+
     output_path = export_formal_quote(
         quote.spec_json,
         quote.breakdown_json,
@@ -990,6 +1060,54 @@ def quote_export_formal(quote_id: int, user=Depends(get_current_user_optional)):
 
     filename = _os.path.basename(output_path)
     return RedirectResponse(url=f"/download/exports/{filename}", status_code=303)
+
+
+@router.post("/quotes/{quote_id}/review")
+def review_quote(
+    quote_id: int,
+    reviewed_fields: list[str] = Form([]),
+    review_note: str = Form(""),
+    user=Depends(get_current_user_optional),
+):
+    if user is None:
+        return RedirectResponse(url="/login", status_code=303)
+    with db.SessionLocal() as session:
+        quote = session.query(db.QuoteHistory).filter(db.QuoteHistory.id == quote_id).with_for_update().first()
+        if quote is None:
+            raise HTTPException(status_code=404, detail="Quote not found")
+        review = extraction_review_from_spec(quote.spec_json)
+        if review is None:
+            raise HTTPException(status_code=400, detail="This quote has no extraction review.")
+        review = reconcile_review(review, quote.spec_json)
+        try:
+            review = confirm_review(review, reviewed_fields, user.id, user.email, review_note)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+        quote.spec_json = attach_extraction_review(quote.spec_json, review)
+        quote.updated_by_user_id = user.id
+        session.commit()
+    return RedirectResponse(url=f"/quotes/{quote_id}", status_code=303)
+
+
+@router.get("/quotes/{quote_id}/revise", response_class=HTMLResponse)
+def revise_quote(request: Request, quote_id: int, user=Depends(get_current_user_optional)):
+    if user is None:
+        return RedirectResponse(url="/login", status_code=303)
+    with db.SessionLocal() as session:
+        quote = session.get(db.QuoteHistory, quote_id)
+        if quote is None or not quote.spec_json:
+            raise HTTPException(status_code=404, detail="Quote not found or missing spec data")
+        form = dict(quote.spec_json)
+        if quote.customer:
+            form["company_name"] = quote.customer.company_name
+        review = extraction_review_from_spec(form) or build_extraction_review(form)
+        review = reconcile_review(review, form)
+        review["revision_of"] = quote.id
+        return templates.TemplateResponse("quote_new.html", {
+            "request": request, "user": user, "error": None, "form": form,
+            "extraction_review": review, "extraction_review_token": sign_review(review, user.id),
+            "clarification_draft": clarification_draft(review), "revision_of": quote.id,
+        })
 
 
 @router.get("/customers", response_class=HTMLResponse)

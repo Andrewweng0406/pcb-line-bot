@@ -81,7 +81,7 @@ def test_ai_assist_marks_defaults_and_inferred_fields_for_review(temp_db, monkey
     assert response.status_code == 200
     assert "System default; confirm before sending." in response.text
     assert "Value was extracted, but direct evidence was not obvious." in response.text
-    assert 'name="extraction_review_json"' in response.text
+    assert 'name="extraction_review_token"' in response.text
 
 
 def test_ai_assist_fills_form_from_uploaded_photo(temp_db, monkeypatch):

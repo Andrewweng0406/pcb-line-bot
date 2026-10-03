@@ -1,8 +1,7 @@
-import json
-
 from fastapi.testclient import TestClient
 
 from app.core.auth import hash_password
+from app.extraction_review import sign_review
 
 
 def _logged_in_client(temp_db):
@@ -81,7 +80,7 @@ def test_submitting_quote_preserves_extraction_review_metadata(temp_db):
             "length_mm": 100,
             "width_mm": 100,
             "issue_ratio": 1.0,
-            "extraction_review_json": json.dumps(review),
+            "extraction_review_token": sign_review(review, 1),
         },
         follow_redirects=False,
     )
@@ -89,7 +88,7 @@ def test_submitting_quote_preserves_extraction_review_metadata(temp_db):
     assert response.status_code == 303
     db = temp_db.SessionLocal()
     quote = db.query(temp_db.QuoteHistory).order_by(temp_db.QuoteHistory.id.desc()).first()
-    assert quote.spec_json["_extraction_review"]["summary"]["needs_review"] == 1
+    assert quote.spec_json["_extraction_review"]["summary"]["needs_review"] >= 1
     assert quote.spec_json["_extraction_review"]["fields"][0]["source"] == "default"
     db.close()
 

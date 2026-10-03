@@ -158,6 +158,33 @@ the shared `INVITE_CODE` (see Environment Variables) — registration is gated
 by that code rather than left open, since the dashboard may be reachable on
 a public URL.
 
+### Extraction review workflow
+
+AI-assisted quotes retain the original RFQ text, matched evidence, extracted
+values, and field review status. Conflicting quantities, layer counts, dimensions,
+thicknesses, or lead times require confirmation, as do defaults, inferred values,
+and image extractions. Confidence levels are evidence rules, not calibrated
+probabilities; image evidence still requires manual verification.
+
+Save an unconfirmed quote as a pending draft. Confirm selected fields in the new
+quote form or the quote detail review table. Corrections require a review note;
+the audit history stores original and final values, the authenticated reviewer,
+and a UTC timestamp. Approval, ordering, and formal export are blocked until all
+pending extraction fields have been confirmed. Internal Excel exports remain
+available for review. Quotes entered manually without AI extraction metadata
+continue through the existing workflow.
+
+Use **Create Revision** on a saved quote to correct its specifications. This
+creates a new pending quote linked to the original and preserves its extraction
+and review history. Changing a confirmed value requires a new confirmation;
+the original quote stays intact. Resolving a conflict requires a review note.
+
+The customer clarification draft lists unresolved fields for staff to edit and
+copy. It is generated from review findings and does not send email. Text evidence
+checks cover supported patterns within one RFQ; cross-document comparison and
+image conflict detection are not implemented. Signed extraction payloads are
+bound to the current user and expire after 24 hours.
+
 ### Demo data
 
 Seed interview-ready customers and RFQs:

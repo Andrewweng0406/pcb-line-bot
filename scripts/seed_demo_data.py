@@ -188,11 +188,10 @@ DEMO_QUOTES = [
         "quote_no": "DEMO-RFQ-005",
         "customer": "Apex Robotics",
         "days_ago": 12,
-        "status": "approved",
-        "quote_outcome": "no_response",
-        "notes": "Demo: no response after quote sent; shows sales follow-up tracking.",
-        "lost_reason": "no_response",
-        "lost_reason_note": "Followed up twice after formal quote.",
+        "status": "pending",
+        "quote_outcome": "pending",
+        "notes": "Demo: email specifies 4 layers but drawing revision A specifies 6; confirm revision before formal quote.",
+        "review_text_suffix": "; drawing revision A: 6 layers",
         "spec": {
             "layer": 4,
             "material": "FR-4",
@@ -269,6 +268,7 @@ def upsert_quotes(session, customers: dict[str, db.Customer]) -> int:
             raw_input += f', line/space {spec["line_space_mil"]}mil'
         if spec.get("min_hole_mil"):
             raw_input += f', min hole {spec["min_hole_mil"]}mil'
+        raw_input += item.get("review_text_suffix", "")
         extraction_review = build_extraction_review(spec, raw_input=raw_input)
         spec_for_storage = attach_extraction_review(spec, extraction_review)
         normalized = normalized_quote_fields(spec, result)
