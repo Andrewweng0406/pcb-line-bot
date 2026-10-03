@@ -16,6 +16,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import app.core.database as db
+from app.extraction_review import attach_extraction_review, build_extraction_review
 from app.quote_engine import calculate_quote
 from app.quote_metrics import calculate_margin
 from app.rfq_normalization import normalized_quote_fields
@@ -196,7 +197,6 @@ DEMO_QUOTES = [
             "layer": 4,
             "material": "FR-4",
             "qty": 40,
-            "issue_ratio": 1.15,
             "length_mm": 70,
             "width_mm": 40,
             "thickness_mm": 1.6,
@@ -247,6 +247,30 @@ def upsert_quotes(session, customers: dict[str, db.Customer]) -> int:
         if result.get("status") != "success":
             raise RuntimeError(f"{item['quote_no']} failed: {result}")
 
+        raw_input = (
+            f'{spec.get("layer")}L {spec.get("material")} PCB, '
+            f'{spec.get("length_mm")} x {spec.get("width_mm")} mm, '
+            f'qty {spec.get("qty")} pcs, '
+            f'thickness {spec.get("thickness_mm")} mm, '
+            f'{spec.get("surface_finish") or "surface finish TBD"}, '
+            f'lead time {spec.get("delivery_days")} days'
+        )
+        if spec.get("issue_ratio") is not None:
+            raw_input += f', issue ratio {spec["issue_ratio"]}'
+        if spec.get("enig_thickness_uinch"):
+            raw_input += f', ENIG {spec["enig_thickness_uinch"]}u"'
+        if spec.get("vip"):
+            raw_input += ", VIP"
+        if spec.get("back_drill"):
+            raw_input += ", back drill"
+        if spec.get("pitch_mm"):
+            raw_input += f', pitch {spec["pitch_mm"]}mm'
+        if spec.get("line_space_mil"):
+            raw_input += f', line/space {spec["line_space_mil"]}mil'
+        if spec.get("min_hole_mil"):
+            raw_input += f', min hole {spec["min_hole_mil"]}mil'
+        extraction_review = build_extraction_review(spec, raw_input=raw_input)
+        spec_for_storage = attach_extraction_review(spec, extraction_review)
         normalized = normalized_quote_fields(spec, result)
         total = result["total"]
         final_price = round(total * item.get("final_price_multiplier", 1.0), 2)
@@ -277,7 +301,7 @@ def upsert_quotes(session, customers: dict[str, db.Customer]) -> int:
         quote.unit_price = result["unit_price"]
         quote.status = item["status"]
         quote.notes = item["notes"]
-        quote.spec_json = spec
+        quote.spec_json = spec_for_storage
         quote.breakdown_json = result
         quote.rfq_received_at = created_at
         quote.quote_sent_at = created_at + timedelta(hours=4)

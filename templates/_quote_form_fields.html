@@ -1,6 +1,46 @@
 {% if ai_error %}
 <p class="text-sm mb-3" style="color: var(--gold)">{{ ai_error }}</p>
 {% endif %}
+{% if extraction_review %}
+<textarea name="extraction_review_json" class="hidden">{{ extraction_review | tojson }}</textarea>
+<section class="mb-5 rounded-lg border p-4" style="border-color: var(--border); background: #FAFBF8">
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <h2 class="font-medium">{{ tr(request, "ai_extraction_review") }}</h2>
+            <p class="text-sm" style="color: var(--ink-muted)">
+                {{ extraction_review.summary.needs_review }} {{ tr(request, "review_required") }}
+                · {{ extraction_review.summary.high }} {{ tr(request, "high") }}
+                · {{ extraction_review.summary.medium }} {{ tr(request, "medium") }}
+                · {{ extraction_review.summary.low + extraction_review.summary.missing }} {{ tr(request, "low") }}
+            </p>
+        </div>
+        {% if extraction_review.summary.needs_review %}
+        <span class="badge badge-review">{{ tr(request, "review_required") }}</span>
+        {% else %}
+        <span class="badge badge-high">{{ tr(request, "high") }}</span>
+        {% endif %}
+    </div>
+    <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
+        {% for item in extraction_review.fields if item.needs_review %}
+        <div class="rounded border px-3 py-2 text-sm" style="border-color: var(--border); background: #FFFFFF">
+            <div class="flex items-center justify-between gap-2">
+                <span class="font-medium">{{ item.label }}</span>
+                <span class="badge badge-{{ item.confidence }}">{{ tr(request, item.confidence) }}</span>
+            </div>
+            <p class="font-data">{{ item.value if item.value is not none else "-" }}</p>
+            <p style="color: var(--ink-muted)">{{ tr(request, item.source) }} · {{ item.reason }}</p>
+        </div>
+        {% endfor %}
+    </div>
+    {% if not extraction_review.summary.needs_review %}
+    <p class="mt-3 text-sm" style="color: var(--ink-muted)">{{ tr(request, "all_extracted_fields_clear") }}</p>
+    {% else %}
+    <p class="mt-3 text-sm" style="color: var(--ink-muted)">{{ tr(request, "review_before_quote") }}</p>
+    {% endif %}
+</section>
+{% else %}
+<textarea name="extraction_review_json" class="hidden"></textarea>
+{% endif %}
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
     <div>
         <label class="block text-sm mb-1" style="color: var(--ink-muted)">{{ tr(request, "layers") }}</label>

@@ -30,6 +30,9 @@ def test_ai_assist_fills_form_from_text(temp_db, monkeypatch):
     assert response.status_code == 200
     assert 'value="6"' in response.text
     assert 'value="FR4"' in response.text
+    assert "AI Extraction Review" in response.text
+    assert "Review Required" in response.text
+    assert "High" in response.text
 
 
 def test_ai_assist_normalizes_thickness_field_name(temp_db, monkeypatch):
@@ -61,6 +64,24 @@ def test_ai_assist_handles_parser_failure_gracefully(temp_db, monkeypatch):
 
     assert response.status_code == 200
     assert "AI parsing failed" in response.text
+
+
+def test_ai_assist_marks_defaults_and_inferred_fields_for_review(temp_db, monkeypatch):
+    import app.web as web_module
+
+    monkeypatch.setattr(
+        web_module,
+        "parse_pcb_text",
+        lambda text: {"layer": 6, "material": "FR4", "qty": 9, "surface_finish": "ENIG"},
+    )
+
+    client = _logged_in_client(temp_db)
+    response = client.post("/quotes/new/ai-assist", data={"spec_text": "6L FR4 qty 9"})
+
+    assert response.status_code == 200
+    assert "System default; confirm before sending." in response.text
+    assert "Value was extracted, but direct evidence was not obvious." in response.text
+    assert 'name="extraction_review_json"' in response.text
 
 
 def test_ai_assist_fills_form_from_uploaded_photo(temp_db, monkeypatch):

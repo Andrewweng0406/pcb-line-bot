@@ -50,10 +50,14 @@ system turns PCB RFQs into structured, auditable quotes.
    - Go to `New Quote`.
    - Paste the sample RFQ below into AI Form Assist.
    - Click `Parse with AI`.
+   - Review the AI Extraction Review panel. Explain that explicit fields are
+     treated differently from inferred/defaulted/missing fields.
    - Review the generated fields, then click `Calculate and Save Quote`.
 
 5. Exports
-   - On the quote detail page, show `Generate Formal Quote`.
+   - On the quote detail page, open `AI Extraction Review` to show the audit
+     trail for source, confidence, and review-required fields.
+   - Show `Generate Formal Quote`.
    - Show `Download Internal Excel` if asked about finance/operations handoff.
 
 6. Architecture close
@@ -97,6 +101,9 @@ via-in-pad, 0.45 mm pitch, 4 mil line/space, 8 mil minimum hole,
   Chinese and the parsers still accept Chinese RFQ input.
 - The quote engine is deterministic and testable; AI is used to structure RFQ
   input, not to invent prices.
+- The AI Extraction Review layer marks fields as explicit, inferred, default,
+  image-extracted, or missing, so operators know what to trust and what to
+  verify.
 - Railway uses PostgreSQL plus a mounted persistent volume, so database data
   and generated files survive deploys.
 - Demo data is seeded by `scripts/seed_demo_data.py`, which is idempotent.

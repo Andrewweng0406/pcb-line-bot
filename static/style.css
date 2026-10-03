@@ -98,6 +98,22 @@ input[type="checkbox"] {
     color: #FFFFFF;
     background: var(--circuit-blue);
 }
+.badge-high {
+    color: #FFFFFF;
+    background: var(--good);
+}
+.badge-medium {
+    color: var(--circuit-blue);
+    border-color: var(--circuit-blue);
+    background: rgba(30, 67, 115, 0.08);
+}
+.badge-low,
+.badge-missing,
+.badge-review {
+    color: var(--gold);
+    border-color: var(--gold);
+    background: rgba(166, 131, 46, 0.12);
+}
 
 /* Signature element: a circuit-trace divider (right-angle steps + via
    dots) in place of a plain <hr>/border between major sections. */

@@ -134,6 +134,56 @@
     </form>
 </details>
 
+{% if extraction_review %}
+<details class="card p-6 mt-6" open>
+    <summary class="font-medium cursor-pointer">{{ tr(request, "ai_extraction_review") }}</summary>
+    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mt-4">
+        <div class="border rounded-lg p-3" style="border-color: var(--border)">
+            <p class="text-sm" style="color: var(--ink-muted)">{{ tr(request, "review_required") }}</p>
+            <p class="text-2xl font-data" style="color: var(--copper-dark)">{{ extraction_review.summary.needs_review }}</p>
+        </div>
+        <div class="border rounded-lg p-3" style="border-color: var(--border)">
+            <p class="text-sm" style="color: var(--ink-muted)">{{ tr(request, "high") }}</p>
+            <p class="text-2xl font-data" style="color: var(--copper-dark)">{{ extraction_review.summary.high }}</p>
+        </div>
+        <div class="border rounded-lg p-3" style="border-color: var(--border)">
+            <p class="text-sm" style="color: var(--ink-muted)">{{ tr(request, "medium") }}</p>
+            <p class="text-2xl font-data" style="color: var(--copper-dark)">{{ extraction_review.summary.medium }}</p>
+        </div>
+        <div class="border rounded-lg p-3" style="border-color: var(--border)">
+            <p class="text-sm" style="color: var(--ink-muted)">{{ tr(request, "low") }}</p>
+            <p class="text-2xl font-data" style="color: var(--copper-dark)">{{ extraction_review.summary.low + extraction_review.summary.missing }}</p>
+        </div>
+    </div>
+    <div class="mt-4 overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead style="color: var(--ink-muted)" class="text-left">
+                <tr>
+                    <th class="py-2 pr-3">{{ tr(request, "field") }}</th>
+                    <th class="py-2 pr-3">{{ tr(request, "value") }}</th>
+                    <th class="py-2 pr-3">{{ tr(request, "source") }}</th>
+                    <th class="py-2 pr-3">{{ tr(request, "confidence") }}</th>
+                    <th class="py-2">{{ tr(request, "reason") }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in extraction_review.fields %}
+                <tr style="border-top: 1px solid var(--border)">
+                    <td class="py-2 pr-3 font-medium">{{ item.label }}</td>
+                    <td class="py-2 pr-3 font-data">{{ item.value if item.value is not none else "-" }}</td>
+                    <td class="py-2 pr-3">{{ tr(request, item.source) }}</td>
+                    <td class="py-2 pr-3">
+                        <span class="badge badge-{{ item.confidence }}">{{ tr(request, item.confidence) }}</span>
+                    </td>
+                    <td class="py-2">{{ item.reason }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</details>
+{% endif %}
+
 <details class="card p-6 mt-6">
     <summary class="font-medium cursor-pointer">{{ tr(request, "commercial_outcome") }}</summary>
     <form method="post" action="/quotes/{{ quote.id }}/update" class="space-y-3 mt-4">

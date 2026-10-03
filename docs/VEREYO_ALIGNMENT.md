@@ -46,10 +46,12 @@ Then show the system:
 2. AI Form Assist
    - "This is analogous to plan extraction, but for RFQ text/specs."
    - Paste the sample RFQ from `INTERVIEW_DEMO.md`.
+   - Show the AI Extraction Review panel: explicit vs inferred/defaulted fields.
 
 3. Quote Detail
    - "The AI structures the input, but pricing is deterministic."
-   - Show pricing factors, warnings, and lead-time checks.
+   - Show the extraction audit trail, pricing factors, warnings, and lead-time
+     checks.
 
 4. Historical Intelligence
    - "This mirrors benchmark validation: compare the current estimate against

@@ -111,7 +111,7 @@ def test_import_web_page_and_preview(temp_db):
     client = _logged_in_client(temp_db)
     response = client.get("/import/quotes")
     assert response.status_code == 200
-    assert "匯入歷史報價" in response.text
+    assert "Import Historical Quotes" in response.text
 
     file_bytes = _workbook_bytes([
         ["Customer Name", "Layers", "Material", "Qty", "Size", "Quote", "Date", "Result"],

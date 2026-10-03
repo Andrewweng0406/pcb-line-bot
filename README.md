@@ -26,6 +26,7 @@ or replace the account before using the deployment for real customer data.
 - ✅ Real-time PCB quote calculation
 - ✅ Text specification parsing with OpenAI
 - ✅ PCB image recognition and parsing
+- ✅ AI extraction review layer with field source/confidence audit metadata
 - ✅ Quote history lookup
 - ✅ Average price statistics
 - ✅ Excel and formal quote document export

@@ -1,3 +1,5 @@
+import json
+
 from fastapi.testclient import TestClient
 
 from app.core.auth import hash_password
@@ -50,6 +52,45 @@ def test_submitting_quote_creates_row_and_links_customer(temp_db):
     assert quote.source_channel == "web"
     assert quote.product_type == "pcb"
     assert quote.pricing_version == "v1"
+    db.close()
+
+
+def test_submitting_quote_preserves_extraction_review_metadata(temp_db):
+    client = _logged_in_client(temp_db)
+    review = {
+        "summary": {"high": 2, "medium": 0, "low": 1, "missing": 0, "needs_review": 1},
+        "fields": [
+            {
+                "field": "issue_ratio",
+                "label": "Issue Ratio",
+                "value": 1.0,
+                "source": "default",
+                "confidence": "low",
+                "needs_review": True,
+                "reason": "System default; confirm before sending.",
+            }
+        ],
+    }
+
+    response = client.post(
+        "/quotes/new",
+        data={
+            "layer": 6,
+            "qty": 9,
+            "material": "FR4",
+            "length_mm": 100,
+            "width_mm": 100,
+            "issue_ratio": 1.0,
+            "extraction_review_json": json.dumps(review),
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    db = temp_db.SessionLocal()
+    quote = db.query(temp_db.QuoteHistory).order_by(temp_db.QuoteHistory.id.desc()).first()
+    assert quote.spec_json["_extraction_review"]["summary"]["needs_review"] == 1
+    assert quote.spec_json["_extraction_review"]["fields"][0]["source"] == "default"
     db.close()
 
 

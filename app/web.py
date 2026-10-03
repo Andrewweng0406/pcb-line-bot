@@ -1,3 +1,4 @@
+import json
 import uuid
 from typing import Optional
 
@@ -23,6 +24,11 @@ from app.core.config import settings
 from app.core.logging import get_logger
 from app.core.storage import file_storage
 from app.export_excel import export_quote_excel
+from app.extraction_review import (
+    attach_extraction_review,
+    build_extraction_review,
+    extraction_review_from_spec,
+)
 from app.formal_quote_export import export_formal_quote
 from app.historical_intelligence import find_similar_quotes, historical_pricing_summary
 from app.image_parser import parse_pcb_image
@@ -153,6 +159,23 @@ TRANSLATIONS = {
         "win_rate": "Win Rate",
         "no_response": "No Response",
         "cancelled": "Cancelled",
+        "ai_extraction_review": "AI Extraction Review",
+        "review_required": "Review Required",
+        "field": "Field",
+        "value": "Value",
+        "source": "Source",
+        "confidence": "Confidence",
+        "reason": "Reason",
+        "explicit": "Explicit",
+        "inferred": "Inferred",
+        "default": "Default",
+        "missing": "Missing",
+        "image": "Image",
+        "high": "High",
+        "medium": "Medium",
+        "low": "Low",
+        "review_before_quote": "Review highlighted fields before sending this quote.",
+        "all_extracted_fields_clear": "All extracted fields look ready for review.",
         "commercial_outcome": "Commercial Outcome",
         "final_price": "Final Price",
         "actual_cost": "Actual Cost",
@@ -286,6 +309,23 @@ TRANSLATIONS = {
         "win_rate": "成交率",
         "no_response": "無回覆",
         "cancelled": "已取消",
+        "ai_extraction_review": "AI 解析覆核",
+        "review_required": "需要覆核",
+        "field": "欄位",
+        "value": "值",
+        "source": "來源",
+        "confidence": "信心度",
+        "reason": "原因",
+        "explicit": "明確提供",
+        "inferred": "推斷",
+        "default": "預設",
+        "missing": "缺失",
+        "image": "圖片",
+        "high": "高",
+        "medium": "中",
+        "low": "低",
+        "review_before_quote": "送出報價前請覆核標示欄位。",
+        "all_extracted_fields_clear": "AI 解析欄位可進入人工覆核。",
         "commercial_outcome": "商務結果",
         "final_price": "最終價格",
         "actual_cost": "實際成本",
@@ -565,6 +605,7 @@ def create_quote(
     special_requirements: str = Form(""),
     delivery_days: str = Form(""),
     company_name: str = Form(""),
+    extraction_review_json: str = Form(""),
     user=Depends(get_current_user_optional),
 ):
     if user is None:
@@ -613,6 +654,13 @@ def create_quote(
                 f'outer {parsed["copper_outer_oz"]:g}oz / '
                 f'inner {parsed["copper_inner_oz"]:g}oz'
             )
+    extraction_review = None
+    if extraction_review_json.strip():
+        try:
+            extraction_review = json.loads(extraction_review_json)
+        except json.JSONDecodeError:
+            logger.warning("Ignoring invalid extraction review payload")
+    parsed = attach_extraction_review(parsed, extraction_review)
 
     result = calculate_quote(parsed)
 
@@ -666,9 +714,12 @@ async def ai_assist(
         return RedirectResponse(url="/login", status_code=303)
 
     parsed = {}
+    extraction_review = None
     ai_error = None
     try:
+        input_type = "text"
         if photo is not None and photo.filename:
+            input_type = "image"
             upload_dir = settings.UPLOAD_DIR
             import os as _os
 
@@ -704,6 +755,11 @@ async def ai_assist(
                     f'outer {parsed["copper_outer_oz"]:g}oz / '
                     f'inner {parsed["copper_inner_oz"]:g}oz'
                 )
+        extraction_review = build_extraction_review(
+            parsed,
+            raw_input=spec_text if input_type == "text" else "",
+            input_type=input_type,
+        )
     except Exception as e:
         logger.error(f"AI assist failed: {e}")
         ai_error = "AI parsing failed. Please enter the specifications manually."
@@ -711,7 +767,12 @@ async def ai_assist(
 
     return templates.TemplateResponse(
         "_quote_form_fields.html",
-        {"request": request, "form": parsed, "ai_error": ai_error},
+        {
+            "request": request,
+            "form": parsed,
+            "ai_error": ai_error,
+            "extraction_review": extraction_review,
+        },
     )
 
 
@@ -800,6 +861,7 @@ def quote_detail(request: Request, quote_id: int, user=Depends(get_current_user_
             "outcome_labels": OUTCOME_LABELS,
             "lost_reason_labels": LOST_REASON_LABELS,
             "rfq_completeness": evaluate_rfq_completeness(quote),
+            "extraction_review": extraction_review_from_spec(quote.spec_json),
             "similar_quotes": similar_quotes,
             "historical_summary": historical_summary,
         },

@@ -51,9 +51,9 @@ def test_extended_specs_apply_pricing_factors_and_review_status():
     assert result["pricing_review"]["status"] == "needs_review"
     applied = " ".join(result["pricing_review"]["applied_factors"])
     assert "Line/Space" in applied
-    assert "最小孔徑" in applied
-    assert "銅厚" in applied
-    assert "板翹" in applied
+    assert "Minimum hole" in applied
+    assert "Copper thickness" in applied
+    assert "Warpage" in applied
     assert "Countersunk" in applied
     assert result["pricing_review"]["unpriced_factors"] == [
         "Inspection report requested; confirm whether to charge separately."
@@ -77,4 +77,4 @@ def test_missing_delivery_marks_quote_as_estimate():
 
     assert result["status"] == "success"
     assert result["pricing_review"]["status"] == "estimate"
-    assert "交期" in result["pricing_review"]["critical_missing"]
+    assert "Lead Time" in result["pricing_review"]["critical_missing"]

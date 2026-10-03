@@ -33,6 +33,48 @@ def test_quote_detail_shows_spec_and_breakdown(temp_db):
     assert "Pending Review" in response.text
 
 
+def test_quote_detail_shows_ai_extraction_review(temp_db):
+    review = {
+        "summary": {"high": 2, "medium": 1, "low": 1, "missing": 0, "needs_review": 1},
+        "fields": [
+            {
+                "field": "layer",
+                "label": "Layers",
+                "value": 6,
+                "source": "explicit",
+                "confidence": "high",
+                "needs_review": False,
+                "reason": "Direct evidence found in the RFQ text.",
+            },
+            {
+                "field": "issue_ratio",
+                "label": "Issue Ratio",
+                "value": 1.0,
+                "source": "default",
+                "confidence": "low",
+                "needs_review": True,
+                "reason": "System default; confirm before sending.",
+            },
+        ],
+    }
+    temp_db.save_quote(
+        "web:1",
+        {"layer": 6, "qty": 9, "area_inch": 10, "_extraction_review": review},
+        {"status": "success", "total": 100.0, "unit_price": 11.11},
+    )
+    db = temp_db.SessionLocal()
+    quote_id = db.query(temp_db.QuoteHistory).order_by(temp_db.QuoteHistory.id.desc()).first().id
+    db.close()
+
+    client = _logged_in_client(temp_db)
+    response = client.get(f"/quotes/{quote_id}")
+
+    assert response.status_code == 200
+    assert "AI Extraction Review" in response.text
+    assert "Issue Ratio" in response.text
+    assert "System default; confirm before sending." in response.text
+
+
 def test_quote_detail_shows_historical_intelligence(temp_db):
     temp_db.save_quote(
         "web:1",

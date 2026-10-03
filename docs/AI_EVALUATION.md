@@ -90,6 +90,10 @@ but the business also learns which fields are most often missing or corrected.
 ## How This Project Already Supports The Loop
 
 - AI Form Assist and image parsing produce structured form fields.
+- AI Extraction Review classifies extracted fields by source and confidence:
+  explicit, inferred, default, image-extracted, or missing.
+- New Quote highlights low-confidence/default/missing fields before save.
+- Quote Detail stores and displays the extraction audit trail for later review.
 - RFQ completeness checks identify missing information.
 - Pricing is deterministic through `app/quote_engine.py`.
 - Pricing review labels quote risk as quotable, estimate, or review-needed.
