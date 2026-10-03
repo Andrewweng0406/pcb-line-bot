@@ -11,16 +11,17 @@ For production AI trust and evaluation talking points, see
 
 ## Live Demo
 
-The extraction review workflow is currently on `feature/extraction-confidence`.
-Preview it at `http://localhost:8000/login`; the Railway URL below does not
-include this branch until it is merged and deployed.
-
 - URL: https://web-production-803c7.up.railway.app/login
+- Staging: https://web-staging-ee69.up.railway.app/login
 - Email: `owner@example.com`
 - Password: `hunter2`
 
 Use the seeded `DEMO-RFQ-*` records for stable dashboard/history screens, then
 create one new quote live to show the interaction.
+Staging has its own PostgreSQL data, environment-scoped volumes, and session
+signing key. Use staging for destructive demo experiments. Existing production
+quotes without extraction metadata retain their original workflow; create a
+new AI-assisted quote to demonstrate the review controls in production.
 
 ## Demo Story
 
@@ -75,7 +76,7 @@ system turns PCB RFQs into structured, auditable quotes.
 
 ## Extraction Review Scenario
 
-Open `DEMO-RFQ-005` in the local preview. Its synthetic RFQ specifies `4L`
+Open `DEMO-RFQ-005` in staging or the local preview. Its synthetic RFQ specifies `4L`
 but also references `drawing revision A: 6 layers`. The layer field is flagged
 as a conflict, with both matching snippets retained. Formal export is blocked.
 

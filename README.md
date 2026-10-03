@@ -160,6 +160,12 @@ a public URL.
 
 ### Extraction review workflow
 
+Production: https://web-production-803c7.up.railway.app/login
+Staging: https://web-staging-ee69.up.railway.app/login
+
+Staging uses independent PostgreSQL data, environment-scoped storage, and
+session keys. Validate changes there before promoting them to production.
+
 AI-assisted quotes retain the original RFQ text, matched evidence, extracted
 values, and field review status. Conflicting quantities, layer counts, dimensions,
 thicknesses, or lead times require confirmation, as do defaults, inferred values,
