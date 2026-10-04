@@ -43,3 +43,15 @@ Recorded predictions use `{"id":"rfq-001","parsed":{"layer":6},"review":{"fields
 - The report records dataset SHA-256, Git revision, source-file and live-input hashes, run mode, model and per-case latency. Source hashes identify working-tree changes that are not yet committed. Live results vary; repeat runs before a release and report the sample size alongside accuracy.
 
 The CLI only supports the documented core fields, not every optional manufacturing requirement. An offline recorded run evaluates supplied predictions, not the current live model. A clean synthetic run is a smoke check, not a production release approval.
+
+## Compare Runs
+
+```sh
+python3 scripts/compare_extraction_reports.py \
+  evals/private/baseline.json evals/private/candidate.json \
+  --output evals/private/comparison.json
+```
+
+Reports must have matching dataset hashes, case IDs, labelled fields, ground truth, critical-field policy and run mode. Live comparisons also require matching input hashes, including image bytes. Changing models or code is allowed; changing the evaluation population is not. Older reports without input hashes cannot establish a like-for-like live comparison.
+
+The comparison recomputes counts from field results rather than trusting summary totals. It reports regressions even when other improvements leave aggregate accuracy unchanged, and detects wrong values becoming high confidence. Output includes IDs/field names, not raw RFQs or extracted values. A candidate with unchanged failures still exits `1`; "no regression" does not mean release-ready. Invalid/incomparable reports exit `2`. Results remain private with mode `0600`.

@@ -14,6 +14,7 @@ created from either one shows up in the same history.
 - Vereyo-specific positioning: [docs/VEREYO_ALIGNMENT.md](docs/VEREYO_ALIGNMENT.md)
 - AI evaluation plan: [docs/AI_EVALUATION.md](docs/AI_EVALUATION.md)
 - Runnable extraction benchmark: [docs/EXTRACTION_EVALUATION.md](docs/EXTRACTION_EVALUATION.md)
+- Latest progress and outstanding release gates: [docs/PROGRESS_2026-10-04.md](docs/PROGRESS_2026-10-04.md)
 
 This demo account is intended for interview review only. Rotate the password
 or replace the account before using the deployment for real customer data.

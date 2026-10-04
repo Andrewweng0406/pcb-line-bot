@@ -46,6 +46,17 @@ cannot prove that they have not changed since creation.
 
 ## Disposable restore drill
 
+Before a drill, check snapshot age, SHA-256 integrity and restrictive file permissions. Pair the persistent-file archive with its SHA-256 manifest:
+
+```bash
+DEBUG=false python scripts/check_backup_health.py backups/snapshot.json \
+  --max-age-hours 24 --archive backups/files.tar.gz --manifest backups/files.json
+```
+
+This command uses only the Python standard library and does not load application configuration, require an API key, or query/modify the database. It reads the supplied files only and never extracts the archive to disk. It rejects missing/stale/future-dated snapshots, legacy snapshots without verifiable checksums, insecure permissions, duplicate/unsafe archive entries and missing/corrupt archived files. Exit `0` means the supplied backup files are healthy; `1` means unhealthy; `2` means invalid command options. Without archive arguments, file recovery is explicitly `not_assessed`.
+
+It does **not** verify automatic schedules, encryption, offsite replication, backup authenticity, restore success or current database completeness. SHA-256 detects corruption, not malicious replacement of both a backup and its manifest. Retain periodic disposable restore drills and provider schedule checks. No scheduler or notifications are installed by this command.
+
 Create a new empty database and keep the production URL in `DATABASE_URL`.
 Put only the disposable target in `RESTORE_DATABASE_URL`:
 
