@@ -302,6 +302,50 @@
         {{ historical_summary.excluded_count }} {{ tr(request, "evidence_excluded") }}
     </p>
     <p class="text-xs mt-1" style="color: var(--ink-muted)">{{ tr(request, "evidence_window") }}</p>
+    <div class="mt-5 py-4" data-price-status="{{ price_assessment.status }}" style="border-top: 1px solid var(--border); border-bottom: 1px solid var(--border)">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+            <h3 class="font-medium">{{ tr(request, 'price_review') }}</h3>
+            <span class="text-sm font-medium px-2 py-1" style="{{ 'background: #fff1c2; color: #704700;' if price_assessment.status in ['above_band', 'below_band'] else 'background: var(--bg); color: var(--ink-muted);' }}">{{ tr(request, 'price_' ~ price_assessment.status) }}</span>
+        </div>
+        <p class="text-sm mt-2">{{ tr(request, 'price_action_' ~ price_assessment.status) }}</p>
+        <p class="text-xs mt-1" style="color: var(--ink-muted)">{{ price_assessment.reference_count }} / {{ price_assessment.minimum_references }} {{ tr(request, 'price_reference_count') }}</p>
+        {% if price_assessment.median_unit_price is not none %}
+        <dl class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+            <div><dt class="text-xs" style="color: var(--ink-muted)">{{ tr(request, 'price_current') }}</dt><dd class="font-data mt-1">{{ price_assessment.currency }} {{ "{:,.2f}".format(price_assessment.current_unit_price) }}</dd></div>
+            <div><dt class="text-xs" style="color: var(--ink-muted)">{{ tr(request, 'price_band') }}</dt><dd class="font-data mt-1">{{ price_assessment.currency }} {{ "{:,.2f}".format(price_assessment.lower_bound) }} – {{ "{:,.2f}".format(price_assessment.upper_bound) }}</dd></div>
+            <div><dt class="text-xs" style="color: var(--ink-muted)">{{ tr(request, 'price_deviation') }}</dt><dd class="font-data mt-1">{{ "{:+.1f}%".format(price_assessment.deviation_pct) }}</dd></div>
+        </dl>
+        {% endif %}
+        {% if price_assessment.context_fields %}
+        <p class="text-sm mt-4">{{ tr(request, 'price_context') }}: {% for field in price_assessment.context_fields %}{{ tr(request, 'compare_' ~ field) }}{{ ', ' if not loop.last else '' }}{% endfor %}</p>
+        <p class="text-xs mt-1" style="color: var(--ink-muted)">{{ tr(request, 'price_context_note') }}</p>
+        {% endif %}
+        <details class="mt-4 text-sm">
+            <summary class="cursor-pointer py-1">{{ tr(request, 'price_basis') }}</summary>
+            <p class="text-xs mt-3" style="color: var(--ink-muted)">{{ tr(request, 'price_as_of') }}: <span class="font-data">{{ price_assessment.as_of or '-' }}</span></p>
+            <p class="text-xs mt-2">{{ tr(request, 'price_rule') }}</p>
+            <p class="text-xs mt-1" style="color: var(--ink-muted)">{{ tr(request, 'price_rule_note') }}</p>
+            {% if price_assessment.median_unit_price is not none %}
+            <p class="text-xs font-data mt-2">{{ tr(request, 'evidence_median') }}: {{ price_assessment.currency }} {{ "{:,.2f}".format(price_assessment.median_unit_price) }} · {{ tr(request, 'price_mad') }}: {{ "{:,.2f}".format(price_assessment.mad) }}</p>
+            {% endif %}
+            {% if price_assessment.references %}
+            <div class="overflow-x-auto mt-3">
+                <table class="w-full text-xs text-left">
+                    <thead style="color: var(--ink-muted)"><tr><th class="py-2 pr-3">{{ tr(request, 'quote_no') }}</th><th class="pr-3">{{ tr(request, 'evidence_quoted') }}</th><th>{{ tr(request, 'price_context') }}</th></tr></thead>
+                    <tbody>{% for item in price_assessment.references %}<tr style="border-top: 1px solid var(--border)">
+                        <td class="py-2 pr-3 align-top"><a class="link-circuit font-data" href="/quotes/{{ item.id }}">{{ item.quote_no }}</a></td>
+                        <td class="py-2 pr-3 font-data align-top whitespace-nowrap">{{ item.currency }} {{ "{:,.2f}".format(item.unit_price) }}</td>
+                        <td class="py-2 align-top">{% for row in item.differences %}<p>{{ tr(request, 'compare_' ~ row.field) }}: {{ row.current }} → {{ row.historical }}{% if row.delta_pct is not none %} ({{ "{:+.1f}%".format(row.delta_pct) }}){% endif %}</p>{% else %}{{ tr(request, 'price_no_differences') }}{% endfor %}</td>
+                    </tr>{% endfor %}</tbody>
+                </table>
+            </div>
+            {% endif %}
+            {% if price_assessment.exclusions %}
+            <h4 class="font-medium text-xs mt-4">{{ tr(request, 'price_exclusions') }} ({{ price_assessment.exclusions|length }})</h4>
+            <ul class="text-xs mt-2 space-y-2">{% for item in price_assessment.exclusions %}<li><a href="/quotes/{{ item.id }}" class="link-circuit font-data">{{ item.quote_no }}</a>: {% for reason in item.reasons %}{{ tr(request, 'reason_' ~ reason) }}{{ '; ' if not loop.last else '' }}{% endfor %}</li>{% endfor %}</ul>
+            {% endif %}
+        </details>
+    </div>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
         {% for metric in historical_summary.evidence %}
         <div class="py-3" style="border-top: 1px solid var(--border)">

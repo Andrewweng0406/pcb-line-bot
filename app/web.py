@@ -37,6 +37,7 @@ from app.extraction_review import (
 )
 from app.formal_quote_export import export_formal_quote
 from app.historical_intelligence import find_similar_quotes, historical_pricing_summary
+from app.price_assessment import assess_quote_price
 from app.image_parser import parse_pcb_image
 from app.import_quotes import confirm_import, preview_import
 from app.quote_metrics import (
@@ -237,6 +238,38 @@ TRANSLATIONS = {
         "evidence_eligible": "eligible references",
         "evidence_excluded": "excluded",
         "evidence_window": "Latest 200 candidates; minimum 5 independent references per metric",
+        "price_review": "Price Review",
+        "price_above_band": "Above historical band",
+        "price_below_band": "Below historical band",
+        "price_within_band": "Within historical band",
+        "price_insufficient_evidence": "Insufficient evidence",
+        "price_review_pending": "Confirm extracted specifications first",
+        "price_invalid_current_price": "Current unit price unavailable",
+        "price_missing_quote_date": "Quote date unavailable",
+        "price_band": "Historical review band / Unit",
+        "price_deviation": "Deviation from quoted median",
+        "price_current": "Current Quote / Unit",
+        "price_reference_count": "independent historical quoted prices",
+        "price_action_above_band": "Review pricing inputs and commercial terms before sending.",
+        "price_action_below_band": "Review pricing inputs and recorded costs before sending.",
+        "price_action_within_band": "Historical comparison available for staff review.",
+        "price_action_insufficient_evidence": "At least 5 eligible earlier quotes are required.",
+        "price_action_review_pending": "Complete the extraction review before assessing price.",
+        "price_action_invalid_current_price": "Record a positive finite unit price to assess this quote.",
+        "price_action_missing_quote_date": "Record the quote date to identify earlier references.",
+        "price_context": "Specification differences to review",
+        "price_context_note": "These differences may affect comparability; their price impact has not been calculated.",
+        "price_rule": "Median ± the greater of 20% of median or 3 × 1.4826 × MAD",
+        "price_rule_note": "Review threshold; not a recommended selling price or a calibrated probability.",
+        "price_basis": "Price Review Evidence",
+        "price_as_of": "Reference cutoff",
+        "price_mad": "Median Absolute Deviation",
+        "price_exclusions": "Excluded from price review",
+        "price_no_differences": "Area, quantity and lead time match",
+        "reason_ineligible_reference": "Reference eligibility not confirmed",
+        "reason_missing_reference_date": "Historical quote date not recorded",
+        "reason_not_historical": "Quote is not earlier than this RFQ",
+        "reason_invalid_reference_price": "Quoted unit price is invalid or missing",
         "reason_missing_currency": "Currency not recorded",
         "reason_different_currency": "Different currency",
         "reason_missing_pricing_version": "Pricing version not recorded",
@@ -451,6 +484,38 @@ TRANSLATIONS = {
         "evidence_eligible": "有效參考",
         "evidence_excluded": "已排除",
         "evidence_window": "最近 200 筆候選；每項指標至少 5 筆獨立參考",
+        "price_review": "價格覆核",
+        "price_above_band": "高於歷史區間",
+        "price_below_band": "低於歷史區間",
+        "price_within_band": "位於歷史區間",
+        "price_insufficient_evidence": "依據不足",
+        "price_review_pending": "請先確認解析規格",
+        "price_invalid_current_price": "目前單價無法判定",
+        "price_missing_quote_date": "缺少報價日期",
+        "price_band": "歷史覆核區間／單片",
+        "price_deviation": "相對報價中位數偏差",
+        "price_current": "目前單片報價",
+        "price_reference_count": "筆獨立歷史單價",
+        "price_action_above_band": "送出前請覆核定價輸入與商務條件。",
+        "price_action_below_band": "送出前請覆核定價輸入與已記錄的成本。",
+        "price_action_within_band": "歷史比較可供業務覆核。",
+        "price_action_insufficient_evidence": "至少需要 5 筆符合條件且較早的歷史報價。",
+        "price_action_review_pending": "完成解析覆核後再判定價格。",
+        "price_action_invalid_current_price": "請記錄有效且大於零的單價。",
+        "price_action_missing_quote_date": "請記錄報價日期以辨識較早的參考資料。",
+        "price_context": "需覆核的規格差異",
+        "price_context_note": "這些差異可能影響可比性；尚未計算其價格影響。",
+        "price_rule": "中位數 ±「中位數的 20%」與「3 × 1.4826 × MAD」兩者較大值",
+        "price_rule_note": "人工覆核門檻；並非建議售價或經校準的機率。",
+        "price_basis": "價格覆核依據",
+        "price_as_of": "參考資料截止時間",
+        "price_mad": "中位數絕對偏差",
+        "price_exclusions": "不納入價格覆核",
+        "price_no_differences": "面積、數量與交期相同",
+        "reason_ineligible_reference": "未確認參考資格",
+        "reason_missing_reference_date": "未記錄歷史報價日期",
+        "reason_not_historical": "報價時間未早於目前 RFQ",
+        "reason_invalid_reference_price": "歷史單價無效或缺漏",
         "reason_missing_currency": "未記錄幣別",
         "reason_different_currency": "幣別不同",
         "reason_missing_pricing_version": "未記錄定價版本",
@@ -1053,6 +1118,7 @@ def quote_detail(request: Request, quote_id: int, user=Depends(get_current_user_
 
     historical_candidates = find_similar_quotes(query_db, db.QuoteHistory, quote, limit=200)
     historical_summary = historical_pricing_summary(historical_candidates)
+    price_assessment = assess_quote_price(quote, historical_candidates)
     similar_quotes = historical_candidates[:8]
     review = extraction_review_from_spec(quote.spec_json)
     if review:
@@ -1073,6 +1139,7 @@ def quote_detail(request: Request, quote_id: int, user=Depends(get_current_user_
             "clarification_draft": clarification_draft(review),
             "similar_quotes": similar_quotes,
             "historical_summary": historical_summary,
+            "price_assessment": price_assessment,
         },
     )
 

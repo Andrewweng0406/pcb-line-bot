@@ -222,7 +222,44 @@ Insufficient evidence remains visible instead of generating a suggested price.
 The page displays eight candidates, but summaries use the full bounded search.
 These conservative rules are not a comprehensive manufacturing-cost model;
 fine trace geometry, tooling, panel utilization and market changes still need
-professional judgment. No anomaly detection or automatic repricing is applied.
+professional judgment. No automatic repricing is applied.
+
+### Price review
+
+Quote detail and the authenticated historical-summary API now include a price
+review assessment. Only positive finite **quoted** unit prices from eligible
+independent RFQs dated earlier than the current quote are used. Later quotes,
+missing dates and invalid prices are listed with exclusion reasons. Pending
+extraction review, unavailable current price, and fewer than five valid earlier
+references each produce an explicit unavailable state with no price band.
+
+The versioned `median-mad-v1` rule uses the historical median and median absolute
+deviation (MAD). Its review band is:
+
+```text
+median +/- max(20% of median, 3 * 1.4826 * MAD)
+```
+
+Prices strictly outside the band are flagged above or below; boundary values
+are inside. The 20% floor handles identical or tightly clustered history.
+This is an explicit staff-review policy, not a predicted market price,
+recommended selling price, calibrated confidence, or statistically validated
+business threshold. It never changes the quote or its approval status.
+Accepted prices and actual costs remain separate metrics and do not determine
+this quoted-price band. Different area, quantity and delivery time are shown
+alongside contributing RFQs as review context, without attributing a calculated
+price impact to those differences.
+
+The evidence panel lists every contributing quote and every rejected candidate,
+plus the cutoff date, median, MAD and formula. Results are recalculated from the
+current saved records; this is not an immutable assessment audit snapshot.
+Future market movements, panel utilization and fine manufacturing geometry
+remain outside the rule. The existing bounded 200-candidate discovery applies.
+
+Three clearly labelled synthetic scenarios can be added to local or staging
+data with `python scripts/seed_price_review_demo.py`. The command preserves
+existing records and refuses Railway production. Its isolated pricing version
+prevents illustrative prices from becoming references for normal quotes.
 
 ### Demo data
 

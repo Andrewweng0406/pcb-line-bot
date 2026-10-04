@@ -85,6 +85,27 @@ checksummed snapshots and a tested restore path. Native Railway backup schedules
 still require backup-write permission; do not claim they are enabled until the
 schedule read-back shows active entries.
 
+## Price Review Scenarios
+
+In local or staging only, run `python scripts/seed_price_review_demo.py`.
+The fixtures use `synthetic-price-v1` and explicit synthetic labels; none are
+customer transactions and existing records are preserved.
+
+1. Open `SYNTH-PRICE-NORMAL`: five earlier references put the quoted price inside
+   the historical band. Expand **Price Review Evidence** to inspect the median,
+   MAD, formula and references. The later high-price case is excluded.
+2. Open `SYNTH-PRICE-HIGH`: the unit price is 60% above the historical median.
+   Show the area/quantity differences and explain why their price impact is not
+   calculated. The flag asks staff to review pricing inputs and commercial terms.
+3. Open `SYNTH-PRICE-SPARSE`: only two earlier references exist. The system shows
+   **Insufficient evidence** and provides no band or deviation judgment.
+
+The band is the median plus/minus the greater of 20% of the median or
+`3 * 1.4826 * MAD`. This is a transparent review policy, not a validated market
+forecast. Accepted prices and actual costs are not pooled into the quoted-price
+rule. Assessment results are recalculated from saved data, not retained as an
+immutable audit event.
+
 ## Extraction Review Scenario
 
 Open `DEMO-RFQ-005` in staging or the local preview. Its synthetic RFQ specifies `4L`

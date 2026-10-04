@@ -272,13 +272,18 @@ def find_similar_quotes(session, QuoteHistory, target, limit: int = 10) -> list:
     return [item for item in serialized if item["similarity"] > 0][:limit]
 
 
-def historical_pricing_summary(similar_quotes: Iterable[dict], min_sample_size: int = 5) -> dict:
-    candidates = list(similar_quotes)
+def eligible_reference_quotes(candidates: Iterable[dict]) -> list:
     comparable = [item for item in candidates if item.get("eligible")]
     currencies = {item.get("currency") for item in comparable}
     versions = {item.get("pricing_version") for item in comparable}
-    if None in currencies or len(currencies) > 1 or None in versions or len(versions) > 1:
-        comparable = []
+    if not currencies or not versions or not all(currencies) or not all(versions) or len(currencies) > 1 or len(versions) > 1:
+        return []
+    return comparable
+
+
+def historical_pricing_summary(similar_quotes: Iterable[dict], min_sample_size: int = 5) -> dict:
+    candidates = list(similar_quotes)
+    comparable = eligible_reference_quotes(candidates)
     quoted_prices = [
         finite_number(item.get("unit_price"))
         for item in comparable
@@ -292,7 +297,7 @@ def historical_pricing_summary(similar_quotes: Iterable[dict], min_sample_size: 
         "comparable_count": len(comparable),
         "candidate_count": len(candidates),
         "excluded_count": len(candidates) - len(comparable),
-        "currency": next(iter(currencies)) if comparable else None,
+        "currency": comparable[0]["currency"] if comparable else None,
         "minimum_samples": min_sample_size,
         "limited_data": len(quoted_prices) < min_sample_size,
         "won_count": won_count,

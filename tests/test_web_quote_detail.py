@@ -65,6 +65,40 @@ def test_quote_detail_benchmark_uses_independent_recorded_evidence(temp_db):
     assert client.get(f"/api/quotes/{quote_id}/similar?limit=201").status_code == 422
 
 
+def test_price_review_scenarios_are_consistent_in_html_and_api(temp_db):
+    from scripts.seed_price_review_demo import seed_cases
+    with temp_db.SessionLocal() as session:
+        ids = seed_cases(session)
+        session.commit()
+        counts_before = session.query(temp_db.QuoteHistory).count()
+        assert seed_cases(session) == ids
+        session.commit()
+        assert session.query(temp_db.QuoteHistory).count() == counts_before
+    client = _logged_in_client(temp_db)
+    expected = {
+        "SYNTH-PRICE-NORMAL": "within_band",
+        "SYNTH-PRICE-HIGH": "above_band",
+        "SYNTH-PRICE-SPARSE": "insufficient_evidence",
+    }
+    for name, status in expected.items():
+        response = client.get(f"/quotes/{ids[name]}")
+        assert response.status_code == 200
+        assert f'data-price-status="{status}"' in response.text
+        assessment = client.get(f"/api/quotes/{ids[name]}/historical-summary").json()["price_assessment"]
+        assert assessment["status"] == status
+        if status == "above_band":
+            assert assessment["deviation_pct"] == 60
+            assert assessment["reference_count"] == 6
+            assert "+60.0%" in response.text
+            assert assessment["context_fields"] == ["area_in2", "qty"]
+        if status == "insufficient_evidence":
+            assert assessment["reference_count"] == 2
+            assert assessment["upper_bound"] is None
+    response = client.get(f"/quotes/{ids['SYNTH-PRICE-HIGH']}?lang=zh")
+    assert "高於歷史區間" in response.text
+    assert "價格覆核依據" in response.text
+
+
 def test_quote_detail_shows_ai_extraction_review(temp_db):
     review = {
         "summary": {"high": 2, "medium": 1, "low": 1, "missing": 0, "needs_review": 1},

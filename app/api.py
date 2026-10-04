@@ -9,6 +9,7 @@ from app.business_analytics import (
     get_pricing_trends,
 )
 from app.historical_intelligence import find_similar_quotes, historical_pricing_summary
+from app.price_assessment import assess_quote_price
 from app.import_quotes import confirm_import, parse_mapping_json, preview_import
 from app.quote_metrics import calculate_margin, to_non_negative_float, to_non_negative_int
 from app.quote_outcomes import normalize_lost_reason, normalize_outcome
@@ -223,8 +224,10 @@ def get_historical_summary(quote_id: int, user=Depends(require_user)):
             session.close()
             raise HTTPException(status_code=404, detail="Quote not found")
         similar = find_similar_quotes(session, db.QuoteHistory, quote, limit=200)
+        summary = historical_pricing_summary(similar)
+        summary["price_assessment"] = assess_quote_price(quote, similar)
         session.close()
-        return historical_pricing_summary(similar)
+        return summary
     except HTTPException:
         raise
     except Exception as e:
