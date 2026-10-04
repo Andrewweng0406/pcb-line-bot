@@ -59,6 +59,7 @@ from app.upload_validation import read_image_upload, read_upload
 from starlette.concurrency import run_in_threadpool
 from app.core.rate_limit import rate_limiter, client_identity
 from app.core.permissions import can, require_permission, authorize_quote_update
+from app.core.auth import request_origin
 from app.rfq_completeness import evaluate_rfq_completeness
 from app.quote_engine import calculate_quote
 
@@ -657,7 +658,7 @@ def login_submit(request: Request, email: str = Form(...), password: str = Form(
     token = create_session_token(user.id)
     response = RedirectResponse(url="/", status_code=303)
     response.set_cookie(
-        SESSION_COOKIE_NAME, token, httponly=True, secure=request.url.scheme == "https", samesite="lax", max_age=60 * 60 * 24 * 7
+        SESSION_COOKIE_NAME, token, httponly=True, secure=request_origin(request)[0] == "https", samesite="lax", max_age=60 * 60 * 24 * 7
     )
     return response
 
@@ -706,7 +707,7 @@ def register_submit(
     token = create_session_token(user.id)
     response = RedirectResponse(url="/", status_code=303)
     response.set_cookie(
-        SESSION_COOKIE_NAME, token, httponly=True, secure=request.url.scheme == "https", samesite="lax", max_age=60 * 60 * 24 * 7
+        SESSION_COOKIE_NAME, token, httponly=True, secure=request_origin(request)[0] == "https", samesite="lax", max_age=60 * 60 * 24 * 7
     )
     return response
 

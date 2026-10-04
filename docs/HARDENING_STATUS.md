@@ -7,6 +7,7 @@
 - Export downloads require a staff session or a filename-bound signed token valid for one hour.
 - Legacy AI endpoints require authentication; the image test endpoint is unavailable outside debug mode.
 - Browser cross-site writes are rejected using Origin and Fetch Metadata checks. Session cookies are HttpOnly, SameSite=Lax, and Secure over HTTPS.
+- For platform TLS termination, configure `PUBLIC_BASE_URL` to the environment's exact HTTPS URL. Cookie and Origin checks use that trusted origin only when the request host matches; arbitrary forwarded headers are not trusted.
 - Image uploads validate actual JPEG/PNG/WebP bytes, upload size and pixel count.
 - Web image evidence is retained in `UPLOAD_DIR`. Authorized staff can access their own originals and images linked to saved quotes; Managers/Admins can inspect retained web originals.
 - AI network calls in the async web route run in a thread pool; SDK requests have explicit timeout and retry limits.

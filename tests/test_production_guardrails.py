@@ -69,6 +69,22 @@ def test_https_login_cookie_is_secure(temp_db):
     assert "Secure" in cookie and "HttpOnly" in cookie and "SameSite=lax" in cookie
 
 
+def test_tls_termination_uses_configured_origin_not_forwarded_headers(temp_db, monkeypatch):
+    from app.core.config import settings
+    client = login(temp_db)
+    monkeypatch.setattr(settings, "PUBLIC_BASE_URL", "https://testserver")
+    data = {"email": "guard@example.com", "password": "test-password"}
+    response = client.post("/login", data=data, headers={"Origin": "https://testserver"}, follow_redirects=False)
+    assert response.status_code == 303
+    assert "Secure" in response.headers["set-cookie"]
+    for origin in ("https://attacker.example", "http://testserver"):
+        assert client.post("/login", data=data, headers={"Origin": origin}).status_code == 403
+    assert client.post("/login", data=data, headers={"Origin": "https://attacker.example", "X-Forwarded-Host": "attacker.example", "X-Forwarded-Proto": "https"}).status_code == 403
+    monkeypatch.setattr(settings, "PUBLIC_BASE_URL", "https://another.example")
+    response = client.post("/login", data=data, follow_redirects=False)
+    assert "Secure" not in response.headers["set-cookie"]
+
+
 def test_image_upload_validates_bytes_and_preserves_evidence(temp_db, monkeypatch, tmp_path):
     import app.web as web
     monkeypatch.setattr(web.settings, "UPLOAD_DIR", str(tmp_path))

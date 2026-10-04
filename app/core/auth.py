@@ -1,4 +1,5 @@
 from typing import Optional
+from urllib.parse import urlsplit
 
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from passlib.context import CryptContext
@@ -9,6 +10,15 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7  # 7 days
 SESSION_SALT = "web-session"
+
+
+def request_origin(request) -> tuple[str, str]:
+    configured = urlsplit(settings.PUBLIC_BASE_URL)
+    # TLS may terminate at the platform proxy. Trust only the operator's
+    # configured HTTPS origin for this host, never arbitrary forwarded headers.
+    if configured.scheme == "https" and configured.netloc == request.url.netloc:
+        return configured.scheme, configured.netloc
+    return request.url.scheme, request.url.netloc
 
 
 def hash_password(password: str) -> str:

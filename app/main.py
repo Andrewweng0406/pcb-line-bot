@@ -44,7 +44,7 @@ from app.export_excel import export_quote_excel
 from app.formal_quote_export import export_formal_quote
 from app.api import router as api_router
 from app.web import router as web_router, get_current_user_optional
-from app.core.auth import sign_export, valid_export_token
+from app.core.auth import sign_export, valid_export_token, request_origin
 from pathlib import Path
 from urllib.parse import urlencode
 from urllib.parse import urlsplit
@@ -79,7 +79,7 @@ async def reject_cross_site_writes(request: Request, call_next):
     if request.method in {"POST", "PUT", "PATCH", "DELETE"} and request.url.path != "/callback":
         origin = request.headers.get("origin")
         if request.headers.get("sec-fetch-site") == "cross-site" or (
-            origin and (urlsplit(origin).scheme, urlsplit(origin).netloc) != (request.url.scheme, request.url.netloc)
+            origin and (urlsplit(origin).scheme, urlsplit(origin).netloc) != request_origin(request)
         ):
             return JSONResponse(status_code=403, content={"detail": "Cross-site writes are not allowed"})
     return await call_next(request)
