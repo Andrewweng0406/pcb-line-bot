@@ -16,7 +16,7 @@ def test_api_works_when_logged_in(temp_db):
     client = TestClient(app)
 
     db = temp_db.SessionLocal()
-    user = temp_db.User(email="staff@example.com", password_hash=hash_password("hunter2"))
+    user = temp_db.User(email="staff@example.com", password_hash=hash_password("hunter2"), role="manager")
     db.add(user)
     db.commit()
     db.close()
@@ -31,7 +31,7 @@ def test_api_patch_records_updated_by(temp_db):
     client = TestClient(app)
 
     db = temp_db.SessionLocal()
-    user = temp_db.User(email="staff@example.com", password_hash=hash_password("hunter2"))
+    user = temp_db.User(email="staff@example.com", password_hash=hash_password("hunter2"), role="manager")
     db.add(user)
     db.commit()
     db.close()
@@ -57,7 +57,7 @@ def test_api_patch_updates_outcome_and_actual_margin(temp_db):
     client = TestClient(app)
 
     db = temp_db.SessionLocal()
-    user = temp_db.User(email="staff@example.com", password_hash=hash_password("hunter2"))
+    user = temp_db.User(email="staff@example.com", password_hash=hash_password("hunter2"), role="manager")
     db.add(user)
     db.commit()
     db.close()

@@ -8,7 +8,7 @@ def _logged_in_client(temp_db):
     from app.main import app
     client = TestClient(app)
     db = temp_db.SessionLocal()
-    user = temp_db.User(email="staff@example.com", password_hash=hash_password("hunter2"))
+    user = temp_db.User(email="staff@example.com", password_hash=hash_password("hunter2"), role="manager")
     db.add(user)
     db.commit()
     db.close()

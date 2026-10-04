@@ -30,6 +30,8 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String(255), unique=True, index=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
+    role = Column(String(20), nullable=False, default="staff", server_default="staff")
+    role_history = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
@@ -65,6 +67,7 @@ class QuoteHistory(Base):
     status = Column(String(20), default="pending", index=True)
     notes = Column(Text, nullable=True)
     quote_no = Column(String(50), nullable=True, index=True)
+    import_key = Column(String(64), nullable=True, unique=True, index=True)
     # Full parsed input / full calculate_quote() output, kept as JSON so new
     # fields added to the parser or quote engine don't require a migration.
     spec_json = Column(JSON, nullable=True)
@@ -107,6 +110,16 @@ def _run_migrations(engine) -> None:
     implementation plan's Global Constraints for the full rationale).
     """
     inspector = inspect(engine)
+    if "users" in inspector.get_table_names():
+        user_columns = {col["name"] for col in inspector.get_columns("users")}
+        with engine.begin() as conn:
+            if "role" not in user_columns:
+                conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'staff'"))
+                # Existing users already had approval access, but not a
+                # distinct administrator identity. Preserve approval only.
+                conn.execute(text("UPDATE users SET role = 'manager'"))
+            if "role_history" not in user_columns:
+                conn.execute(text("ALTER TABLE users ADD COLUMN role_history JSON"))
     if "quote_history" not in inspector.get_table_names():
         return  # fresh database, create_all() already built the current schema
 
@@ -125,6 +138,7 @@ def _run_migrations(engine) -> None:
             "status": "VARCHAR(20) DEFAULT 'pending'",
             "notes": "TEXT",
             "quote_no": "VARCHAR(50)",
+            "import_key": "VARCHAR(64)",
             "spec_json": "JSON",
             "breakdown_json": "JSON",
             "rfq_received_at": "TIMESTAMP",
@@ -159,6 +173,8 @@ def _run_migrations(engine) -> None:
                     f"ALTER TABLE quote_history ADD COLUMN {column_name} {column_type}"
                 ))
                 columns.add(column_name)
+
+        conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_quote_history_import_key ON quote_history (import_key)"))
 
         if "quote_outcome" in columns:
             conn.execute(text(

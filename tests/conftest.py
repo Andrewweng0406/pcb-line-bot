@@ -4,6 +4,14 @@ import tempfile
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def reset_local_rate_limits():
+    from app.core.rate_limit import rate_limiter
+    rate_limiter.clear_local()
+    yield
+    rate_limiter.clear_local()
+
+
 @pytest.fixture()
 def temp_db(monkeypatch):
     """Point the app at a fresh, empty SQLite file for the duration of one test."""

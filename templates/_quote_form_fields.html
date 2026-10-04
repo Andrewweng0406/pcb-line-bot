@@ -49,6 +49,9 @@
     <label class="block text-sm mt-3">{{ tr(request, "review_note") }}
         <textarea name="review_note" rows="2" class="w-full border rounded px-3 py-2"></textarea>
     </label>
+    {% if extraction_review.source_image %}
+    <a class="block mt-3 text-sm" href="/rfq-images/{{ extraction_review.source_image }}" target="_blank" rel="noopener">{{ tr(request, "original_rfq") }}</a>
+    {% endif %}
     {% if extraction_review.raw_input %}
     <details class="mt-3 text-sm"><summary>{{ tr(request, "original_rfq") }}</summary><pre class="whitespace-pre-wrap break-words mt-2">{{ extraction_review.raw_input }}</pre></details>
     {% endif %}
@@ -151,9 +154,11 @@
         <textarea name="special_requirements" rows="2" class="w-full border rounded-lg px-3 py-2" style="border-color: var(--border)">{{ form.special_requirements or '' }}</textarea>
     </div>
     {% for field, label, step in [('area_inch', 'Area (in2)', '0.01'), ('trace_to_hole_mil', 'Trace to Hole (mil)', '0.01'), ('press_count', 'Press Count', '1'), ('internal_layers', 'Internal Layers', '1'), ('hole_size_mil', 'Hole Size (mil)', '0.01'), ('copper_weight_oz', 'Copper Weight (oz)', '0.01'), ('back_drill_fee', 'Back Drill Fee', '1')] %}
+    {% if field != 'back_drill_fee' or can(user, 'financial') %}
     <label class="block text-sm" style="color: var(--ink-muted)">{{ label }}
         <input type="number" step="{{ step }}" name="{{ field }}" value="{{ form[field] if form[field] is defined and form[field] is not none else '' }}" class="w-full border rounded-lg px-3 py-2 mt-1" style="border-color: var(--border)">
     </label>
+    {% endif %}
     {% endfor %}
     <label class="block text-sm" style="color: var(--ink-muted)">Flatness
         <input type="text" name="flatness" value="{{ form.flatness if form.flatness is defined and form.flatness is not none else '' }}" class="w-full border rounded-lg px-3 py-2 mt-1" style="border-color: var(--border)">

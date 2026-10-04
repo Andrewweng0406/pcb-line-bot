@@ -18,9 +18,10 @@
 </div>
 {% include "_trace_divider.html" %}
 <div class="flex flex-wrap gap-3">
-    <a href="/quotes/new" class="btn-primary px-4 py-2 text-sm whitespace-nowrap">
+    {% if can(user, 'edit') %}<a href="/quotes/new" class="btn-primary px-4 py-2 text-sm whitespace-nowrap">
         + {{ tr(request, "new_quote") }}
     </a>
+    {% endif %}
     <a href="/quotes" class="btn-secondary px-4 py-2 text-sm whitespace-nowrap">
         {{ tr(request, "view_quote_list") }}
     </a>

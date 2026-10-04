@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
@@ -43,7 +43,13 @@ from app.image_parser import parse_pcb_image
 from app.export_excel import export_quote_excel
 from app.formal_quote_export import export_formal_quote
 from app.api import router as api_router
-from app.web import router as web_router
+from app.web import router as web_router, get_current_user_optional
+from app.core.auth import sign_export, valid_export_token
+from pathlib import Path
+from urllib.parse import urlencode
+from urllib.parse import urlsplit
+from app.core.rate_limit import rate_limiter
+from app.core.permissions import require_permission
 
 logger = get_logger(__name__)
 
@@ -67,6 +73,17 @@ app.include_router(api_router)
 app.include_router(web_router)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+
+@app.middleware("http")
+async def reject_cross_site_writes(request: Request, call_next):
+    if request.method in {"POST", "PUT", "PATCH", "DELETE"} and request.url.path != "/callback":
+        origin = request.headers.get("origin")
+        if request.headers.get("sec-fetch-site") == "cross-site" or (
+            origin and (urlsplit(origin).scheme, urlsplit(origin).netloc) != (request.url.scheme, request.url.netloc)
+        ):
+            return JSONResponse(status_code=403, content={"detail": "Cross-site writes are not allowed"})
+    return await call_next(request)
+
 configuration = Configuration(
     access_token=settings.LINE_CHANNEL_ACCESS_TOKEN
 )
@@ -80,10 +97,18 @@ def health_check():
 
 
 @app.get("/download/exports/{filename}")
-def download_export_file(filename: str):
+def download_export_file(filename: str, token: str = "", user=Depends(get_current_user_optional)):
+    if user is None and not valid_export_token(token, filename):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    if not valid_export_token(token, filename):
+        require_permission(user, "export_internal")
+    root = Path(settings.EXPORT_DIR).resolve()
+    path = (root / filename).resolve()
+    if path.parent != root or path.suffix != ".xlsx":
+        raise HTTPException(status_code=404, detail="File not found")
     try:
         logger.info(f"Downloading export: {filename}")
-        export_path = os.path.join(settings.EXPORT_DIR, filename)
+        export_path = str(path)
 
         if not os.path.exists(export_path):
             logger.warning(f"Export file not found: {filename}")
@@ -235,6 +260,14 @@ def handle_message(event):
         user_id = event.source.user_id
         user_text = event.message.text.strip()
 
+        if user_text == "Formal Quote":
+            with ApiClient(configuration) as api_client:
+                MessagingApi(api_client).reply_message(ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text=f"Formal quotes require staff review. Open the dashboard: {settings.PUBLIC_BASE_URL}/quotes")],
+                ))
+            return
+
         logger.info(f"Message from {user_id}: {user_text[:50]}")
 
         # HELP command
@@ -340,9 +373,9 @@ Need help? Type "help" anytime to view this guide."""
 
 ━━━━━━━━━━━━━━━━━━━━━━━
 💾 System Info:
-• Automatic backup: Daily at 00:00
+• Backup status: Verify with the administrator
 • Sync frequency: Real time
-• Data retention: Permanent
+• Data retention: Subject to the configured retention policy
 
 ━━━━━━━━━━━━━━━━━━━━━━━
 ✨ Everything looks good.
@@ -389,7 +422,7 @@ Type "help" anytime for usage instructions."""
             else:
                 result = calculate_quote(parsed)
                 filename = export_quote_excel(parsed, result)
-                download_url = f"{settings.PUBLIC_BASE_URL}/download/exports/{filename}"
+                download_url = f"{settings.PUBLIC_BASE_URL}/download/exports/{filename}?{urlencode({'token': sign_export(filename)})}"
                 reply_text = f"""
 ✅ Quote exported
 
@@ -557,7 +590,7 @@ Download link:
                 result = calculate_quote(parsed)
                 output_path = export_formal_quote(parsed, result)
                 filename = os.path.basename(output_path)
-                download_url = f"{settings.PUBLIC_BASE_URL}/download/exports/{filename}"
+                download_url = f"{settings.PUBLIC_BASE_URL}/download/exports/{filename}?{urlencode({'token': sign_export(filename)})}"
                 reply_text = f"""
 ✅ Formal quote generated
 
@@ -648,7 +681,13 @@ def handle_image_message(event):
 
 
 @app.get("/quote_text")
-def quote_text(text: str):
+def quote_text(request: Request, text: str, user=Depends(get_current_user_optional)):
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    require_permission(user, "ai")
+    rate_limiter.consume("ai", str(user.id), settings.AI_RATE_LIMIT)
+    if len(text) > 20000:
+        raise HTTPException(status_code=413, detail="Input too large")
     try:
         logger.info(f"Quote text endpoint: {text[:50]}")
         parsed = parse_pcb_text(text)
@@ -663,7 +702,13 @@ def quote_text(text: str):
 
 
 @app.get("/image_test")
-def image_test():
+def image_test(user=Depends(get_current_user_optional)):
+    if not settings.DEBUG:
+        raise HTTPException(status_code=404, detail="Not found")
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    require_permission(user, "ai")
+    rate_limiter.consume("ai", str(user.id), settings.AI_RATE_LIMIT)
     try:
         if not os.path.exists("test.jpg"):
             return JSONResponse(

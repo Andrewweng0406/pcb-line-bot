@@ -69,6 +69,88 @@ def approve(page):
 
 
 @pytest.mark.parametrize("width", [390, 1440])
+@pytest.mark.parametrize("role", ["viewer", "staff", "manager"])
+def test_browser_role_controls(acceptance_server, width, role, tmp_path):
+    from playwright.sync_api import sync_playwright
+    from app.core.auth import hash_password
+
+    base, db = acceptance_server
+    with db.SessionLocal() as session:
+        session.add(db.User(email=f"role-{role}@example.com", password_hash=hash_password("test-password"), role=role))
+        session.commit()
+    db.save_quote("web:1", {"layer": 6, "qty": 10, "area_inch": 10}, {"status": "success", "total": 1000, "unit_price": 100})
+    with db.SessionLocal() as session:
+        qid = session.query(db.QuoteHistory).first().id
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch()
+        page = browser.new_page(viewport={"width": width, "height": 900})
+        errors = []
+        page.on("pageerror", lambda error: errors.append(str(error)))
+        page.goto(base + "/login")
+        page.locator('input[name="email"]').fill(f"role-{role}@example.com")
+        page.locator('input[name="password"]').fill("test-password")
+        page.get_by_role("button", name="Log In", exact=True).click()
+        page.wait_for_url(base + "/")
+        page.goto(base + f"/quotes/{qid}")
+        assert page.locator('select[name="status"]').count() == (1 if role == "manager" else 0)
+        assert page.locator('input[name="final_price"]').count() == (1 if role == "manager" else 0)
+        assert page.locator('a[href$="/export/formal"]').count() == (1 if role == "manager" else 0)
+        assert page.locator(f'a[href="/quotes/{qid}/revise"]').count() == (0 if role == "viewer" else 1)
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        if role == "staff":
+            page.get_by_text("Status and Internal Notes", exact=True).click()
+            form = page.locator(f'form[action="/quotes/{qid}/update"]').first
+            form.locator('textarea[name="notes"]').fill("Staff review note")
+            form.get_by_role("button", name="Save", exact=True).click()
+            with db.SessionLocal() as session:
+                quote = session.get(db.QuoteHistory, qid)
+                assert quote.notes == "Staff review note" and quote.status == "pending"
+        page.screenshot(path=str(tmp_path / f"role-{role}-{width}.png"))
+        assert not errors
+        browser.close()
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_browser_import_preview_preserves_mapping_and_layout(acceptance_server, width, tmp_path):
+    from io import BytesIO
+    from openpyxl import Workbook
+    from playwright.sync_api import sync_playwright
+
+    base, db = acceptance_server
+    workbook = Workbook()
+    workbook.active.append(["Layers", "Qty", "Quote", "Billing Currency"])
+    workbook.active.append([6, 10, 1000, "USD"])
+    workbook.active.append([6, 0, 1000, "USD"])
+    output = BytesIO()
+    workbook.save(output)
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch()
+        page = browser.new_page(viewport={"width": width, "height": 900})
+        page.goto(base + "/login")
+        page.locator('input[name="email"]').fill("staff@example.com")
+        page.locator('input[name="password"]').fill("hunter2")
+        page.get_by_role("button", name="Log In", exact=True).click()
+        page.wait_for_url(base + "/")
+        page.goto(base + "/import/quotes")
+        page.locator("details summary").click()
+        page.locator('input[name="currency_col"]').fill("Billing Currency")
+        page.locator('input[type="file"]').set_input_files({"name": "synthetic.xlsx", "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "buffer": output.getvalue()})
+        page.get_by_role("button", name="Preview / Dry Run", exact=True).click()
+        heading = page.get_by_role("heading", name="Import Preview", exact=True)
+        heading.wait_for()
+        assert page.locator('input[name="currency_col"]').input_value() == "Billing Currency"
+        heading.scroll_into_view_if_needed()
+        page.get_by_role("region", name="Import rows").evaluate("e => e.scrollLeft = 100")
+        box = heading.bounding_box()
+        assert box["x"] >= 0 and box["x"] + box["width"] <= width
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        page.screenshot(path=str(tmp_path / f"import-preview-{width}.png"))
+        with db.SessionLocal() as session:
+            assert session.query(db.QuoteHistory).count() == 0
+        browser.close()
+
+
+@pytest.mark.parametrize("width", [390, 1440])
 def test_browser_rfq_review_export_and_revision(acceptance_server, width, tmp_path):
     from playwright.sync_api import sync_playwright
 

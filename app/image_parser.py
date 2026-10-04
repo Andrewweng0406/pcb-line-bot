@@ -1,6 +1,7 @@
 import os
 import json
 import base64
+import mimetypes
 
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -8,7 +9,7 @@ from openai import OpenAI
 load_dotenv()
 
 client = OpenAI(
-    api_key=os.getenv("OPENAI_API_KEY")
+    api_key=os.getenv("OPENAI_API_KEY"), timeout=30.0, max_retries=1
 )
 
 
@@ -79,7 +80,7 @@ def parse_pcb_image(image_path):
 - "surface_finish": "Hard Gold",
 - "enig_thickness_uinch": 20
 
-注意：這裡的 20μ 通常代表 20 micro-inch，請先當作 20 uinch，不要換算成 787。
+注意：單獨的 μ 或 u 沒有明確單位，不能猜測為 micro-inch。請將厚度留為 null 供人工確認。
 - 如果看到 0.635 um、0.635 μm，這才是微米，才需要乘以 39.37 轉成 uinch。
 
 - 重點：
@@ -153,14 +154,15 @@ JSON 格式：
                     {
                         "type": "image_url",
                         "image_url": {
-                            "url": f"data:image/jpeg;base64,{base64_image}"
+                            "url": f"data:{mimetypes.guess_type(image_path)[0] or 'image/jpeg'};base64,{base64_image}"
                         }
                     }
                 ]
             }
         ],
 
-        temperature=0
+        temperature=0,
+        response_format={"type": "json_object"},
     )
 
     result = response.choices[0].message.content
@@ -172,29 +174,7 @@ JSON 格式：
     parsed = json.loads(result)
 
 
-    # ENIG / Gold thickness regex backup from AI response text
-    import re
-
-    clean_result = (
-        result.lower()
-        .replace(" ", "")
-        .replace("μ", "u")
-    )
-
-    gold_match = re.search(
-        r'(gold|enig|au|化金|鍍金).*?(\d+\.?\d*)\s*(u"|uinch|um|u)',
-        clean_result
-    )
-
-    if gold_match:
-        value = float(gold_match.group(2))
-        unit = gold_match.group(3)
-
-        parsed["enig"] = True
-
-        if unit == "um":
-            value = round(value * 39.37, 2)
-
-        parsed["enig_thickness_uinch"] = value
+    if not isinstance(parsed, dict):
+        raise ValueError("AI extraction must return a JSON object")
 
     return parsed

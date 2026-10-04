@@ -111,3 +111,43 @@ def test_legacy_snapshot_remains_structurally_verifiable(temp_db, tmp_path):
     _, report = load_and_verify(legacy_path)
     assert report["format_version"] == 1
     assert report["integrity"] == "structural-only"
+
+
+def test_restore_snapshot_from_before_nullable_import_key_migration(temp_db, tmp_path):
+    from backup_db import _sha256
+    _seed(temp_db)
+    path = backup(str(tmp_path))
+    with open(path, encoding="utf-8") as handle:
+        snapshot = json.load(handle)
+    for row in snapshot["tables"]["quote_history"]:
+        del row["import_key"]
+    tables = snapshot["tables"]
+    snapshot["manifest"]["table_sha256"] = {name: _sha256(rows) for name, rows in tables.items()}
+    snapshot["manifest"]["content_sha256"] = _sha256(tables)
+    with open(path, "w", encoding="utf-8") as handle:
+        json.dump(snapshot, handle)
+    result = restore_backup(path, f"sqlite:///{tmp_path / 'old-schema-restore.db'}")
+    assert result["status"] == "restored-and-verified"
+
+
+def test_pre_role_snapshot_restores_legacy_users_as_managers(temp_db, tmp_path):
+    from backup_db import _sha256
+    from sqlalchemy import create_engine, text
+    _seed(temp_db)
+    path = backup(str(tmp_path))
+    with open(path, encoding="utf-8") as handle:
+        snapshot = json.load(handle)
+    for row in snapshot["tables"]["users"]:
+        del row["role"]
+        del row["role_history"]
+    tables = snapshot["tables"]
+    snapshot["manifest"]["table_sha256"] = {name: _sha256(rows) for name, rows in tables.items()}
+    snapshot["manifest"]["content_sha256"] = _sha256(tables)
+    with open(path, "w", encoding="utf-8") as handle:
+        json.dump(snapshot, handle)
+    target = f"sqlite:///{tmp_path / 'pre-role-restore.db'}"
+    assert restore_backup(path, target)["status"] == "restored-and-verified"
+    engine = create_engine(target)
+    with engine.connect() as connection:
+        assert connection.execute(text("SELECT role FROM users")).scalar() == "manager"
+    engine.dispose()

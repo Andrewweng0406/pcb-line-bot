@@ -579,15 +579,22 @@ error: can't connect to database
 ## Security
 
 - Environment variables are not committed to Git (see `.gitignore`)
-- Use AWS Secrets Manager to manage production secrets
-- Security groups restrict database and cache access
-- S3 buckets are private and use signed URLs for downloads
+- Web exports require a staff session; LINE download links use filename-bound tokens valid for one hour.
+- Web approval and API approval enforce the same pending-extraction checks. Negotiated prices use `final_price`, not the immutable calculated total.
+- Login, registration and web AI requests are rate limited. Redis-backed shared counters require `REDIS_ENABLED=true` and a reachable `REDIS_URL`; otherwise limits are process-local. Redis failures return 503.
+- Workbook imports skip repeated exact-file/row submissions using a database unique key. Optional reference metadata is imported only when present; missing currency and specifications remain unknown.
+- Image uploads validate bytes, size and pixel count; original-document access is protected by staff/manager permissions.
+- Viewer, Staff, Manager and Admin permissions apply to both web and API actions. New registrations are Staff; legacy accounts retain Manager approval access without automatic Admin grants. See [Access Control](docs/ACCESS_CONTROL.md) for the permission matrix and audited role-assignment CLI.
+- This remains a single-company pilot without tenant isolation or confidential-field filtering. PDF extraction and LINE AI rate limits are not implemented.
+- AWS Secrets Manager, security groups and private buckets are deployment options, not guarantees provided by the application.
+
+See [Guardrail Verification](docs/HARDENING_STATUS.md) for limitations, rate settings and migration precautions. Back up the database before deploying the additive `import_key` migration.
 
 ## Monitoring
 
-- CloudWatch Logs integration
-- Health check endpoint `/health`
-- ECS task-level CPU/memory monitoring
+- `/health` is a liveness endpoint, not a database/storage readiness check.
+- CloudWatch and ECS metrics depend on the optional AWS deployment configuration.
+- Deployed alerting and scheduled backups must be verified separately.
 
 ## Support and Feedback
 

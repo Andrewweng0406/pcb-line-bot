@@ -15,6 +15,10 @@ from app.price_assessment import assess_quote_price
 from app.import_quotes import confirm_import, parse_mapping_json, preview_import
 from app.quote_metrics import calculate_margin, to_non_negative_float, to_non_negative_int
 from app.quote_outcomes import normalize_lost_reason, normalize_outcome
+from app.quote_workflow import validate_status_transition
+from app.upload_validation import read_upload
+from starlette.concurrency import run_in_threadpool
+from app.core.permissions import require_permission, authorize_quote_update
 
 router = APIRouter(prefix="/api", tags=["api"])
 
@@ -142,12 +146,19 @@ def update_quote(quote_id: int, data: dict, user=Depends(require_user)):
             raise HTTPException(status_code=404, detail="Quote not found")
 
         # Update allowed fields
+        authorize_quote_update(user, quote, data)
+        allowed = {"total", "status", "notes", "quote_outcome", "final_price", "actual_cost", "production_lead_time_actual", "lost_reason", "lost_reason_note", "competitor_name", "competitor_price"}
+        if set(data) - allowed:
+            raise HTTPException(status_code=400, detail="Unknown quote update fields")
         if "total" in data:
-            total = to_non_negative_float(data["total"])
-            if total is None:
-                raise HTTPException(status_code=400, detail="Invalid total")
-            quote.total = total
+            raise HTTPException(status_code=400, detail="Calculated total is immutable. Use final_price for negotiated pricing.")
         if "status" in data:
+            try:
+                validate_status_transition(quote, data["status"])
+            except PermissionError as exc:
+                raise HTTPException(status_code=409, detail=str(exc))
+            except (ValueError, TypeError) as exc:
+                raise HTTPException(status_code=400, detail=str(exc))
             quote.status = data["status"]
         if "notes" in data:
             quote.notes = data["notes"]
@@ -197,6 +208,10 @@ def update_quote(quote_id: int, data: dict, user=Depends(require_user)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+    finally:
+        if "session" in locals():
+            session.close()
+
 
 @router.get("/quotes/{quote_id}/similar")
 def get_similar_quotes(quote_id: int, limit: int = Query(10, ge=1, le=200), user=Depends(require_user)):
@@ -239,6 +254,7 @@ def get_historical_summary(quote_id: int, user=Depends(require_user)):
 @router.delete("/quotes/{quote_id}")
 def delete_quote(quote_id: int, user=Depends(require_user)):
     """Delete a quote."""
+    require_permission(user, "delete")
     try:
         session = db.SessionLocal()
         quote = session.query(db.QuoteHistory).filter(db.QuoteHistory.id == quote_id).first()
@@ -255,6 +271,10 @@ def delete_quote(quote_id: int, user=Depends(require_user)):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+    finally:
+        if "session" in locals():
+            session.close()
 
 
 # ============================================================================
@@ -355,9 +375,12 @@ async def preview_quote_import(
     mapping_json: str = Form("{}"),
     user=Depends(require_user),
 ):
+    require_permission(user, "preview_import")
     try:
-        file_bytes = await file.read()
-        return preview_import(file_bytes, parse_mapping_json(mapping_json))
+        file_bytes = await read_upload(file)
+        return await run_in_threadpool(preview_import, file_bytes, parse_mapping_json(mapping_json))
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -368,11 +391,12 @@ async def confirm_quote_import(
     mapping_json: str = Form("{}"),
     user=Depends(require_user),
 ):
+    require_permission(user, "import")
     try:
-        file_bytes = await file.read()
+        file_bytes = await read_upload(file)
         session = db.SessionLocal()
         try:
-            result = confirm_import(
+            result = await run_in_threadpool(confirm_import,
                 session,
                 db,
                 file_bytes,

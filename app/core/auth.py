@@ -33,3 +33,14 @@ def read_session_token(token: str) -> Optional[int]:
     except (BadSignature, SignatureExpired, ValueError):
         return None
     return data.get("user_id")
+
+
+def sign_export(filename: str) -> str:
+    return URLSafeTimedSerializer(settings.SECRET_KEY, salt="export-download").dumps(filename)
+
+
+def valid_export_token(token: str, filename: str) -> bool:
+    try:
+        return URLSafeTimedSerializer(settings.SECRET_KEY, salt="export-download").loads(token, max_age=3600) == filename
+    except (BadSignature, SignatureExpired, ValueError):
+        return False

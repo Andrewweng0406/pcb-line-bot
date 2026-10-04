@@ -2,6 +2,7 @@
 {% block title %}New Quote - {{ tr(request, "app_title") }}{% endblock %}
 {% block content %}
 <h1 class="text-2xl mb-6">{{ tr(request, "new_quote") }}</h1>
+<p id="ai-request-error" class="hidden mb-4 text-sm" role="alert" style="color: #B42318"></p>
 {% if revision_of %}<p class="mb-4 text-sm">{{ tr(request, "revision_of") }}: <a href="/quotes/{{ revision_of }}">#{{ revision_of }}</a></p>{% endif %}
 
 {% if error %}
@@ -25,7 +26,7 @@
         </div>
         <div>
             <label class="block text-sm mb-1 whitespace-nowrap" style="color: var(--ink-muted)">{{ tr(request, "upload_pcb_image") }}</label>
-            <input type="file" id="ai-photo" name="photo" accept="image/*" class="text-sm w-full">
+            <input type="file" id="ai-photo" name="photo" accept="image/jpeg,image/png,image/webp" class="text-sm w-full">
         </div>
         <button
             type="button"
@@ -34,6 +35,9 @@
             hx-encoding="multipart/form-data"
             hx-target="#quote-form-fields"
             hx-swap="innerHTML"
+            hx-disabled-elt="this"
+            hx-on::before-request="document.getElementById('ai-request-error').classList.add('hidden'); this.setAttribute('aria-busy', 'true')"
+            hx-on::after-request="this.setAttribute('aria-busy', 'false')"
             class="px-4 py-2 text-sm font-medium whitespace-nowrap rounded-lg"
             style="background: var(--gold); color: #FFFFFF"
         >
@@ -51,4 +55,35 @@
         {{ tr(request, "save_quote") }}
     </button>
 </form>
+<script>
+let formEdited = false;
+document.getElementById('quote-form-fields').addEventListener('input', function () { formEdited = true; });
+document.getElementById('quote-form-fields').addEventListener('change', function () { formEdited = true; });
+document.body.addEventListener('htmx:beforeRequest', function (event) {
+    if (event.detail.elt.getAttribute('hx-post') !== '/quotes/new/ai-assist') return;
+    if (formEdited && !window.confirm('Replace the current specifications with a new AI extraction?')) {
+        event.preventDefault();
+        event.detail.elt.setAttribute('aria-busy', 'false');
+    }
+});
+document.body.addEventListener('htmx:afterSwap', function (event) {
+    if (event.detail.target.id === 'quote-form-fields') formEdited = false;
+});
+document.body.addEventListener('aiParseFailed', function (event) {
+    const error = document.getElementById('ai-request-error');
+    error.textContent = event.detail.message;
+    error.classList.remove('hidden');
+});
+document.body.addEventListener('htmx:responseError', function (event) {
+    if (event.detail.elt.getAttribute('hx-post') !== '/quotes/new/ai-assist') return;
+    const error = document.getElementById('ai-request-error');
+    let message = 'AI request failed. Your current form has not been changed.';
+    try {
+        const detail = JSON.parse(event.detail.xhr.responseText).detail;
+        if (typeof detail === 'string') message = detail;
+    } catch (_) {}
+    error.textContent = message;
+    error.classList.remove('hidden');
+});
+</script>
 {% endblock %}

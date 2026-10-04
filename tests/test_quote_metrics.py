@@ -30,3 +30,11 @@ def test_non_negative_parsers_reject_bad_values():
     assert to_non_negative_int("3") == 3
     assert to_non_negative_int("-3") is None
     assert to_non_negative_int("bad") is None
+
+
+def test_numeric_parsers_reject_non_finite_booleans_and_fractional_counts():
+    for value in (True, False, float("nan"), float("inf"), "NaN", "Infinity"):
+        assert to_non_negative_float(value) is None
+        assert to_non_negative_int(value) is None
+    assert to_non_negative_int(1.5) is None
+    assert to_non_negative_int(2.0) == 2

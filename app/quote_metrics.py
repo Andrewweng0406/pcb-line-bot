@@ -4,13 +4,15 @@ Margin values are stored as decimal fractions: 0.25 means 25%.
 """
 
 from typing import Optional
+from math import isfinite
 
 
 def to_float(value) -> Optional[float]:
-    if value is None or value == "":
+    if value is None or value == "" or isinstance(value, bool):
         return None
     try:
-        return float(value)
+        number = float(value)
+        return number if isfinite(number) else None
     except (TypeError, ValueError):
         return None
 
@@ -23,11 +25,13 @@ def to_non_negative_float(value) -> Optional[float]:
 
 
 def to_non_negative_int(value) -> Optional[int]:
-    if value is None or value == "":
+    if value is None or value == "" or isinstance(value, bool):
         return None
     try:
         number = int(value)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
+        return None
+    if isinstance(value, float) and value != number:
         return None
     if number < 0:
         return None

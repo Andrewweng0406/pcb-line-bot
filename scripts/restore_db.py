@@ -30,6 +30,8 @@ class RestoreSafetyError(ValueError):
 def _deserialize_row(model, row: dict) -> dict:
     columns = {column.name: column for column in model.__table__.columns}
     values = dict(row)
+    if model.__tablename__ == "users" and "role" not in values:
+        values["role"] = "manager"
     for name, value in values.items():
         if value is not None and isinstance(columns[name].type, DateTime):
             values[name] = datetime.fromisoformat(value)
@@ -63,6 +65,17 @@ def restore_backup(snapshot_path: str, target_url: str, source_url: str | None =
             session.flush()
 
         restored_tables = snapshot_tables(session)
+        # Older snapshots predate nullable additive columns. Verify every
+        # original value and reject unexpected non-null restored data.
+        for name, rows in restored_tables.items():
+            expected_by_id = {row["id"]: row for row in expected_tables[name]}
+            for row in rows:
+                expected = expected_by_id.get(row["id"], {})
+                for key in set(row) - set(expected):
+                    legacy_role = name == "users" and key == "role" and row[key] == "manager"
+                    if row[key] is not None and not legacy_role:
+                        raise RestoreSafetyError("Unexpected non-null column after restore.")
+                    del row[key]
         if _sha256(restored_tables) != verification["content_sha256"]:
             raise RestoreSafetyError("Post-restore checksum does not match the snapshot.")
 

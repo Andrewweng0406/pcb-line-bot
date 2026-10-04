@@ -5,12 +5,12 @@ from openai import OpenAI
 
 load_dotenv()
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"), timeout=30.0, max_retries=1)
 
 
 def parse_pcb_text(text):
     if not os.getenv("OPENAI_API_KEY"):
-        raise Exception("OPENAI_API_KEY 沒有讀到，請確認 .env 檔名正確")
+        raise RuntimeError("OPENAI_API_KEY is not configured")
 
     prompt = """
 你是 PCB 報價助理。
@@ -126,7 +126,8 @@ JSON 格式：
         messages=[
             {"role": "user", "content": prompt}
         ],
-        temperature=0
+        temperature=0,
+        response_format={"type": "json_object"},
     )
 
     result = response.choices[0].message.content.strip()
@@ -135,29 +136,7 @@ JSON 格式：
 
     parsed = json.loads(result)
 
-    # ENIG Thickness regex backup
-    import re
-
-    clean_text = (
-        text.lower()
-        .replace(" ", "")
-        .replace("μ", "u")
-    )
-
-    enig_match = re.search(
-        r'(\d+\.?\d*)\s*(u"|uinch|um)',
-        clean_text
-    )
-
-    if enig_match:
-        value = float(enig_match.group(1))
-        unit = enig_match.group(2)
-
-        parsed["enig"] = True
-
-        if unit == "um":
-            value = round(value * 39.37, 2)
-
-        parsed["enig_thickness_uinch"] = value
+    if not isinstance(parsed, dict):
+        raise ValueError("AI extraction must return a JSON object")
 
     return parsed

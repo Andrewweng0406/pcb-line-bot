@@ -19,10 +19,10 @@
         <div class="flex items-center gap-4">
             <a href="/" class="whitespace-nowrap" style="color: var(--copper-dark); font-weight: 700;">{{ tr(request, "app_title") }}</a>
             <div class="hidden xl:flex items-center gap-4 flex-1 min-w-0">
-                <a href="/quotes/new" class="text-sm link-circuit whitespace-nowrap" style="color: var(--ink-muted)">{{ tr(request, "new_quote") }}</a>
+                {% if can(user, 'edit') %}<a href="/quotes/new" class="text-sm link-circuit whitespace-nowrap" style="color: var(--ink-muted)">{{ tr(request, "new_quote") }}</a>{% endif %}
                 <a href="/quotes" class="text-sm whitespace-nowrap" style="color: var(--ink-muted)">{{ tr(request, "quote_list") }}</a>
                 <a href="/customers" class="text-sm whitespace-nowrap" style="color: var(--ink-muted)">{{ tr(request, "customers") }}</a>
-                <a href="/import/quotes" class="text-sm whitespace-nowrap" style="color: var(--ink-muted)">{{ tr(request, "import_quotes") }}</a>
+                {% if can(user, 'preview_import') %}<a href="/import/quotes" class="text-sm whitespace-nowrap" style="color: var(--ink-muted)">{{ tr(request, "import_quotes") }}</a>{% endif %}
                 <a href="/stats" class="text-sm whitespace-nowrap" style="color: var(--ink-muted)">{{ tr(request, "reports") }}</a>
                 <span class="ml-auto text-sm font-data truncate max-w-48" title="{{ user.email }}" style="color: var(--ink-muted)">{{ user.email }}</span>
                 <a href="/language/{{ other_lang(request) }}" class="text-sm whitespace-nowrap" style="color: var(--ink-muted)">
@@ -41,10 +41,10 @@
             </button>
         </div>
         <div id="mobile-navigation" x-show="open" x-cloak class="xl:hidden flex flex-col gap-3 mt-3 pb-1">
-            <a href="/quotes/new" class="text-sm" style="color: var(--ink-muted)">{{ tr(request, "new_quote") }}</a>
+            {% if can(user, 'edit') %}<a href="/quotes/new" class="text-sm" style="color: var(--ink-muted)">{{ tr(request, "new_quote") }}</a>{% endif %}
             <a href="/quotes" class="text-sm" style="color: var(--ink-muted)">{{ tr(request, "quote_list") }}</a>
             <a href="/customers" class="text-sm" style="color: var(--ink-muted)">{{ tr(request, "customers") }}</a>
-            <a href="/import/quotes" class="text-sm" style="color: var(--ink-muted)">{{ tr(request, "import_quotes") }}</a>
+            {% if can(user, 'preview_import') %}<a href="/import/quotes" class="text-sm" style="color: var(--ink-muted)">{{ tr(request, "import_quotes") }}</a>{% endif %}
             <a href="/stats" class="text-sm" style="color: var(--ink-muted)">{{ tr(request, "reports") }}</a>
             <span class="text-sm font-data pt-3" style="color: var(--ink-muted); border-top: 1px solid var(--border)">{{ user.email }}</span>
             <a href="/language/{{ other_lang(request) }}" class="text-sm" style="color: var(--ink-muted)">

@@ -3,7 +3,7 @@
 {% block content %}
 <h1 class="text-2xl mb-6">{{ tr(request, "customers") }}</h1>
 
-<form method="post" action="/customers" class="card p-4 mb-6 flex flex-wrap gap-3 items-end">
+{% if can(user, 'edit') %}<form method="post" action="/customers" class="card p-4 mb-6 flex flex-wrap gap-3 items-end">
     <div>
         <label class="block text-xs mb-1" style="color: var(--ink-muted)">{{ tr(request, "company_name") }}</label>
         <input type="text" name="company_name" required class="border rounded-lg px-3 py-1.5 text-sm" style="border-color: var(--border)">
@@ -24,6 +24,7 @@
         Add Customer
     </button>
 </form>
+{% endif %}
 
 <div class="card overflow-x-auto">
     <table class="w-full text-sm whitespace-nowrap">

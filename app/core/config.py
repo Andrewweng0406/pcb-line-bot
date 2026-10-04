@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     # Redis
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379")
     REDIS_ENABLED: bool = os.getenv("REDIS_ENABLED", "False").lower() == "true"
+    LOGIN_RATE_LIMIT: int = 10
+    REGISTER_RATE_LIMIT: int = 5
+    AI_RATE_LIMIT: int = 10
 
     # AWS S3
     AWS_ACCESS_KEY_ID: str = os.getenv("AWS_ACCESS_KEY_ID", "")

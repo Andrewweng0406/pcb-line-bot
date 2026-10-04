@@ -1,6 +1,22 @@
 from fastapi.testclient import TestClient
 
 from app.core.auth import hash_password
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def isolated_uploads(monkeypatch, tmp_path):
+    from app.core.config import settings
+    monkeypatch.setattr(settings, "UPLOAD_DIR", str(tmp_path))
+
+
+def _image_bytes():
+    import io
+    from PIL import Image
+    image = io.BytesIO()
+    Image.new("RGB", (20, 20), "white").save(image, format="JPEG")
+    image.seek(0)
+    return image
 
 
 def _logged_in_client(temp_db):
@@ -64,6 +80,8 @@ def test_ai_assist_handles_parser_failure_gracefully(temp_db, monkeypatch):
 
     assert response.status_code == 200
     assert "AI parsing failed" in response.text
+    assert response.headers["HX-Reswap"] == "none"
+    assert "aiParseFailed" in response.headers["HX-Trigger"]
 
 
 def test_ai_assist_marks_defaults_and_inferred_fields_for_review(temp_db, monkeypatch):
@@ -100,7 +118,7 @@ def test_ai_assist_fills_form_from_uploaded_photo(temp_db, monkeypatch):
     )
 
     client = _logged_in_client(temp_db)
-    fake_image = io.BytesIO(b"fake-jpeg-bytes")
+    fake_image = _image_bytes()
     response = client.post(
         "/quotes/new/ai-assist",
         data={"spec_text": ""},
@@ -150,7 +168,7 @@ def test_ai_assist_fills_extended_pcb_image_fields(temp_db, monkeypatch):
     )
 
     client = _logged_in_client(temp_db)
-    fake_image = io.BytesIO(b"fake-jpeg-bytes")
+    fake_image = _image_bytes()
     response = client.post(
         "/quotes/new/ai-assist",
         data={"spec_text": ""},
@@ -192,7 +210,7 @@ def test_ai_assist_marks_hard_gold_from_photo(temp_db, monkeypatch):
     )
 
     client = _logged_in_client(temp_db)
-    fake_image = io.BytesIO(b"fake-jpeg-bytes")
+    fake_image = _image_bytes()
     response = client.post(
         "/quotes/new/ai-assist",
         data={"spec_text": ""},
@@ -218,7 +236,7 @@ def test_ai_assist_prefers_photo_over_text_when_both_given(temp_db, monkeypatch)
     )
 
     client = _logged_in_client(temp_db)
-    fake_image = io.BytesIO(b"fake-jpeg-bytes")
+    fake_image = _image_bytes()
     response = client.post(
         "/quotes/new/ai-assist",
         data={"spec_text": "6層 FR4"},

@@ -115,6 +115,27 @@ input[type="checkbox"] {
     background: rgba(166, 131, 46, 0.12);
 }
 
+.state-label {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 3px 9px;
+    border: 1px solid;
+    border-radius: 4px;
+    font-family: "Noto Sans TC", system-ui, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 20px;
+    white-space: normal;
+    vertical-align: middle;
+}
+.state-success { color: #166534; background: #DCFCE7; border-color: #86EFAC; }
+.state-danger { color: #B42318; background: #FEF3F2; border-color: #FDA29B; }
+.state-info { color: #1D4ED8; background: #EFF6FF; border-color: #93C5FD; }
+.state-warning { color: #854D0E; background: #FEF3C7; border-color: #FCD34D; }
+.state-neutral { color: #475569; background: #F1F5F9; border-color: #CBD5E1; }
+.evidence-value { color: #166534; }
+
 /* Signature element: a circuit-trace divider (right-angle steps + via
    dots) in place of a plain <hr>/border between major sections. */
 .trace-divider {

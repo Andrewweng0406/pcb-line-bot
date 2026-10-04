@@ -1,5 +1,7 @@
 import uuid
 import math
+import json
+import re
 from typing import Optional
 
 from fastapi import APIRouter, Cookie, Depends, File, Form, HTTPException, Request, UploadFile
@@ -40,7 +42,7 @@ from app.formal_quote_export import export_formal_quote
 from app.historical_intelligence import find_similar_quotes, historical_pricing_summary
 from app.price_assessment import assess_quote_price
 from app.image_parser import parse_pcb_image
-from app.import_quotes import confirm_import, preview_import
+from app.import_quotes import confirm_import, preview_import, OPTIONAL_MAPPING, DEFAULT_MAPPING
 from app.quote_metrics import (
     calculate_margin,
     to_non_negative_float,
@@ -52,6 +54,11 @@ from app.quote_outcomes import (
     normalize_lost_reason,
     normalize_outcome,
 )
+from app.quote_workflow import validate_status_transition
+from app.upload_validation import read_image_upload, read_upload
+from starlette.concurrency import run_in_threadpool
+from app.core.rate_limit import rate_limiter, client_identity
+from app.core.permissions import can, require_permission, authorize_quote_update
 from app.rfq_completeness import evaluate_rfq_completeness
 from app.quote_engine import calculate_quote
 
@@ -593,6 +600,9 @@ def localized_outcome_labels(request: Request):
 
 templates = Jinja2Templates(directory="templates")
 templates.env.globals["tr"] = tr
+templates.env.globals["can"] = can
+templates.env.globals["import_optional_mapping"] = OPTIONAL_MAPPING
+templates.env.globals["import_default_mapping"] = DEFAULT_MAPPING
 templates.env.globals["get_lang"] = get_lang
 templates.env.globals["other_lang"] = lambda request: "zh" if get_lang(request) == "en" else "en"
 templates.env.globals["lang_name"] = lambda lang: "中文" if lang == "zh" else "EN"
@@ -617,6 +627,8 @@ def get_current_user_optional(
     query_db = db.SessionLocal()
     user = query_db.query(db.User).filter(db.User.id == user_id).first()
     query_db.close()
+    if user is not None and not can(user, "read"):
+        return None
     return user
 
 
@@ -627,6 +639,10 @@ def login_page(request: Request):
 
 @router.post("/login")
 def login_submit(request: Request, email: str = Form(...), password: str = Form(...)):
+    try:
+        rate_limiter.consume("login", client_identity(request), settings.LOGIN_RATE_LIMIT)
+    except HTTPException as exc:
+        return templates.TemplateResponse("login.html", {"request": request, "error": exc.detail}, status_code=exc.status_code, headers=exc.headers)
     query_db = db.SessionLocal()
     user = query_db.query(db.User).filter(db.User.email == email).first()
     query_db.close()
@@ -641,7 +657,7 @@ def login_submit(request: Request, email: str = Form(...), password: str = Form(
     token = create_session_token(user.id)
     response = RedirectResponse(url="/", status_code=303)
     response.set_cookie(
-        SESSION_COOKIE_NAME, token, httponly=True, max_age=60 * 60 * 24 * 7
+        SESSION_COOKIE_NAME, token, httponly=True, secure=request.url.scheme == "https", samesite="lax", max_age=60 * 60 * 24 * 7
     )
     return response
 
@@ -660,6 +676,10 @@ def register_submit(
     password: str = Form(...),
     invite_code: str = Form(...),
 ):
+    try:
+        rate_limiter.consume("register", client_identity(request), settings.REGISTER_RATE_LIMIT)
+    except HTTPException as exc:
+        return templates.TemplateResponse("register.html", {"request": request, "error": exc.detail, "email": email}, status_code=exc.status_code, headers=exc.headers)
     if invite_code != settings.INVITE_CODE:
         return templates.TemplateResponse(
             "register.html",
@@ -677,7 +697,7 @@ def register_submit(
             status_code=400,
         )
 
-    user = db.User(email=email, password_hash=hash_password(password))
+    user = db.User(email=email, password_hash=hash_password(password), role="staff")
     query_db.add(user)
     query_db.commit()
     query_db.refresh(user)
@@ -686,7 +706,7 @@ def register_submit(
     token = create_session_token(user.id)
     response = RedirectResponse(url="/", status_code=303)
     response.set_cookie(
-        SESSION_COOKIE_NAME, token, httponly=True, max_age=60 * 60 * 24 * 7
+        SESSION_COOKIE_NAME, token, httponly=True, secure=request.url.scheme == "https", samesite="lax", max_age=60 * 60 * 24 * 7
     )
     return response
 
@@ -766,6 +786,7 @@ def dashboard(request: Request, user=Depends(get_current_user_optional)):
 def new_quote_page(request: Request, user=Depends(get_current_user_optional)):
     if user is None:
         return RedirectResponse(url="/login", status_code=303)
+    require_permission(user, "edit")
     return templates.TemplateResponse(
         "quote_new.html", {"request": request, "user": user, "error": None, "form": {}}
     )
@@ -846,6 +867,9 @@ def create_quote(
     if user is None:
         return RedirectResponse(url="/login", status_code=303)
 
+    require_permission(user, "edit")
+    if back_drill_fee.strip():
+        require_permission(user, "financial")
     if not math.isfinite(issue_ratio) or issue_ratio <= 0:
         raise HTTPException(status_code=400, detail="Issue ratio must be positive and finite")
 
@@ -993,10 +1017,16 @@ async def ai_assist(
 ):
     if user is None:
         return RedirectResponse(url="/login", status_code=303)
+    require_permission(user, "ai")
+
+    await run_in_threadpool(rate_limiter.consume, "ai", str(user.id), settings.AI_RATE_LIMIT)
 
     parsed = {}
     extraction_review = None
     ai_error = None
+    source_image = None
+    if len(spec_text) > 20000:
+        raise HTTPException(status_code=413, detail="RFQ text exceeds 20,000 characters.")
     try:
         input_type = "text"
         if photo is not None and photo.filename:
@@ -1005,15 +1035,14 @@ async def ai_assist(
             import os as _os
 
             _os.makedirs(upload_dir, exist_ok=True)
-            image_path = _os.path.join(upload_dir, f"web_{uuid.uuid4().hex}.jpg")
+            image_bytes, extension = await read_image_upload(photo)
+            source_image = f"web_{user.id}_{uuid.uuid4().hex}{extension}"
+            image_path = _os.path.join(upload_dir, source_image)
             with open(image_path, "wb") as f:
-                f.write(await photo.read())
-            try:
-                parsed = parse_pcb_image(image_path)
-            finally:
-                file_storage.cleanup(image_path)
+                f.write(image_bytes)
+            parsed = await run_in_threadpool(parse_pcb_image, image_path)
         elif spec_text.strip():
-            parsed = parse_pcb_text(spec_text)
+            parsed = await run_in_threadpool(parse_pcb_text, spec_text)
 
         # ai_parser/image_parser emit "thickness" (see app/ai_parser.py's
         # JSON schema) but quote_engine.calculate_quote() and this form both
@@ -1041,6 +1070,10 @@ async def ai_assist(
             raw_input=spec_text if input_type == "text" else "",
             input_type=input_type,
         )
+        if source_image:
+            extraction_review["source_image"] = source_image
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"AI assist failed: {e}")
         ai_error = "AI parsing failed. Please enter the specifications manually."
@@ -1052,11 +1085,32 @@ async def ai_assist(
             "request": request,
             "form": parsed,
             "ai_error": ai_error,
+            "user": user,
             "extraction_review": extraction_review,
             "extraction_review_token": sign_review(extraction_review, user.id) if extraction_review else "",
             "clarification_draft": clarification_draft(extraction_review),
         },
+        headers={"HX-Reswap": "none", "HX-Trigger": json.dumps({"aiParseFailed": {"message": ai_error}})} if ai_error else None,
     )
+
+
+@router.get("/rfq-images/{filename}")
+def rfq_image(filename: str, user=Depends(get_current_user_optional)):
+    from pathlib import Path
+    from fastapi.responses import FileResponse
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    require_permission(user, "review")
+    root = Path(settings.UPLOAD_DIR).resolve()
+    path = (root / filename).resolve()
+    if path.parent != root or not re.fullmatch(r"web_\d+_[0-9a-f]{32}\.(?:jpg|png|webp)", filename) or not path.is_file():
+        raise HTTPException(status_code=404, detail="Image not found")
+    if not filename.startswith(f"web_{user.id}_") and not can(user, "approve"):
+        with db.SessionLocal() as session:
+            linked = session.query(db.QuoteHistory.id).filter(db.QuoteHistory.spec_json["_extraction_review"]["source_image"].as_string() == filename).first()
+        if linked is None:
+            raise HTTPException(status_code=404, detail="Image not found")
+    return FileResponse(path, headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
 
 
 @router.get("/quotes", response_class=HTMLResponse)
@@ -1182,12 +1236,20 @@ def update_quote(
         query_db.close()
         raise HTTPException(status_code=404, detail="Quote not found")
 
-    if status not in {"pending", "approved", "ordered"}:
+    try:
+        updates = {field: value for field, value in {"final_price": final_price, "actual_cost": actual_cost, "competitor_price": competitor_price}.items() if value is not None}
+        authorize_quote_update(user, quote, {"status": status, **updates})
+    except HTTPException:
         query_db.close()
-        raise HTTPException(status_code=400, detail="Invalid quote status")
-    if status != quote.status and status in {"approved", "ordered"} and release_pending(quote.spec_json):
+        raise
+    try:
+        validate_status_transition(quote, status)
+    except ValueError as exc:
         query_db.close()
-        raise HTTPException(status_code=409, detail="Confirm the pending extraction fields before approving this quote.")
+        raise HTTPException(status_code=400, detail=str(exc))
+    except PermissionError as exc:
+        query_db.close()
+        raise HTTPException(status_code=409, detail=str(exc))
     quote.status = status
     quote.notes = notes
     if quote_outcome is not None:
@@ -1235,6 +1297,7 @@ def update_quote(
 def quote_export_excel(quote_id: int, user=Depends(get_current_user_optional)):
     if user is None:
         return RedirectResponse(url="/login", status_code=303)
+    require_permission(user, "export_internal")
 
     from sqlalchemy.orm import joinedload
 
@@ -1258,6 +1321,7 @@ def quote_export_excel(quote_id: int, user=Depends(get_current_user_optional)):
 def quote_export_formal(quote_id: int, user=Depends(get_current_user_optional)):
     if user is None:
         return RedirectResponse(url="/login", status_code=303)
+    require_permission(user, "export_formal")
 
     from sqlalchemy.orm import joinedload
 
@@ -1301,6 +1365,7 @@ def review_quote(
 ):
     if user is None:
         return RedirectResponse(url="/login", status_code=303)
+    require_permission(user, "review")
     with db.SessionLocal() as session:
         quote = session.query(db.QuoteHistory).filter(db.QuoteHistory.id == quote_id).with_for_update().first()
         if quote is None:
@@ -1323,6 +1388,7 @@ def review_quote(
 def revise_quote(request: Request, quote_id: int, user=Depends(get_current_user_optional)):
     if user is None:
         return RedirectResponse(url="/login", status_code=303)
+    require_permission(user, "edit")
     with db.SessionLocal() as session:
         quote = session.get(db.QuoteHistory, quote_id)
         if quote is None or not quote.spec_json:
@@ -1374,6 +1440,7 @@ def customers_create(
 ):
     if user is None:
         return RedirectResponse(url="/login", status_code=303)
+    require_permission(user, "edit")
 
     query_db = db.SessionLocal()
     customer = db.Customer(
@@ -1415,6 +1482,7 @@ def _mapping_from_form(
 def import_quotes_page(request: Request, user=Depends(get_current_user_optional)):
     if user is None:
         return RedirectResponse(url="/login", status_code=303)
+    require_permission(user, "preview_import")
     return templates.TemplateResponse(
         "import_quotes.html",
         {"request": request, "user": user, "result": None, "error": None},
@@ -1438,9 +1506,12 @@ async def import_quotes_submit(
 ):
     if user is None:
         return RedirectResponse(url="/login", status_code=303)
+    require_permission(user, "import" if action == "confirm" else "preview_import")
+    if action not in {"preview", "confirm"}:
+        raise HTTPException(status_code=400, detail="Invalid import action")
 
     try:
-        file_bytes = await file.read()
+        file_bytes = await read_upload(file)
         mapping = _mapping_from_form(
             customer_col,
             layer_col,
@@ -1451,10 +1522,12 @@ async def import_quotes_submit(
             quote_date_col,
             outcome_col,
         )
+        form = await request.form()
+        mapping.update({field: form.get(field + "_col", column) for field, column in OPTIONAL_MAPPING.items()})
         if action == "confirm":
             query_db = db.SessionLocal()
             try:
-                result = confirm_import(query_db, db, file_bytes, mapping, user_id=user.id)
+                result = await run_in_threadpool(confirm_import, query_db, db, file_bytes, mapping, user_id=user.id)
             finally:
                 query_db.close()
             if result["status"] == "error":
@@ -1464,7 +1537,9 @@ async def import_quotes_submit(
                     status_code=400,
                 )
         else:
-            result = preview_import(file_bytes, mapping)
+            result = await run_in_threadpool(preview_import, file_bytes, mapping)
+    except HTTPException:
+        raise
     except Exception as e:
         return templates.TemplateResponse(
             "import_quotes.html",
