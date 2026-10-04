@@ -2,6 +2,7 @@ import os
 import json
 from dotenv import load_dotenv
 from openai import OpenAI
+from app.extraction_review import ambiguous_gold_unit
 
 load_dotenv()
 
@@ -144,5 +145,9 @@ Final unit rules (apply to both ENIG and Hard Gold):
 
     if not isinstance(parsed, dict):
         raise ValueError("AI extraction must return a JSON object")
+
+    if ambiguous_gold_unit(text):
+        parsed["enig_thickness_uinch"] = None
+        parsed["enig_thickness_um"] = None
 
     return parsed

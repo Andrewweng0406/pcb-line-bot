@@ -105,6 +105,14 @@ def _has_value(value: Any) -> bool:
     return value is not None and value != ""
 
 
+def ambiguous_gold_unit(text: str) -> bool:
+    pattern = r'(?:\bgold\b|\benig\b|\bau\b|\u934d\u91d1|\u5316\u91d1|\u91d1\u539a)(?P<context>[^\d;\n]{0,32}?)(?:\d+(?:\.\d+)?)\s*(?:u|\u03bc|\u00b5)(?![\w"])'
+    return any(
+        not re.search(r"copper|\u9285", match.group("context"), re.IGNORECASE)
+        for match in re.finditer(pattern, text or "", re.IGNORECASE)
+    )
+
+
 VALUE_PATTERNS = {
     "layer": r"(?<!\w)(?P<value>\d+)\s*(?:layers?\b|l\b|層)",
     "qty": r"(?:\b(?:qty|quantity)\s*[:=]?\s*|數量\s*[:：]?\s*)(?P<value>\d+)",
@@ -114,6 +122,8 @@ VALUE_PATTERNS = {
 
 
 def _evidence(field: str, value: Any, text: str) -> tuple[list[str], bool, bool]:
+    if field == "enig_thickness_uinch" and ambiguous_gold_unit(text):
+        return [], False, True
     patterns = [VALUE_PATTERNS[field]] if field in VALUE_PATTERNS else FIELD_PATTERNS.get(field, [])
     if field == "qty":
         patterns.append(r"(?P<value>\d+)\s*(?:pcs?\b|pieces?\b|片)")
@@ -232,6 +242,12 @@ def build_extraction_review(parsed: dict, raw_input: str = "", input_type: str =
                 )
             )
         fields[-1]["evidence"] = evidence
+
+    if input_type == "text" and ambiguous_gold_unit(text) and not _has_value(parsed.get("enig_thickness_uinch")):
+        fields.append(_review_item(
+            "enig_thickness_uinch", None, "missing", "missing",
+            "Gold thickness unit is ambiguous; supply an explicit unit before release.",
+        ))
 
     if not (_has_value(parsed.get("area_inch")) or all(_has_value(parsed.get(field)) for field in ("length_mm", "width_mm"))):
         fields.append(

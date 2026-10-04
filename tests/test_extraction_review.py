@@ -1,6 +1,7 @@
 import pytest
 
 from app.extraction_review import (
+    ambiguous_gold_unit,
     build_extraction_review, clarification_draft, confirm_review, pending_fields,
     read_review, reconcile_review, sign_review,
 )
@@ -52,6 +53,37 @@ def test_ambiguous_gold_units_never_receive_high_confidence(text):
 def test_explicit_microinch_evidence_still_supported(unit):
     item = _field(build_extraction_review({"enig_thickness_uinch": 5}, f"Gold thickness 5 {unit}"), "enig_thickness_uinch")
     assert item["confidence"] == "high"
+
+
+@pytest.mark.parametrize("text,ambiguous", [
+    ("ENIG gold thickness 5u", True), ("Gold 20\u03bc", True),
+    ("Gold 20\u00b5", True), ("Gold 0.127 um", False),
+    ('Gold 5u"', False), ("Gold 5 uinch", False),
+    ("ENIG copper thickness 35u", False),
+    ("Gold 5 uinch; copper thickness 35u", False),
+])
+def test_gold_unit_guard_is_context_bound(text, ambiguous):
+    assert ambiguous_gold_unit(text) is ambiguous
+
+
+def test_ambiguous_gold_left_blank_still_requires_review():
+    review = build_extraction_review({"enig": True, "enig_thickness_uinch": None}, "Gold thickness 5u")
+    item = _field(review, "enig_thickness_uinch")
+    assert item["source"] == "missing" and item["needs_review"]
+    with pytest.raises(ValueError, match="supply a value"):
+        confirm_review(review, ["enig_thickness_uinch"], 1, "staff@example.com", "")
+
+
+def test_parser_suppresses_model_guesses_for_ambiguous_gold(monkeypatch):
+    from types import SimpleNamespace
+    import app.ai_parser as parser
+    monkeypatch.setenv("OPENAI_API_KEY", "test-only")
+    content = '{"enig":true,"enig_thickness_uinch":5,"enig_thickness_um":0.127}'
+    completion = SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=content))])
+    monkeypatch.setattr(parser.client.chat.completions, "create", lambda **kwargs: completion)
+    parsed = parser.parse_pcb_text("ENIG gold thickness 5u")
+    assert parsed["enig_thickness_uinch"] is None and parsed["enig_thickness_um"] is None
+    assert parser.parse_pcb_text("ENIG gold thickness 5 uinch")["enig_thickness_uinch"] == 5
 
 
 def test_signed_review_rejects_tampering_and_wrong_owner():
