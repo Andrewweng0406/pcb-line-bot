@@ -33,6 +33,38 @@ def test_quote_detail_shows_spec_and_breakdown(temp_db):
     assert "Pending Review" in response.text
 
 
+def test_quote_detail_benchmark_uses_independent_recorded_evidence(temp_db):
+    spec = {
+        "layer": 6, "material": "FR4", "qty": 10,
+        "length_mm": 100, "width_mm": 100, "thickness_mm": 1.6,
+        "copper_weight": "1oz", "delivery_days": 7, "enig_thickness_uinch": 5,
+        "enig": True, "vip": False, "impedance": False, "back_drill": False, "bvh": False,
+    }
+    for _ in range(6):
+        temp_db.save_quote("web:1", spec, {"status": "success", "total": 1000, "unit_price": 100})
+    with temp_db.SessionLocal() as session:
+        quotes = session.query(temp_db.QuoteHistory).order_by(temp_db.QuoteHistory.id).all()
+        for quote in quotes:
+            quote.currency = "USD"
+            quote.pricing_version = "v1"
+            quote.quote_outcome = "won"
+            quote.final_price = 900
+            quote.actual_cost = 700
+        quote_id = quotes[0].id
+        session.commit()
+    client = _logged_in_client(temp_db)
+    response = client.get(f"/quotes/{quote_id}")
+    assert response.status_code == 200
+    assert "USD 100.00" in response.text
+    assert "USD 90.00" in response.text
+    assert "USD 70.00" in response.text
+    assert "5 / 5 valid samples" in response.text
+    summary = client.get(f"/api/quotes/{quote_id}/historical-summary").json()
+    assert all(metric["available"] for metric in summary["evidence"])
+    assert client.get(f"/api/quotes/{quote_id}/similar?limit=-1").status_code == 422
+    assert client.get(f"/api/quotes/{quote_id}/similar?limit=201").status_code == 422
+
+
 def test_quote_detail_shows_ai_extraction_review(temp_db):
     review = {
         "summary": {"high": 2, "medium": 1, "low": 1, "missing": 0, "needs_review": 1},
@@ -94,6 +126,10 @@ def test_quote_detail_shows_historical_intelligence(temp_db):
     response = client.get(f"/quotes/{quote_id}")
 
     assert response.status_code == 200
+    assert "Specification comparison" in response.text
+    assert "+2.0%" in response.text
+    assert "%+.1f%%" not in response.text
+    assert "Insufficient evidence" in response.text
     assert "Historical Intelligence" in response.text
     assert "Similar Quotes" in response.text
     assert "Similar RFQs" in response.text

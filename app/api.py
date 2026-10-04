@@ -196,7 +196,7 @@ def update_quote(quote_id: int, data: dict, user=Depends(require_user)):
 
 
 @router.get("/quotes/{quote_id}/similar")
-def get_similar_quotes(quote_id: int, limit: int = Query(10), user=Depends(require_user)):
+def get_similar_quotes(quote_id: int, limit: int = Query(10, ge=1, le=200), user=Depends(require_user)):
     """Return explainable structured-similarity matches for one quote."""
     try:
         session = db.SessionLocal()
@@ -222,7 +222,7 @@ def get_historical_summary(quote_id: int, user=Depends(require_user)):
         if not quote:
             session.close()
             raise HTTPException(status_code=404, detail="Quote not found")
-        similar = find_similar_quotes(session, db.QuoteHistory, quote, limit=50)
+        similar = find_similar_quotes(session, db.QuoteHistory, quote, limit=200)
         session.close()
         return historical_pricing_summary(similar)
     except HTTPException:

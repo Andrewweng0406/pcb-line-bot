@@ -136,8 +136,12 @@ def test_api_returns_similar_quotes_and_historical_summary(temp_db):
 
     summary = client.get(f"/api/quotes/{quote_id}/historical-summary")
     assert summary.status_code == 200
-    assert summary.json()["comparable_count"] == 1
-    assert summary.json()["average_quoted_unit_price"] == 110
+    assert summary.json()["candidate_count"] == 1
+    assert summary.json()["comparable_count"] == 0
+    assert summary.json()["limited_data"] is True
+    assert "average_quoted_unit_price" not in summary.json()
+    assert "missing_currency" in similar.json()[0]["exclusions"]
+    assert len(similar.json()[0]["differences"]) == 16
 
 
 def test_api_returns_business_analytics(temp_db):

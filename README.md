@@ -196,6 +196,34 @@ checks cover supported patterns within one RFQ; cross-document comparison and
 image conflict detection are not implemented. Signed extraction payloads are
 bound to the current user and expire after 24 hours.
 
+### Historical comparison and evidence
+
+Quote detail and authenticated history APIs separate similarity discovery from
+benchmark eligibility. Specification comparisons show current and historical
+values, signed percentage differences, and unknown fields. Similarity is a
+deterministic score out of 100, not AI confidence or a price recommendation.
+
+The search inspects the latest 200 candidates within two layers of the current
+RFQ, with material aliases normalized before comparison. Eligible references
+require recorded, matching currency and pricing version; matching layer,
+material, board thickness, copper, surface finish, gold thickness and special processes;
+known positive area, quantity and delivery time within a factor of two; and
+similarity of at least 75. Pending extraction reviews are excluded. Unknown
+special-process flags are not interpreted as false. Missing or broken revision
+lineage is excluded; only the newest candidate from a revision family counts,
+and the current RFQ's own family never counts as independent history.
+
+Quoted unit price, accepted unit price and actual unit cost have separate sample
+counts. Accepted prices and recorded actual costs require a won outcome; values
+come from recorded totals divided by quantity, never estimated costs. Each
+metric needs five valid independent references before its median is available.
+Nonfinite or nonpositive prices are excluded; zero recorded cost is allowed.
+Insufficient evidence remains visible instead of generating a suggested price.
+The page displays eight candidates, but summaries use the full bounded search.
+These conservative rules are not a comprehensive manufacturing-cost model;
+fine trace geometry, tooling, panel utilization and market changes still need
+professional judgment. No anomaly detection or automatic repricing is applied.
+
 ### Demo data
 
 Seed interview-ready customers and RFQs:

@@ -291,21 +291,25 @@
             <p class="font-data">{{ tr(request, "area") }}: {{ quote.area_in2 or "-" }} in²</p>
             <p class="font-data">{{ tr(request, "issue_ratio") }}: {{ quote.issue_ratio }}</p>
         </div>
-        <div>
-            <h2 class="font-medium mb-3">{{ tr(request, "historical_intelligence") }}</h2>
-            <p class="font-data text-lg" style="color: var(--copper-dark)">
-                {{ historical_summary.comparable_count }} {{ tr(request, "similar_rfqs") }}
-            </p>
-            {% if historical_summary.limited_data %}
-            <p class="text-sm mt-2" style="color: var(--ink-muted)">{{ tr(request, "limited_historical_data") }}</p>
-            {% endif %}
-            <div class="mt-3 text-sm space-y-1">
-                <p class="font-data">{{ tr(request, "average_quote_unit") }}: {{ "NT$ {:,.2f}".format(historical_summary.average_quoted_unit_price) if historical_summary.average_quoted_unit_price is defined else "-" }}</p>
-                <p class="font-data">{{ tr(request, "median_quote_unit") }}: {{ "NT$ {:,.2f}".format(historical_summary.median_quoted_unit_price) if historical_summary.median_quoted_unit_price is defined else "-" }}</p>
-                <p class="font-data">{{ tr(request, "won_lost") }}: {{ historical_summary.won_count }} / {{ historical_summary.lost_count }}</p>
-                <p class="font-data">{{ tr(request, "historical_win_rate") }}: {{ "{:.1f}%".format(historical_summary.win_rate * 100) if historical_summary.win_rate is not none else "-" }}</p>
-            </div>
+    </div>
+</details>
+
+<section class="mt-8 pt-6" style="border-top: 1px solid var(--border)">
+    <h2 class="text-lg font-medium">{{ tr(request, "historical_intelligence") }}</h2>
+    <p class="text-sm mt-2" style="color: var(--ink-muted)">
+        {{ historical_summary.candidate_count }} {{ tr(request, "similar_rfqs") }} ·
+        {{ historical_summary.comparable_count }} {{ tr(request, "evidence_eligible") }} ·
+        {{ historical_summary.excluded_count }} {{ tr(request, "evidence_excluded") }}
+    </p>
+    <p class="text-xs mt-1" style="color: var(--ink-muted)">{{ tr(request, "evidence_window") }}</p>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+        {% for metric in historical_summary.evidence %}
+        <div class="py-3" style="border-top: 1px solid var(--border)">
+            <h3 class="font-medium text-sm">{{ tr(request, 'evidence_' ~ metric.kind) }}</h3>
+            <p class="font-data text-lg mt-2">{% if metric.available %}{{ historical_summary.currency }} {{ "{:,.2f}".format(metric.median) }}{% else %}{{ tr(request, 'evidence_insufficient') }}{% endif %}</p>
+            <p class="text-xs mt-1" style="color: var(--ink-muted)">{{ metric.count }} / {{ historical_summary.minimum_samples }} {{ tr(request, 'evidence_samples') }}{% if metric.available %} · {{ tr(request, 'evidence_median') }}{% endif %}</p>
         </div>
+        {% endfor %}
     </div>
 
     <div class="mt-6 overflow-x-auto">
@@ -314,20 +318,39 @@
         <table class="w-full text-sm whitespace-nowrap">
             <thead style="color: var(--ink-muted)" class="text-left">
                 <tr>
-                    <th class="py-2 pr-3">Quote</th>
+                    <th class="py-2 pr-3">{{ tr(request, "quote_no") }}</th>
                     <th class="py-2 pr-3">{{ tr(request, "similarity") }}</th>
                     <th class="py-2 pr-3">{{ tr(request, "unit_price") }}</th>
                     <th class="py-2 pr-3">{{ tr(request, "outcome") }}</th>
+                    <th class="py-2 pr-3">{{ tr(request, "comparison_details") }}</th>
                 </tr>
             </thead>
             <tbody>
                 {% for item in similar_quotes %}
                 <tr style="border-top: 1px solid var(--border)">
                     <td class="py-2 pr-3 font-data"><a href="/quotes/{{ item.id }}" class="link-circuit">{{ item.quote_no }}</a></td>
-                    <td class="py-2 pr-3 font-data">{{ item.similarity }}%</td>
-                    <td class="py-2 pr-3 font-data">{{ "NT$ {:,.2f}".format(item.unit_price) if item.unit_price is not none else "-" }}</td>
+                    <td class="py-2 pr-3 font-data">{{ item.similarity }} / 100</td>
+                    <td class="py-2 pr-3 font-data">{{ item.currency or tr(request, 'comparison_unknown') }} {{ "{:,.2f}".format(item.unit_price) if item.unit_price is not none else "-" }}</td>
                     <td class="py-2 pr-3">{{ outcome_labels.get(item.quote_outcome, item.quote_outcome) }}</td>
+                    <td class="py-2 pr-3">{{ tr(request, 'comparison_eligible' if item.eligible else 'comparison_excluded') }}</td>
                 </tr>
+                <tr><td colspan="5" class="pb-3">
+                    <details class="whitespace-normal">
+                        <summary class="cursor-pointer text-sm py-2">{{ tr(request, 'comparison_details') }} · {{ item.quote_no }}</summary>
+                        {% if item.exclusions %}<ul class="text-xs space-y-1 mb-3" style="color: var(--ink-muted)">{% for reason in item.exclusions %}<li>{{ tr(request, 'reason_' ~ reason) }}</li>{% endfor %}</ul>{% endif %}
+                        <table class="w-full text-xs" style="table-layout: fixed">
+                            <thead class="text-left" style="color: var(--ink-muted)"><tr><th class="py-2">{{ tr(request, 'comparison_field') }}</th><th>{{ tr(request, 'comparison_current') }}</th><th>{{ tr(request, 'comparison_history') }}</th><th>{{ tr(request, 'comparison_delta') }}</th></tr></thead>
+                            <tbody>{% for row in item.differences %}<tr style="border-top: 1px solid var(--border); overflow-wrap: anywhere; {{ 'background: #fff8db;' if row.state == 'different' else '' }}">
+                                <td class="py-2 pr-2">{{ tr(request, 'compare_' ~ row.field) }}</td>
+                                {% for value in [row.current, row.historical] %}<td class="py-2 pr-2 font-data">{% if value is none %}{{ tr(request, 'comparison_unknown') }}{% elif value is sameas true %}{{ tr(request, 'comparison_yes') }}{% elif value is sameas false %}{{ tr(request, 'comparison_no') }}{% elif value is number %}{{ "{:g}".format(value) }}{% else %}{{ value }}{% endif %}</td>{% endfor %}
+                                <td class="py-2">{% if row.delta_pct is not none %}{{ "{:+.1f}%".format(row.delta_pct) }}{% else %}{{ tr(request, 'comparison_' ~ row.state) }}{% endif %}</td>
+                            </tr>{% endfor %}</tbody>
+                        </table>
+                        <div class="flex flex-wrap gap-x-6 gap-y-2 text-xs mt-3 pb-3">
+                        {% for label, value in [('evidence_quoted', item.unit_price), ('evidence_accepted', item.accepted_unit_price), ('evidence_cost', item.actual_unit_cost)] %}<p>{{ tr(request, label) }}: <span class="font-data">{{ item.currency or tr(request, 'comparison_unknown') }} {{ "{:,.2f}".format(value) if value is not none else '-' }}</span></p>{% endfor %}
+                        </div>
+                    </details>
+                </td></tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -335,5 +358,5 @@
         <p class="text-sm" style="color: var(--ink-muted)">{{ tr(request, "no_comparable_rfqs") }}</p>
         {% endif %}
     </div>
-</details>
+</section>
 {% endblock %}

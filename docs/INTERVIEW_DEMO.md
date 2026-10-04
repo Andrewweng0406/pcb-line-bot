@@ -49,7 +49,11 @@ system turns PCB RFQs into structured, auditable quotes.
    - Show the customer quote summary, unit price, lead time, and spec summary.
    - Show internal pricing summary and applied pricing factors.
    - Open `Commercial Outcome` to show won/lost tracking.
-   - Open `Structured Data and Historical Analysis` to show comparable RFQs.
+   - Show `Historical Intelligence` and expand a specification comparison.
+   - Point out the current/historical values and exclusion reasons.
+   - Explain why quoted prices, won-order accepted prices and recorded actual
+     costs have independent sample counts. Fewer than five valid independent
+     records means `Insufficient evidence`, not a suggested price.
 
 4. Create a new quote
    - Go to `New Quote`.
