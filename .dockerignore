@@ -16,6 +16,7 @@ exports/*
 *.xlsx
 upload_*.jpg
 backups/
+evals/private/
 tests/
 docs/
 .idea

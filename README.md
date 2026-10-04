@@ -13,6 +13,7 @@ created from either one shows up in the same history.
 - Interview walkthrough: [docs/INTERVIEW_DEMO.md](docs/INTERVIEW_DEMO.md)
 - Vereyo-specific positioning: [docs/VEREYO_ALIGNMENT.md](docs/VEREYO_ALIGNMENT.md)
 - AI evaluation plan: [docs/AI_EVALUATION.md](docs/AI_EVALUATION.md)
+- Runnable extraction benchmark: [docs/EXTRACTION_EVALUATION.md](docs/EXTRACTION_EVALUATION.md)
 
 This demo account is intended for interview review only. Rotate the password
 or replace the account before using the deployment for real customer data.

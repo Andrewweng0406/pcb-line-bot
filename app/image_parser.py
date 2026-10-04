@@ -52,7 +52,7 @@ def parse_pcb_image(image_path):
 - 如果看到 Re-order 被勾選，代表 is_reorder = true；New Version 被勾選且 Re-order 未勾選，is_reorder = false。
 - 如果看到 Countersunk、Counterbored、皿孔、沉頭孔，代表 countersunk = true 或 counterbored = true
 - 如果看到 Please provide inspection report、出貨檢驗及量測報告，代表 inspection_report_required = true，並把句子放到 special_requirements。
-- 如果找不到欄位，請用 null 或 false，不要猜
+- Missing fields must be null, never guessed false, zero or a default quantity. Use false only for explicit negation or an unambiguously marked no option.
 - 如果看到 Thickness、厚度，例如 6.6 +/-0.2 mm，請輸出 thickness = 6.6
 - 如果看到 Min. Pitch、Device Pitch、最小 Pitch，請輸出 pitch_mm
 - 如果看到 Min Hole、最小孔徑，請輸出 min_hole_mil
@@ -66,7 +66,7 @@ def parse_pcb_image(image_path):
 
 - 如果看到 Surface Plating、表面鍍金、Ni/Au、ENIG、Immersion Gold，請輸出:
 - enig = true
-- surface_finish = "ENIG"
+- surface_finish = "ENIG" unless the finish explicitly says Hard Gold; preserve Hard Gold in that case.
 
 - 如果看到 Au(0.635 um)，請輸出:
 - enig_thickness_um = 0.635
@@ -75,10 +75,7 @@ def parse_pcb_image(image_path):
 - 如果看到 Gold 3u"、Au 3u"、鍍金 3u"，這已經是 uinch，不要再乘 39.37，直接輸出：
 - "enig_thickness_uinch": 3
 
-- 如果看到 Hard Gold 20μ、Gold 20μ、Hard Gold 20u、Gold 20u，請輸出：
-- "enig": true,
-- "surface_finish": "Hard Gold",
-- "enig_thickness_uinch": 20
+- Hard Gold explicitly establishes surface_finish = "Hard Gold" and hard_gold = true. Bare 20u or standalone mu does not establish thickness units; enig_thickness_uinch must remain null.
 
 注意：單獨的 μ 或 u 沒有明確單位，不能猜測為 micro-inch。請將厚度留為 null 供人工確認。
 - 如果看到 0.635 um、0.635 μm，這才是微米，才需要乘以 39.37 轉成 uinch。
@@ -117,17 +114,17 @@ JSON 格式：
   "material": null,
   "length_mm": null,
   "width_mm": null,
-  "qty": 1,
-  "enig": false,
-  "vip": false,
-  "impedance": false,
-  "back_drill": false,
-  "bvh": false,
-  "is_reorder": false,
-  "hard_gold": false,
-  "countersunk": false,
-  "counterbored": false,
-  "inspection_report_required": false,
+  "qty": null,
+  "enig": null,
+  "vip": null,
+  "impedance": null,
+  "back_drill": null,
+  "bvh": null,
+  "is_reorder": null,
+  "hard_gold": null,
+  "countersunk": null,
+  "counterbored": null,
+  "inspection_report_required": null,
   "thickness": null,
   "pitch_mm": null,
   "copper_weight": null,
@@ -144,7 +141,7 @@ JSON 格式：
   "legend_color": null,
   "solder_mask_color": null,
   "special_requirements": null,
-  "issue_ratio": 1,
+  "issue_ratio": null,
   "area_inch": null,
   "delivery_days": null
 }

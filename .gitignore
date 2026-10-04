@@ -48,6 +48,9 @@ exports/*
 # Database backups (contain real user data — never commit)
 backups/
 
+# Private RFQ evaluation inputs and reports
+evals/private/
+
 # Excel/PDF test files
 *.xlsx
 *.pdf

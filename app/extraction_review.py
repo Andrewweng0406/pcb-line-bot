@@ -82,7 +82,7 @@ FIELD_PATTERNS = {
     "thickness_mm": [r"(?:thickness|板厚|厚度)\s*\d+(?:\.\d+)?\s*mm"],
     "surface_finish": [r"\benig\b", r"\bosp\b", r"\bhasl\b", r"hard\s*gold", r"化金", r"表面處理"],
     "enig": [r"\benig\b", r"化金", r"鍍金"],
-    "enig_thickness_uinch": [r"\d+(?:\.\d+)?\s*(?:u\"|uinch\b|u\b)"],
+    "enig_thickness_uinch": [r"\d+(?:\.\d+)?\s*(?:u\"|uinch\b|uin\b)"],
     "vip": [r"\bvip\b", r"via[-\s]*in[-\s]*pad", r"塞孔"],
     "back_drill": [r"back\s*drill", r"背鑽"],
     "bvh": [r"\bbvh\b"],

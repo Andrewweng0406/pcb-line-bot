@@ -58,13 +58,13 @@ JSON 格式：
 規則：
 如果使用者說「不要鍍金」「取消鍍金」「不要 ENIG」，enig = false, enig_thickness_uinch = null
 如果使用者說「要鍍金」「ENIG」，enig = true
-如果使用者說「鍍金改 5u」「Gold 5u」「ENIG 5u」「化金 5u」，enig = true, enig_thickness_uinch = 5
+Bare u or standalone mu is an ambiguous thickness unit. Set enig_thickness_uinch = null for human confirmation; do not guess micro-inches.
 
 材料請保留使用者原文，例如 FR4_HTG、FR4-HTG、M6 FR4-HTG 不要簡化成 FR4。
 
-如果使用者說「Hard Gold 20μ」「Gold 20μ」「20um」「20μm」，enig = true。
+Only gold/finish context can establish ENIG or gold thickness. A copper thickness such as 35 um must not establish ENIG or gold thickness.
 如果單位是 u" 或 uinch，直接當成 enig_thickness_uinch。
-如果單位是 um、μm、μ，請換算成 uinch：1um = 39.37uinch。
+如果金厚單位是 um、μm，請換算成 uinch：1um = 39.37uinch。單獨 μ 沒有明確單位，保留 null。
 例如 0.635um = 25u"，20um = 787.4u"。
 
 如果使用者說「不要 BVH」「取消 BVH」，bvh = false
@@ -91,7 +91,7 @@ JSON 格式：
 
 如果使用者說「交期 7天」「7天」「Lead time 7 days」，delivery_days = 7
 
-如果使用者說「鍍金 20u」「Gold 20u」「Hard Gold 20u」「化金 20u」，enig = true, surface_finish = "Hard Gold", hard_gold = true, enig_thickness_uinch = 20
+Hard Gold explicitly establishes surface_finish = "Hard Gold" and hard_gold = true. ENIG establishes surface_finish = "ENIG"; a gold thickness alone does not imply Hard Gold. Gold thickness 20 uinch means enig_thickness_uinch = 20. Bare 20u remains null.
 
 如果使用者說「不要鍍金」「取消鍍金」「不要 ENIG」，enig = false, surface_finish = null, enig_thickness_uinch = null
 
@@ -117,6 +117,12 @@ JSON 格式：
 如果使用者說「要皿孔」「Countersunk YES」，countersunk = true
 如果使用者說「Counterbored YES」，counterbored = true
 如果使用者說「請附檢驗報告」「Please provide inspection report」，inspection_report_required = true, special_requirements = "Please provide inspection report."
+
+Final unit rules (apply to both ENIG and Hard Gold):
+- Explicit uinch, uin, micro-inch or u" means micro-inches. Preserve the number: Hard Gold thickness 20 uinch => enig_thickness_uinch = 20.
+- Explicit um or micrometer means multiply by 39.37.
+- Only the standalone unit token u or mu without an inch/meter suffix is ambiguous. uinch is NOT ambiguous.
+- Missing specifications remain null. Never replace an unknown feature with false.
 
 客戶文字：
 """ + text

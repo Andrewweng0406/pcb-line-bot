@@ -62,6 +62,8 @@ fresh post-restore checksum with the source snapshot.
 
 ## Railway native backups
 
+On 2026-10-04, the staging schedule read returned `[]`; attempting daily/weekly configuration returned `OAUTH_INSUFFICIENT_GRANT`. Automatic backups are therefore **not enabled by this release**. The account owner must reauthorize the Railway integration with project write access or configure the schedules in the dashboard, then verify the active schedules and a completed backup. This is a permissions blocker, not a reason to restore or replace the database. No production settings were changed during this check.
+
 Read current status:
 
 ```bash

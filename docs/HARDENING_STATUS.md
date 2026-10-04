@@ -20,6 +20,7 @@
 - Numeric validation rejects non-finite values and boolean values; fractional numeric quantities are rejected rather than truncated.
 - Restore verification supports older snapshots missing new nullable columns, while rejecting unexpected non-null data.
 - Viewer/Staff/Manager/Admin permissions protect web and API actions, including legacy AI endpoints and import confirmation. Registration cannot grant elevated roles; role changes revoke permissions on existing sessions and are audited through a trusted-operator CLI.
+- A read-only extraction evaluation CLI grades labelled text/image cases, critical errors and false high confidence. Private datasets/results are excluded from Git and Docker. See [Extraction Evaluation](EXTRACTION_EVALUATION.md).
 
 ## Not Yet Guaranteed
 

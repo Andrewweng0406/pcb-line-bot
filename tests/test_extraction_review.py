@@ -41,6 +41,19 @@ def test_gold_evidence_does_not_confuse_micrometers_with_microinches():
     assert _field(review, "enig_thickness_uinch")["evidence"] == []
 
 
+@pytest.mark.parametrize("text", ["ENIG gold thickness 5u", "Gold thickness 5\u03bc"])
+def test_ambiguous_gold_units_never_receive_high_confidence(text):
+    item = _field(build_extraction_review({"enig_thickness_uinch": 5}, text), "enig_thickness_uinch")
+    assert item["confidence"] != "high"
+    assert item["needs_review"]
+
+
+@pytest.mark.parametrize("unit", ['u"', "uinch", "uin"])
+def test_explicit_microinch_evidence_still_supported(unit):
+    item = _field(build_extraction_review({"enig_thickness_uinch": 5}, f"Gold thickness 5 {unit}"), "enig_thickness_uinch")
+    assert item["confidence"] == "high"
+
+
 def test_signed_review_rejects_tampering_and_wrong_owner():
     token = sign_review(build_extraction_review({"layer": 6}), 1)
     assert read_review(token, 1)["fields"]
