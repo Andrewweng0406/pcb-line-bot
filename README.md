@@ -406,9 +406,19 @@ railway up --service web
 # this inside the web service container so it uses the private Railway DB URL:
 railway ssh --service web -- python scripts/create_user.py owner@example.com your-password
 
-# Take a manual data snapshot before risky changes (see scripts/backup_db.py)
-DATABASE_URL=<DATABASE_PUBLIC_URL> python scripts/backup_db.py
+# Take and verify an integrity-checked application snapshot before risky changes.
+DATABASE_URL=<DATABASE_PUBLIC_URL> python scripts/backup_db.py backups
+python scripts/backup_db.py --verify backups/backup_<timestamp>.json
 ```
+
+The snapshot is written atomically with mode `0600` and includes row counts,
+per-table SHA-256 checksums, a whole-content checksum, and relationship checks.
+Restore drills are restricted to a separate empty database by
+`scripts/restore_db.py`. See [Backup and Recovery Runbook](docs/BACKUP_RECOVERY.md)
+for native Railway snapshots, PostgreSQL dumps, persistent-file archives, and
+the disposable restore procedure. A database snapshot does not include files
+under `/app/exports`; archive that volume separately and store both copies
+outside Railway.
 
 ## Project Structure
 
@@ -427,7 +437,9 @@ pcb_line_bot/
 ├── static/                 # CSS for the web dashboard
 ├── scripts/
 │   ├── create_user.py     # Create a web login account
-│   └── backup_db.py       # Manual JSON snapshot of all tables
+│   ├── backup_db.py       # Atomic, checksum-verified database snapshot
+│   ├── restore_db.py      # Empty-target-only recovery drill
+│   └── seed_demo_data.py  # Repeatable synthetic interview dataset
 ├── tests/                  # pytest suite
 ├── aws/                    # AWS deployment configuration
 │   ├── cloudformation.yaml # CloudFormation template

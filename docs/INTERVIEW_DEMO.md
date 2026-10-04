@@ -77,6 +77,13 @@ system turns PCB RFQs into structured, auditable quotes.
    - PostgreSQL on Railway.
    - Persistent Railway volume for exports/uploads/logs.
    - Seed script for repeatable demo data.
+   - Integrity-checked snapshots and an empty-target-only recovery drill.
+
+If asked about production readiness, distinguish persistence from recovery:
+Railway volumes preserve data across deploys, while the recovery runbook adds
+checksummed snapshots and a tested restore path. Native Railway backup schedules
+still require backup-write permission; do not claim they are enabled until the
+schedule read-back shows active entries.
 
 ## Extraction Review Scenario
 
