@@ -273,6 +273,8 @@ OPENAI_API_KEY=sk-xxx
 
 # Database
 DATABASE_URL=postgresql://user:pass@localhost/pcb_bot
+DEFAULT_CURRENCY=NTD
+PRICING_VERSION=v1
 
 # Redis (optional)
 REDIS_ENABLED=True
