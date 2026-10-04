@@ -319,6 +319,10 @@ Need help? Type "help" anytime to view this guide."""
                     time_str = last_quote.strftime("%Y-%m-%d %H:%M")
                 last_quote_str = time_str
 
+            average_quotes = "; ".join(
+                f"{amount['currency']} {amount['average']:,.2f}" if amount['average'] is not None else f"{amount['currency']} -"
+                for amount in stats.get("amounts_by_currency", [])
+            ) or "-"
             status_text = f"""📊 PCB Quote Bot - System Status
 
 ━━━━━━━━━━━━━━━━━━━━━━━
@@ -328,7 +332,7 @@ Need help? Type "help" anytime to view this guide."""
 📈 Today's Stats:
 • Quote requests: {stats['today_count']}
 • Total history: {stats['total_count']}
-• Average quote: NT$ {stats['avg_price']:,.0f}
+• Average quote: {average_quotes}
 
 ━━━━━━━━━━━━━━━━━━━━━━━
 ⏱️ Last Activity:

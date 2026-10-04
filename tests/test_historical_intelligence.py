@@ -201,3 +201,49 @@ def test_revisions_do_not_count_as_independent_references(temp_db):
         session.commit()
         matches = find_similar_quotes(session, temp_db.QuoteHistory, quotes[0])
         assert sum("related_revision" in item["exclusions"] for item in matches) == 2
+
+
+def test_future_revision_cannot_displace_historical_reference(temp_db):
+    from datetime import datetime, timedelta
+    from app.price_assessment import assess_quote_price
+    spec = {"layer": 6, "material": "FR4", "qty": 10, "area_inch": 15.5,
+            "thickness_mm": 1.6, "copper_weight": "1oz", "delivery_days": 7,
+            "enig_thickness_uinch": 5, "enig": True, "vip": False,
+            "impedance": False, "back_drill": False, "bvh": False}
+    for _ in range(7):
+        temp_db.save_quote("web:1", spec, {"status": "success", "total": 1000, "unit_price": 100})
+    with temp_db.SessionLocal() as session:
+        quotes = session.query(temp_db.QuoteHistory).order_by(temp_db.QuoteHistory.id).all()
+        for i, quote in enumerate(quotes):
+            quote.created_at = datetime(2026, 10, 1) + timedelta(days=i)
+            quote.currency = "USD"
+            quote.pricing_version = "v1"
+        target, child = quotes[5:]
+        child.spec_json = {**child.spec_json, "_extraction_review": {"revision_of": quotes[0].id, "fields": [], "summary": {}}}
+        session.commit()
+        matches = find_similar_quotes(session, temp_db.QuoteHistory, target, limit=200, historical_only=True)
+        assessment = assess_quote_price(target, matches)
+        assert assessment["reference_count"] == 5
+        assert assessment["status"] == "within_band"
+        assert historical_pricing_summary(matches)["evidence"][0]["count"] == 5
+        assert child.id not in [item["id"] for item in matches]
+        # Even a pending revision predating the target cannot claim its parent's slot.
+        child.created_at = target.created_at - timedelta(hours=1)
+        session.commit()
+        matches = find_similar_quotes(session, temp_db.QuoteHistory, target, limit=200, historical_only=True)
+        assert assess_quote_price(target, matches)["reference_count"] == 5
+
+
+def test_historical_candidate_cutoff_precedes_limit_and_breaks_ties(temp_db):
+    from datetime import datetime, timedelta
+    from app.historical_intelligence import get_candidate_quotes
+    for _ in range(4):
+        temp_db.save_quote("web:1", {"layer": 6, "qty": 10}, {"status": "success", "total": 1000})
+    with temp_db.SessionLocal() as session:
+        quotes = session.query(temp_db.QuoteHistory).order_by(temp_db.QuoteHistory.id).all()
+        for quote in quotes:
+            quote.created_at = datetime(2026, 10, 3)
+        quotes[-1].created_at += timedelta(days=1)
+        session.commit()
+        found = get_candidate_quotes(session, temp_db.QuoteHistory, quotes[1], limit=1, historical_only=True)
+        assert [q.id for q in found] == [quotes[0].id]

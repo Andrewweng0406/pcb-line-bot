@@ -12,6 +12,7 @@ from app.business_analytics import (
     get_customer_analytics,
     get_outcome_stats,
     get_pricing_trends,
+    monetary_summary,
 )
 from app.ai_parser import parse_pcb_text
 from app.core.auth import (
@@ -57,6 +58,12 @@ from app.quote_engine import calculate_quote
 TRANSLATIONS = {
     "en": {
         "app_title": "PCB Quote System",
+        "business_status": "Business Status",
+        "release_readiness": "Data Review / Formal Export",
+        "data_review_clear": "No pending extraction confirmations.",
+        "review_pending_fields": "Review Pending Fields",
+        "show_all_fields": "Show All Fields",
+        "historical_basis": "Only records preceding this quote; one eligible record per revision family.",
         "new_quote": "New Quote",
         "quote_list": "Quote List",
         "customers": "Customers",
@@ -303,6 +310,12 @@ TRANSLATIONS = {
     },
     "zh": {
         "app_title": "PCB 報價系統",
+        "business_status": "商務狀態",
+        "release_readiness": "資料覆核／正式匯出",
+        "data_review_clear": "目前沒有待確認的解析欄位。",
+        "review_pending_fields": "覆核待確認欄位",
+        "show_all_fields": "顯示全部欄位",
+        "historical_basis": "僅使用本報價之前的紀錄；每個修訂家族取一筆有效資料。",
         "new_quote": "新增報價",
         "quote_list": "報價列表",
         "customers": "客戶管理",
@@ -717,19 +730,19 @@ def dashboard(request: Request, user=Depends(get_current_user_optional)):
         .group_by(db.QuoteHistory.quote_outcome)
         .all()
     )
-    active_value = (
-        query_db.query(db.func.coalesce(db.func.sum(db.QuoteHistory.total), 0))
+    active_quotes = (
+        query_db.query(db.QuoteHistory)
         .filter(db.QuoteHistory.status.in_(["pending", "approved"]))
-        .scalar()
-        or 0
+        .all()
     )
+    quote_amounts = monetary_summary(query_db.query(db.QuoteHistory).all())
     query_db.close()
     won_count = outcome_counts.get("won", 0)
     lost_count = outcome_counts.get("lost", 0)
     decided_count = won_count + lost_count
     pipeline_snapshot = {
         "active_count": status_counts.get("pending", 0) + status_counts.get("approved", 0),
-        "pipeline_value": float(active_value),
+        "amounts_by_currency": monetary_summary(active_quotes),
         "won_count": won_count,
         "lost_count": lost_count,
         "win_rate": (won_count / decided_count) if decided_count else None,
@@ -742,6 +755,7 @@ def dashboard(request: Request, user=Depends(get_current_user_optional)):
             "stats": stats,
             "recent_quotes": recent_quotes,
             "pipeline_snapshot": pipeline_snapshot,
+            "quote_amounts": quote_amounts,
             "status_labels": localized_status_labels(request),
             "outcome_labels": localized_outcome_labels(request),
         },
@@ -1116,7 +1130,7 @@ def quote_detail(request: Request, quote_id: int, user=Depends(get_current_user_
         query_db.close()
         raise HTTPException(status_code=404, detail="Quote not found")
 
-    historical_candidates = find_similar_quotes(query_db, db.QuoteHistory, quote, limit=200)
+    historical_candidates = find_similar_quotes(query_db, db.QuoteHistory, quote, limit=200, historical_only=True)
     historical_summary = historical_pricing_summary(historical_candidates)
     price_assessment = assess_quote_price(quote, historical_candidates)
     similar_quotes = historical_candidates[:8]
@@ -1171,7 +1185,7 @@ def update_quote(
     if status not in {"pending", "approved", "ordered"}:
         query_db.close()
         raise HTTPException(status_code=400, detail="Invalid quote status")
-    if status in {"approved", "ordered"} and release_pending(quote.spec_json):
+    if status != quote.status and status in {"approved", "ordered"} and release_pending(quote.spec_json):
         query_db.close()
         raise HTTPException(status_code=409, detail="Confirm the pending extraction fields before approving this quote.")
     quote.status = status
@@ -1236,7 +1250,7 @@ def quote_export_excel(quote_id: int, user=Depends(get_current_user_optional)):
     if quote is None or not quote.spec_json or not quote.breakdown_json:
         raise HTTPException(status_code=404, detail="Quote not found or missing spec data")
 
-    filename = export_quote_excel(quote.spec_json, quote.breakdown_json)
+    filename = export_quote_excel(quote.spec_json, quote.breakdown_json, currency=quote.currency or "UNKNOWN")
     return RedirectResponse(url=f"/download/exports/{filename}", status_code=303)
 
 
@@ -1267,6 +1281,7 @@ def quote_export_formal(quote_id: int, user=Depends(get_current_user_optional)):
         quote.breakdown_json,
         {
             "quote_no": quote.quote_no,
+            "currency": quote.currency or "UNKNOWN",
             "customer_name": quote.customer.company_name if quote.customer else None,
             "quote_date": quote.created_at.strftime("%Y/%m/%d") if quote.created_at else None,
         },

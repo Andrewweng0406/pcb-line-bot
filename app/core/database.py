@@ -351,8 +351,8 @@ def get_system_stats() -> dict:
         ).first()
         last_quote_time = last_quote.created_at if last_quote else None
 
-        # Average price across all quotes
-        avg_price = db.query(func.avg(QuoteHistory.total)).scalar() or 0
+        from app.business_analytics import monetary_summary, single_currency_value
+        amounts = monetary_summary(db.query(QuoteHistory).all())
 
         db.close()
 
@@ -360,7 +360,8 @@ def get_system_stats() -> dict:
             "today_count": today_count,
             "total_count": total_count,
             "last_quote_time": last_quote_time,
-            "avg_price": round(float(avg_price), 0) if avg_price else 0,
+            "avg_price": single_currency_value(amounts, "average"),
+            "amounts_by_currency": amounts,
         }
     except Exception as e:
         logger.error(f"Error getting system stats: {e}")
@@ -369,6 +370,7 @@ def get_system_stats() -> dict:
             "total_count": 0,
             "last_quote_time": None,
             "avg_price": 0,
+            "amounts_by_currency": [],
         }
 
 

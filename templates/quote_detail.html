@@ -5,7 +5,7 @@
     <div>
         <h1 class="text-2xl mb-2">
             {{ tr(request, "quote_detail") }}: <span class="font-data">{{ quote.quote_no or quote.id }}</span>
-            <span class="badge badge-{{ quote.status or 'pending' }} align-middle ml-2">{{ status_labels.get(quote.status, quote.status) }}</span>
+            <span class="text-sm block mt-2">{{ tr(request, 'business_status') }}: {{ status_labels.get(quote.status, quote.status) }}</span>
         </h1>
         <p class="text-sm font-data" style="color: var(--ink-muted)">
             {{ tr(request, "created_by") }}: {{ quote.created_by.email if quote.created_by else "-" }} ·
@@ -14,21 +14,27 @@
     </div>
     <div class="flex flex-wrap gap-3">
         <a href="/quotes/{{ quote.id }}/revise" class="btn-secondary px-4 py-2 text-sm">{{ tr(request, "create_revision") }}</a>
-        {% if extraction_review and extraction_review.summary.needs_review %}
-        <button disabled class="btn-secondary review-disabled px-4 py-2 text-sm whitespace-nowrap" title="{{ tr(request, 'release_blocked') }}">{{ tr(request, "generate_formal_quote") }}</button>
-        {% else %}
-        <a href="/quotes/{{ quote.id }}/export/formal" class="btn-primary px-4 py-2 text-sm whitespace-nowrap">
-            {{ tr(request, "generate_formal_quote") }}
-        </a>
-        {% endif %}
         <a href="/quotes/{{ quote.id }}/export/excel" class="btn-secondary px-4 py-2 text-sm whitespace-nowrap">
             {{ tr(request, "download_internal_excel") }}
         </a>
     </div>
 </div>
-{% if extraction_review and extraction_review.summary.needs_review %}
-<p class="text-sm mb-4" role="status">{{ tr(request, "release_blocked") }}</p>
-{% endif %}
+<section class="mb-6 py-4" aria-label="{{ tr(request, 'release_readiness') }}" style="border-top: 1px solid var(--border); border-bottom: 1px solid var(--border)">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+            <h2 class="font-medium">{{ tr(request, 'release_readiness') }}</h2>
+            {% if extraction_review and extraction_review.summary.needs_review %}
+            <p class="text-sm mt-1" role="status">{{ tr(request, 'release_blocked') }} ({{ extraction_review.summary.needs_review }})</p>
+            {% else %}<p class="text-sm mt-1">{{ tr(request, 'data_review_clear') }}</p>{% endif %}
+        </div>
+        {% if extraction_review and extraction_review.summary.needs_review %}
+        <a href="#extraction-review" class="btn-primary px-4 py-2 text-sm">{{ tr(request, 'review_pending_fields') }}</a>
+        {% else %}
+        <a href="/quotes/{{ quote.id }}/export/formal" class="btn-primary px-4 py-2 text-sm">{{ tr(request, 'generate_formal_quote') }}</a>
+        {% endif %}
+    </div>
+</section>
+{% include '_price_review.html' %}
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
     <div class="card p-6">
@@ -77,24 +83,12 @@
             {% endfor %}
         </div>
         {% endif %}
-        <div class="flex flex-wrap gap-3">
-            {% if extraction_review and extraction_review.summary.needs_review %}
-            <button disabled class="btn-secondary review-disabled px-4 py-2 text-sm" title="{{ tr(request, 'release_blocked') }}">{{ tr(request, "generate_formal_quote") }}</button>
-            {% else %}
-            <a href="/quotes/{{ quote.id }}/export/formal" class="btn-primary px-4 py-2 text-sm whitespace-nowrap">
-                {{ tr(request, "generate_formal_quote") }}
-            </a>
-            {% endif %}
-            <a href="/quotes/new" class="btn-secondary px-4 py-2 text-sm whitespace-nowrap">
-                {{ tr(request, "create_new_quote") }}
-            </a>
-        </div>
     </div>
 
     <div class="card p-6">
         <h2 class="font-medium mb-3">{{ tr(request, "customer_quote_summary") }}</h2>
-        <p class="font-data text-xl" style="color: var(--copper-dark)">{{ tr(request, "total") }}: NT$ {{ "{:,.0f}".format(quote.total or 0) }}</p>
-        <p class="font-data">{{ tr(request, "unit_price") }}: NT$ {{ "{:,.0f}".format(quote.unit_price or 0) }}</p>
+        <p class="font-data text-xl break-words" style="color: var(--copper-dark)">{{ tr(request, "total") }}: {{ quote.currency or 'UNKNOWN' }} {{ "{:,.2f}".format(quote.total) if quote.total is not none else '-' }}</p>
+        <p class="font-data break-words">{{ tr(request, "unit_price") }}: {{ quote.currency or 'UNKNOWN' }} {{ "{:,.2f}".format(quote.unit_price) if quote.unit_price is not none else '-' }}</p>
         <p>{{ tr(request, "customer") }}: {{ quote.customer.company_name if quote.customer else "-" }}</p>
         <p class="font-data">{{ tr(request, "quantity") }}: {{ quote.qty }} pcs</p>
         <p class="font-data">{{ tr(request, "lead_time") }}: {{ quote.delivery_days or "TBD" }} working days</p>
@@ -113,7 +107,7 @@
 
     <div class="card p-6">
         <h2 class="font-medium mb-3">{{ tr(request, "internal_pricing_summary") }}</h2>
-        <p class="font-data">{{ tr(request, "estimated_cost") }}: {{ "NT$ {:,.0f}".format(quote.estimated_cost) if quote.estimated_cost is not none else "-" }}</p>
+        <p class="font-data break-words">{{ tr(request, "estimated_cost") }}: {{ quote.currency or 'UNKNOWN' }} {{ "{:,.2f}".format(quote.estimated_cost) if quote.estimated_cost is not none else "-" }}</p>
         <p class="font-data">{{ tr(request, "estimated_margin") }}: {{ "{:.1f}%".format(quote.estimated_margin_pct * 100) if quote.estimated_margin_pct is not none else "-" }}</p>
         {% if quote.breakdown_json and quote.breakdown_json.pricing_review and quote.breakdown_json.pricing_review.applied_factors %}
         <div class="mt-3 text-sm" style="color: var(--ink-muted)">
@@ -138,7 +132,7 @@
     <form method="post" action="/quotes/{{ quote.id }}/update" class="space-y-3 mt-4">
         <select name="status" class="border rounded-lg px-3 py-2 text-sm" style="border-color: var(--border)">
             {% for value, label in status_labels.items() %}
-            <option value="{{ value }}" {% if quote.status == value %}selected{% endif %} {% if value != 'pending' and extraction_review and extraction_review.summary.needs_review %}disabled{% endif %}>{{ label }}</option>
+            <option value="{{ value }}" {% if quote.status == value %}selected{% endif %} {% if value != 'pending' and value != quote.status and extraction_review and extraction_review.summary.needs_review %}disabled{% endif %}>{{ label }}</option>
             {% endfor %}
         </select>
         <textarea name="notes" rows="3" class="w-full border rounded-lg px-3 py-2 text-sm" style="border-color: var(--border)" placeholder="{{ tr(request, 'internal_notes') }}">{{ quote.notes or "" }}</textarea>
@@ -147,7 +141,7 @@
 </details>
 
 {% if extraction_review %}
-<details class="card p-6 mt-6" open>
+<details id="extraction-review" class="mt-6 py-5" style="border-top: 1px solid var(--border)" {% if extraction_review.summary.needs_review %}open{% endif %} x-data="{ allFields: {{ 'false' if extraction_review.summary.needs_review else 'true' }} }">
     <summary class="font-medium cursor-pointer">{{ tr(request, "ai_extraction_review") }}</summary>
     {% if extraction_review.revision_of %}<p class="text-sm mt-3">{{ tr(request, "revision_of") }}: <a href="/quotes/{{ extraction_review.revision_of }}">#{{ extraction_review.revision_of }}</a></p>{% endif %}
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
@@ -168,6 +162,7 @@
             <p class="text-2xl font-data" style="color: var(--copper-dark)">{{ extraction_review.summary.low + extraction_review.summary.missing }}</p>
         </div>
     </div>
+    <label class="flex items-center gap-2 text-sm mt-4"><input type="checkbox" x-model="allFields">{{ tr(request, 'show_all_fields') }}</label>
     <form method="post" action="/quotes/{{ quote.id }}/review">
     <div class="mt-4 overflow-x-auto">
         <table class="extraction-audit w-full text-sm">
@@ -183,7 +178,7 @@
             </thead>
             <tbody>
                 {% for item in extraction_review.fields %}
-                <tr style="border-top: 1px solid var(--border)">
+                <tr {% if not item.needs_review %}x-show="allFields" x-cloak{% endif %} style="border-top: 1px solid var(--border)">
                     <td class="py-2 pr-3 font-medium" data-label="{{ tr(request, 'field') }}">{{ item.label }}</td>
                     <td class="py-2 pr-3 font-data" data-label="{{ tr(request, 'value') }}">
                         {% set current_value = item.final_value if item.final_value is defined else item.value %}
@@ -302,50 +297,7 @@
         {{ historical_summary.excluded_count }} {{ tr(request, "evidence_excluded") }}
     </p>
     <p class="text-xs mt-1" style="color: var(--ink-muted)">{{ tr(request, "evidence_window") }}</p>
-    <div class="mt-5 py-4" data-price-status="{{ price_assessment.status }}" style="border-top: 1px solid var(--border); border-bottom: 1px solid var(--border)">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-            <h3 class="font-medium">{{ tr(request, 'price_review') }}</h3>
-            <span class="text-sm font-medium px-2 py-1" style="{{ 'background: #fff1c2; color: #704700;' if price_assessment.status in ['above_band', 'below_band'] else 'background: var(--bg); color: var(--ink-muted);' }}">{{ tr(request, 'price_' ~ price_assessment.status) }}</span>
-        </div>
-        <p class="text-sm mt-2">{{ tr(request, 'price_action_' ~ price_assessment.status) }}</p>
-        <p class="text-xs mt-1" style="color: var(--ink-muted)">{{ price_assessment.reference_count }} / {{ price_assessment.minimum_references }} {{ tr(request, 'price_reference_count') }}</p>
-        {% if price_assessment.median_unit_price is not none %}
-        <dl class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-            <div><dt class="text-xs" style="color: var(--ink-muted)">{{ tr(request, 'price_current') }}</dt><dd class="font-data mt-1">{{ price_assessment.currency }} {{ "{:,.2f}".format(price_assessment.current_unit_price) }}</dd></div>
-            <div><dt class="text-xs" style="color: var(--ink-muted)">{{ tr(request, 'price_band') }}</dt><dd class="font-data mt-1">{{ price_assessment.currency }} {{ "{:,.2f}".format(price_assessment.lower_bound) }} – {{ "{:,.2f}".format(price_assessment.upper_bound) }}</dd></div>
-            <div><dt class="text-xs" style="color: var(--ink-muted)">{{ tr(request, 'price_deviation') }}</dt><dd class="font-data mt-1">{{ "{:+.1f}%".format(price_assessment.deviation_pct) }}</dd></div>
-        </dl>
-        {% endif %}
-        {% if price_assessment.context_fields %}
-        <p class="text-sm mt-4">{{ tr(request, 'price_context') }}: {% for field in price_assessment.context_fields %}{{ tr(request, 'compare_' ~ field) }}{{ ', ' if not loop.last else '' }}{% endfor %}</p>
-        <p class="text-xs mt-1" style="color: var(--ink-muted)">{{ tr(request, 'price_context_note') }}</p>
-        {% endif %}
-        <details class="mt-4 text-sm">
-            <summary class="cursor-pointer py-1">{{ tr(request, 'price_basis') }}</summary>
-            <p class="text-xs mt-3" style="color: var(--ink-muted)">{{ tr(request, 'price_as_of') }}: <span class="font-data">{{ price_assessment.as_of or '-' }}</span></p>
-            <p class="text-xs mt-2">{{ tr(request, 'price_rule') }}</p>
-            <p class="text-xs mt-1" style="color: var(--ink-muted)">{{ tr(request, 'price_rule_note') }}</p>
-            {% if price_assessment.median_unit_price is not none %}
-            <p class="text-xs font-data mt-2">{{ tr(request, 'evidence_median') }}: {{ price_assessment.currency }} {{ "{:,.2f}".format(price_assessment.median_unit_price) }} · {{ tr(request, 'price_mad') }}: {{ "{:,.2f}".format(price_assessment.mad) }}</p>
-            {% endif %}
-            {% if price_assessment.references %}
-            <div class="overflow-x-auto mt-3">
-                <table class="w-full text-xs text-left">
-                    <thead style="color: var(--ink-muted)"><tr><th class="py-2 pr-3">{{ tr(request, 'quote_no') }}</th><th class="pr-3">{{ tr(request, 'evidence_quoted') }}</th><th>{{ tr(request, 'price_context') }}</th></tr></thead>
-                    <tbody>{% for item in price_assessment.references %}<tr style="border-top: 1px solid var(--border)">
-                        <td class="py-2 pr-3 align-top"><a class="link-circuit font-data" href="/quotes/{{ item.id }}">{{ item.quote_no }}</a></td>
-                        <td class="py-2 pr-3 font-data align-top whitespace-nowrap">{{ item.currency }} {{ "{:,.2f}".format(item.unit_price) }}</td>
-                        <td class="py-2 align-top">{% for row in item.differences %}<p>{{ tr(request, 'compare_' ~ row.field) }}: {{ row.current }} → {{ row.historical }}{% if row.delta_pct is not none %} ({{ "{:+.1f}%".format(row.delta_pct) }}){% endif %}</p>{% else %}{{ tr(request, 'price_no_differences') }}{% endfor %}</td>
-                    </tr>{% endfor %}</tbody>
-                </table>
-            </div>
-            {% endif %}
-            {% if price_assessment.exclusions %}
-            <h4 class="font-medium text-xs mt-4">{{ tr(request, 'price_exclusions') }} ({{ price_assessment.exclusions|length }})</h4>
-            <ul class="text-xs mt-2 space-y-2">{% for item in price_assessment.exclusions %}<li><a href="/quotes/{{ item.id }}" class="link-circuit font-data">{{ item.quote_no }}</a>: {% for reason in item.reasons %}{{ tr(request, 'reason_' ~ reason) }}{{ '; ' if not loop.last else '' }}{% endfor %}</li>{% endfor %}</ul>
-            {% endif %}
-        </details>
-    </div>
+    <p class="text-xs mt-1" style="color: var(--ink-muted)">{{ tr(request, 'price_as_of') }}: {{ price_assessment.as_of or '-' }} · {{ tr(request, 'historical_basis') }}</p>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
         {% for metric in historical_summary.evidence %}
         <div class="py-3" style="border-top: 1px solid var(--border)">

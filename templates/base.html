@@ -18,13 +18,13 @@
     <nav class="bg-white border-b-2 px-4 sm:px-6 py-3" style="border-color: var(--copper)" x-data="{ open: false }">
         <div class="flex items-center gap-4">
             <a href="/" class="whitespace-nowrap" style="color: var(--copper-dark); font-weight: 700;">{{ tr(request, "app_title") }}</a>
-            <div class="hidden md:flex items-center gap-6 flex-1">
+            <div class="hidden xl:flex items-center gap-4 flex-1 min-w-0">
                 <a href="/quotes/new" class="text-sm link-circuit whitespace-nowrap" style="color: var(--ink-muted)">{{ tr(request, "new_quote") }}</a>
                 <a href="/quotes" class="text-sm whitespace-nowrap" style="color: var(--ink-muted)">{{ tr(request, "quote_list") }}</a>
                 <a href="/customers" class="text-sm whitespace-nowrap" style="color: var(--ink-muted)">{{ tr(request, "customers") }}</a>
                 <a href="/import/quotes" class="text-sm whitespace-nowrap" style="color: var(--ink-muted)">{{ tr(request, "import_quotes") }}</a>
                 <a href="/stats" class="text-sm whitespace-nowrap" style="color: var(--ink-muted)">{{ tr(request, "reports") }}</a>
-                <span class="ml-auto text-sm font-data whitespace-nowrap" style="color: var(--ink-muted)">{{ user.email }}</span>
+                <span class="ml-auto text-sm font-data truncate max-w-48" title="{{ user.email }}" style="color: var(--ink-muted)">{{ user.email }}</span>
                 <a href="/language/{{ other_lang(request) }}" class="text-sm whitespace-nowrap" style="color: var(--ink-muted)">
                     {{ tr(request, "language_label") }}: {{ lang_name(other_lang(request)) }}
                 </a>
@@ -33,12 +33,14 @@
             <button
                 type="button"
                 @click="open = !open"
-                class="md:hidden ml-auto btn-secondary px-3 py-1.5 text-sm"
+                :aria-expanded="open.toString()"
+                aria-controls="mobile-navigation"
+                class="xl:hidden ml-auto btn-secondary px-3 py-1.5 text-sm"
             >
-                Menu
+                {{ tr(request, "menu") }}
             </button>
         </div>
-        <div x-show="open" x-cloak class="md:hidden flex flex-col gap-3 mt-3 pb-1">
+        <div id="mobile-navigation" x-show="open" x-cloak class="xl:hidden flex flex-col gap-3 mt-3 pb-1">
             <a href="/quotes/new" class="text-sm" style="color: var(--ink-muted)">{{ tr(request, "new_quote") }}</a>
             <a href="/quotes" class="text-sm" style="color: var(--ink-muted)">{{ tr(request, "quote_list") }}</a>
             <a href="/customers" class="text-sm" style="color: var(--ink-muted)">{{ tr(request, "customers") }}</a>

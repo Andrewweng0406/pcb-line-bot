@@ -1,6 +1,7 @@
 """Explainable historical RFQ similarity and pricing summaries."""
 
 from math import isfinite
+from datetime import timezone
 from statistics import mean, median
 from typing import Iterable
 
@@ -80,7 +81,8 @@ def quote_profile(quote) -> dict:
         },
         "currency": (getattr(quote, "currency", None) or "").strip().upper() or None,
         "pricing_version": getattr(quote, "pricing_version", None),
-        "review_pending": bool(release_pending(spec)),
+        # Normalized columns are derived data, not new extraction input.
+        "review_pending": bool(release_pending(getattr(quote, "spec_json", None))),
         "special_processes": {
             field for field in SPECIAL_PROCESS_FIELDS if bool(spec.get(field))
         },
@@ -228,16 +230,27 @@ def serialize_similar_quote(quote, similarity: int, target=None) -> dict:
     }
 
 
-def get_candidate_quotes(session, QuoteHistory, target, limit: int = 200) -> list:
+def get_candidate_quotes(session, QuoteHistory, target, limit: int = 200, historical_only: bool = False) -> list:
     query = session.query(QuoteHistory).filter(QuoteHistory.id != target.id)
+    if historical_only:
+        if target.created_at is None:
+            return []
+        from sqlalchemy import or_, and_
+        cutoff = target.created_at
+        if cutoff.tzinfo is not None:
+            cutoff = cutoff.astimezone(timezone.utc).replace(tzinfo=None)
+        query = query.filter(or_(
+            QuoteHistory.created_at < cutoff,
+            and_(QuoteHistory.created_at == cutoff, QuoteHistory.id < target.id),
+        ))
     if target.layer is not None:
         query = query.filter(QuoteHistory.layer.between(target.layer - 2, target.layer + 2))
     # Material aliases are normalized in Python (FR4 and FR-4 are equivalent).
     return query.order_by(QuoteHistory.created_at.desc(), QuoteHistory.id.desc()).limit(limit).all()
 
 
-def find_similar_quotes(session, QuoteHistory, target, limit: int = 10) -> list:
-    candidates = get_candidate_quotes(session, QuoteHistory, target)
+def find_similar_quotes(session, QuoteHistory, target, limit: int = 10, historical_only: bool = False) -> list:
+    candidates = get_candidate_quotes(session, QuoteHistory, target, historical_only=historical_only)
     cache = {quote.id: quote for quote in [target, *candidates]}
 
     def family_root(quote):
@@ -265,8 +278,10 @@ def find_similar_quotes(session, QuoteHistory, target, limit: int = 10) -> list:
             item["exclusions"].append("unknown_lineage")
         elif family == target_family or family in seen_families:
             item["exclusions"].append("related_revision")
-        seen_families.add(family)
         item["eligible"] = not item["exclusions"]
+        # An unusable revision must not displace an eligible historical parent.
+        if item["eligible"]:
+            seen_families.add(family)
         serialized.append(item)
     serialized.sort(key=lambda item: item["similarity"], reverse=True)
     return [item for item in serialized if item["similarity"] > 0][:limit]

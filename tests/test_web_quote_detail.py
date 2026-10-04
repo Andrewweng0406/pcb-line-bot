@@ -50,7 +50,7 @@ def test_quote_detail_benchmark_uses_independent_recorded_evidence(temp_db):
             quote.quote_outcome = "won"
             quote.final_price = 900
             quote.actual_cost = 700
-        quote_id = quotes[0].id
+        quote_id = quotes[-1].id
         session.commit()
     client = _logged_in_client(temp_db)
     response = client.get(f"/quotes/{quote_id}")
@@ -91,6 +91,12 @@ def test_price_review_scenarios_are_consistent_in_html_and_api(temp_db):
             assert assessment["reference_count"] == 6
             assert "+60.0%" in response.text
             assert assessment["context_fields"] == ["area_in2", "qty"]
+        if status == "within_band":
+            summary = client.get(f"/api/quotes/{ids[name]}/historical-summary").json()
+            assert summary["evidence"][0]["count"] == assessment["reference_count"] == 5
+            assert summary["evidence"][0]["median"] == assessment["median_unit_price"] == 100
+            assert "SYNTH-PRICE-HIGH" not in response.text
+        assert response.text.index('data-price-status=') < response.text.index('Customer Quote Summary')
         if status == "insufficient_evidence":
             assert assessment["reference_count"] == 2
             assert assessment["upper_bound"] is None
@@ -153,7 +159,7 @@ def test_quote_detail_shows_historical_intelligence(temp_db):
         {"status": "success", "total": 1100, "unit_price": 110},
     )
     db = temp_db.SessionLocal()
-    quote_id = db.query(temp_db.QuoteHistory).order_by(temp_db.QuoteHistory.id.asc()).first().id
+    quote_id = db.query(temp_db.QuoteHistory).order_by(temp_db.QuoteHistory.id.desc()).first().id
     db.close()
 
     client = _logged_in_client(temp_db)
@@ -161,7 +167,7 @@ def test_quote_detail_shows_historical_intelligence(temp_db):
 
     assert response.status_code == 200
     assert "Specification comparison" in response.text
-    assert "+2.0%" in response.text
+    assert "-2.0%" in response.text
     assert "%+.1f%%" not in response.text
     assert "Insufficient evidence" in response.text
     assert "Historical Intelligence" in response.text

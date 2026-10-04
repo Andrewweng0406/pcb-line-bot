@@ -5,13 +5,14 @@ from openpyxl.styles import Alignment
 
 from datetime import datetime
 import os
+from uuid import uuid4
 from app.core.config import settings
 
 
 quote_counter = 1
 
 
-def export_quote_excel(parsed, result):
+def export_quote_excel(parsed, result, currency=None):
 
     global quote_counter
 
@@ -41,6 +42,8 @@ def export_quote_excel(parsed, result):
 
     ws["A5"] = "Date"
     ws["B5"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+    ws["A6"] = "Currency"
+    ws["B6"] = currency if currency is not None else (settings.DEFAULT_CURRENCY or "UNKNOWN")
 
     # Basic Spec
     ws["A7"] = "Layer"
@@ -123,7 +126,7 @@ def export_quote_excel(parsed, result):
     ws.column_dimensions["A"].width = 25
     ws.column_dimensions["B"].width = 30
 
-    filename = f'{quote_no}.xlsx'
+    filename = f'{quote_no}_{uuid4().hex}.xlsx'
 
     # Ensure the exports directory exists
     exports_dir = settings.EXPORT_DIR

@@ -66,6 +66,28 @@ def test_unsigned_review_is_rejected(temp_db):
     assert client.post("/quotes/new", data={"layer": 6, "qty": 9, "extraction_review_json": "{}"}).status_code == 400
 
 
+def test_legacy_approval_can_save_notes_but_cannot_release_pending_data(temp_db):
+    client = _logged_in_client(temp_db)
+    spec = {"layer": 6, "qty": 9, "area_inch": 10}
+    spec["_extraction_review"] = build_extraction_review(spec, "6L qty 9")
+    temp_db.save_quote("web:1", spec, {"status": "success", "total": 100, "unit_price": 11.11})
+    with temp_db.SessionLocal() as session:
+        quote = session.query(temp_db.QuoteHistory).first()
+        quote.status = "approved"
+        quote_id = quote.id
+        session.commit()
+    page = client.get(f"/quotes/{quote_id}")
+    assert "Business Status: Approved" in page.text
+    assert "Review Pending Fields" in page.text
+    assert 'badge-approved' not in page.text
+    assert f'href="/quotes/{quote_id}/export/formal"' not in page.text
+    assert client.post(f"/quotes/{quote_id}/update", data={"status": "approved", "notes": "Awaiting customer clarification"}, follow_redirects=False).status_code == 303
+    assert client.post(f"/quotes/{quote_id}/update", data={"status": "ordered"}).status_code == 409
+    assert client.get(f"/quotes/{quote_id}/export/formal").status_code == 409
+    with temp_db.SessionLocal() as session:
+        assert session.get(temp_db.QuoteHistory, quote_id).notes == "Awaiting customer clarification"
+
+
 def test_revision_preserves_original_and_invalidates_changed_confirmation(temp_db):
     from app.extraction_review import confirm_review, reconcile_review
 

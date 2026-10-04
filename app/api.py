@@ -7,6 +7,8 @@ from app.business_analytics import (
     get_customer_analytics,
     get_outcome_stats,
     get_pricing_trends,
+    monetary_summary,
+    single_currency_value,
 )
 from app.historical_intelligence import find_similar_quotes, historical_pricing_summary
 from app.price_assessment import assess_quote_price
@@ -205,7 +207,7 @@ def get_similar_quotes(quote_id: int, limit: int = Query(10, ge=1, le=200), user
         if not quote:
             session.close()
             raise HTTPException(status_code=404, detail="Quote not found")
-        matches = find_similar_quotes(session, db.QuoteHistory, quote, limit=limit)
+        matches = find_similar_quotes(session, db.QuoteHistory, quote, limit=limit, historical_only=True)
         session.close()
         return matches
     except HTTPException:
@@ -223,7 +225,7 @@ def get_historical_summary(quote_id: int, user=Depends(require_user)):
         if not quote:
             session.close()
             raise HTTPException(status_code=404, detail="Quote not found")
-        similar = find_similar_quotes(session, db.QuoteHistory, quote, limit=200)
+        similar = find_similar_quotes(session, db.QuoteHistory, quote, limit=200, historical_only=True)
         summary = historical_pricing_summary(similar)
         summary["price_assessment"] = assess_quote_price(quote, similar)
         session.close()
@@ -282,15 +284,15 @@ def get_stats_summary(
         quotes = query.all()
 
         total_count = len(quotes)
-        total_amount = sum(q.total for q in quotes) if quotes else 0
-        avg_price = total_amount / total_count if total_count > 0 else 0
+        amounts = monetary_summary(quotes)
 
         session.close()
 
         return {
             "total_count": total_count,
-            "total_amount": round(total_amount, 2),
-            "avg_price": round(avg_price, 2)
+            "total_amount": single_currency_value(amounts, "total"),
+            "avg_price": single_currency_value(amounts, "average"),
+            "amounts_by_currency": amounts,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

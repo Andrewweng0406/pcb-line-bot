@@ -51,7 +51,7 @@
                 <td class="px-4 py-2">{{ q.customer.company_name if q.customer else "-" }}</td>
                 <td class="px-4 py-2 font-data">{{ q.layer }}L</td>
                 <td class="px-4 py-2">{{ q.material or "-" }}</td>
-                <td class="px-4 py-2 font-data">{{ "{:,.0f}".format(q.total or 0) }}</td>
+                <td class="px-4 py-2 font-data">{{ q.currency or 'UNKNOWN' }} {{ "{:,.2f}".format(q.total) if q.total is not none else '-' }}</td>
                 <td class="px-4 py-2">
                     <span class="badge badge-{{ q.status or 'pending' }}">{{ status_labels.get(q.status, q.status) }}</span>
                 </td>

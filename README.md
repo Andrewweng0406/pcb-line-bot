@@ -103,6 +103,33 @@ uvicorn app.main:app --reload --port 8000
 
 ## Local Testing
 
+### Workflow acceptance
+
+```bash
+DEBUG=false python3 -m pytest -q
+DEBUG=false python3 -m pytest tests/test_quote_acceptance.py -q
+```
+
+The acceptance test runs RFQ parsing, draft corrections, release blocking,
+human confirmation, approval, real Excel downloads and a second revision.
+It verifies persisted evidence, reviewer attribution, original-record integrity
+and unchanged contents at previous download URLs. Export filenames are unique
+across same-second requests and process-counter resets.
+
+Browser acceptance is opt-in and requires Playwright with Chromium:
+
+```bash
+python3 -m pip install playwright
+python3 -m playwright install chromium
+DEBUG=false RUN_BROWSER_ACCEPTANCE=1 python3 -m pytest tests/test_browser_acceptance.py -q
+```
+
+Browser tests click through the workflow at desktop and mobile widths, using
+temporary SQLite databases, temporary export directories and a loopback server
+that is stopped after each test. Only the external LLM response is stubbed;
+these tests do not measure model extraction accuracy. Existing demo or Railway
+data is not used. Screenshots are written to each test's temporary directory.
+
 ### Test the quote text endpoint
 
 ```bash
@@ -203,14 +230,17 @@ benchmark eligibility. Specification comparisons show current and historical
 values, signed percentage differences, and unknown fields. Similarity is a
 deterministic score out of 100, not AI confidence or a price recommendation.
 
-The search inspects the latest 200 candidates within two layers of the current
-RFQ, with material aliases normalized before comparison. Eligible references
+The web page and authenticated history APIs inspect up to 200 candidates
+preceding the current quote, within two layers of the current RFQ. The date
+cutoff is applied before the candidate limit and revision-family selection;
+same-timestamp records must have a lower ID. Material aliases are normalized
+before comparison. Eligible references
 require recorded, matching currency and pricing version; matching layer,
 material, board thickness, copper, surface finish, gold thickness and special processes;
 known positive area, quantity and delivery time within a factor of two; and
 similarity of at least 75. Pending extraction reviews are excluded. Unknown
 special-process flags are not interpreted as false. Missing or broken revision
-lineage is excluded; only the newest candidate from a revision family counts,
+lineage is excluded; only the newest eligible historical candidate from a revision family counts,
 and the current RFQ's own family never counts as independent history.
 
 Quoted unit price, accepted unit price and actual unit cost have separate sample
@@ -228,8 +258,9 @@ professional judgment. No automatic repricing is applied.
 
 Quote detail and the authenticated historical-summary API now include a price
 review assessment. Only positive finite **quoted** unit prices from eligible
-independent RFQs dated earlier than the current quote are used. Later quotes,
-missing dates and invalid prices are listed with exclusion reasons. Pending
+independent RFQs preceding the current quote are used. Later and undated quotes
+are outside the discovery window; invalid prices within the window are listed
+with exclusion reasons. Pending
 extraction review, unavailable current price, and fewer than five valid earlier
 references each produce an explicit unavailable state with no price band.
 
@@ -260,6 +291,21 @@ Three clearly labelled synthetic scenarios can be added to local or staging
 data with `python scripts/seed_price_review_demo.py`. The command preserves
 existing records and refuses Railway production. Its isolated pricing version
 prevents illustrative prices from becoming references for normal quotes.
+
+### Currency and release readiness
+
+Quote pages and exports display the recorded currency and monetary precision
+to two decimal places. Dashboard, customer and monthly monetary analytics are
+grouped by currency; no exchange-rate conversion or cross-currency sum is
+performed. Missing currencies remain `UNKNOWN`. Monetary API responses include
+per-currency groups; legacy scalar totals/averages are `null` when currency is
+unknown or multiple currencies are present.
+
+The detail page separates the saved business status from extraction-review
+readiness. A legacy approved quote with pending confirmations remains blocked
+from formal export or a new ordered transition, but staff can still save notes.
+Price review is near the top, with contributing evidence collapsed; pending
+extraction fields are shown first and the full audit remains available.
 
 ### Demo data
 

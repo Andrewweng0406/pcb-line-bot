@@ -70,7 +70,7 @@
                 <td class="py-2 pr-4 font-data">{{ c.won }}</td>
                 <td class="py-2 pr-4 font-data">{{ c.lost }}</td>
                 <td class="py-2 pr-4 font-data">{{ "{:.1f}%".format(c.win_rate * 100) if c.win_rate is not none else "-" }}</td>
-                <td class="py-2 pr-4 font-data">NT$ {{ "{:,.0f}".format(c.total_won_value or 0) }}</td>
+                <td class="py-2 pr-4 font-data">{% for amount in c.won_by_currency %}<p>{{ amount.currency }} {{ "{:,.2f}".format(amount.total) if amount.total is not none else '-' }}</p>{% else %}-{% endfor %}</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -120,7 +120,12 @@
         type: "line",
         data: {
             labels: pricingTrends.map(r => r.period),
-            datasets: [{ label: "Avg Quote", data: pricingTrends.map(r => r.average_quote_value), borderColor: "#B5651D", backgroundColor: "#B5651D33" }],
+            datasets: [...new Set(pricingTrends.flatMap(r => r.amounts_by_currency.map(a => a.currency)))].map((currency, index) => ({
+                label: currency,
+                data: pricingTrends.map(r => r.amounts_by_currency.find(a => a.currency === currency)?.average ?? null),
+                borderColor: ["#B5651D", "#1E4373", "#3F7D4C"][index % 3],
+                spanGaps: false,
+            })),
         },
     });
 </script>

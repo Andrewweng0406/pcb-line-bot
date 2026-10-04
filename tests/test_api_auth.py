@@ -123,8 +123,8 @@ def test_api_returns_similar_quotes_and_historical_summary(temp_db):
     )
     db = temp_db.SessionLocal()
     quotes = db.query(temp_db.QuoteHistory).order_by(temp_db.QuoteHistory.id.asc()).all()
-    quotes[1].quote_outcome = "won"
-    quote_id = quotes[0].id
+    quotes[0].quote_outcome = "won"
+    quote_id = quotes[1].id
     db.commit()
     db.close()
 

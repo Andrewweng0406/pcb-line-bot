@@ -1,5 +1,6 @@
 from datetime import datetime
 import os
+from uuid import uuid4
 
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
@@ -18,10 +19,10 @@ def _fmt_num(value, digits=2):
     return f"{number:.{digits}f}".rstrip("0").rstrip(".")
 
 
-def _fmt_money(value):
+def _fmt_money(value, currency):
     if value is None:
         return "-"
-    return f"NT${float(value):,.0f}"
+    return f"{(currency or '').strip().upper() or 'UNKNOWN'} {float(value):,.2f}"
 
 
 def _surface(parsed):
@@ -152,8 +153,8 @@ def export_formal_quote(parsed, result, metadata=None):
         part_name,
         "\n".join(spec_lines),
         f'{_fmt_num(parsed.get("qty"))} pcs/batch',
-        f'{_fmt_money(unit_price)} / pc',
-        _fmt_money(total),
+        f'{_fmt_money(unit_price, metadata.get("currency", settings.DEFAULT_CURRENCY))} / pc',
+        _fmt_money(total, metadata.get("currency", settings.DEFAULT_CURRENCY)),
         lead_time_text,
     ]
     for col_index, value in enumerate(values, start=1):
@@ -192,7 +193,7 @@ def export_formal_quote(parsed, result, metadata=None):
 
     exports_dir = settings.EXPORT_DIR
     os.makedirs(exports_dir, exist_ok=True)
-    filename = f'formal_quote_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+    filename = f'formal_quote_{datetime.now().strftime("%Y%m%d_%H%M%S")}_{uuid4().hex}.xlsx'
     output_path = os.path.join(exports_dir, filename)
     wb.save(output_path)
 
