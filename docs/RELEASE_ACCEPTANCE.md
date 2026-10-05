@@ -2,9 +2,9 @@
 
 Prepared 2026-10-05. This is a procedure and evidence template, not a claim that
 the checks below have been performed today. Production remains frozen.
-The development branch now implements the [customer-export policy](CUSTOMER_EXPORT_POLICY.md).
-The older staging deployment has not been updated; verify the exact revision
-before testing the new conditions.
+Staging revision `b591af5` now implements the [customer-export policy](CUSTOMER_EXPORT_POLICY.md).
+See the [verified deployment record](STAGING_RELEASE_2026-10-05.md); verify the
+exact revision before repeating the checks. Production has not been updated.
 
 ## Evidence Rules
 
@@ -33,10 +33,10 @@ are authorized by this checklist alone.
 | D9 | Create a revision of a synthetic quote. | New quote links to unchanged original; changed confirmations are invalidated. | Before/after quote IDs and original-content comparison. |
 | D10 | Rehearse at desktop and mobile widths. | Text and controls do not overlap; horizontal scrolling is confined to wide tables. | 1440px and 390px screenshots. |
 
-On the new development revision, formal export requires role, completed review,
+On staging revision `b591af5`, formal export requires role, completed review,
 complete specifications, resolved pricing and Approved/Ordered business status.
 An estimate does not require business approval but retains review/calculation
-guards. These additional conditions are not active on the older staging deployment.
+guards. These additional conditions are not deployed to production.
 Manually created quotes without extraction metadata use a different workflow;
 do not use them to claim the AI review guard has been tested.
 
@@ -95,7 +95,7 @@ scope limitation before a separately authorized production deployment.
 | Recovery | Verified recent DB snapshot and file archive, active daily/weekly provider schedule, completed native backup and disposable restore evidence. | Manual snapshots/restores verified; automatic schedule blocked by OAuth grant. |
 | Access and secrets | Review legacy Manager membership; replace public demo credentials before real data; confirm secret handling and intended single-company access. | Real-data access review pending; no tenant isolation. |
 | Operational limits | Specify replica count, verify intended limiter mode/proxy handling, storage quotas/retention and error alert routing. | Redis disabled; distributed limiting, retention/quota policy and alerts not verified. |
-| Domain decisions | Validate pricing rules/version/currency and required-field policy with a domain owner; verify the new approval/completeness/unpriced-factor export gates on the target revision. | New export policy implemented on development branch after rehearsal; no deployment or domain-owner sign-off yet. |
+| Domain decisions | Validate pricing rules/version/currency and required-field policy with a domain owner; verify the new approval/completeness/unpriced-factor export gates on the target revision. | Export policy subsequently verified on staging b591af5; no production deployment or domain-owner sign-off yet. |
 
 Do not enable infrastructure, create services or restore data merely to make a
 checklist entry green. Resolve permission/cost/scope decisions separately.

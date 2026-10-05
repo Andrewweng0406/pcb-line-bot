@@ -22,13 +22,11 @@ inspectable estimating workflow, not a claim of production maturity.
   rerun the general seed script against shared data without reviewing its upsert
   behavior.
 
-The staging parser revision `2e55836` was deployed on 2026-10-04 and its live
-workflow was rehearsed on 2026-10-05. Recheck availability before an interview;
-this document is not a live deployment-health check.
-The new estimate/formal-export policy is implemented on the development branch
-but not deployed to that staging revision. Rehearse this updated script locally
-or after a separately verified staging deployment; do not claim the new gates
-are already active on Railway.
+The older staging parser revision `2e55836` was rehearsed on 2026-10-05.
+Revision `b591af5` was subsequently deployed and its new estimate/formal gates
+verified on staging the same day. See the [deployment record](STAGING_RELEASE_2026-10-05.md)
+for three ready-to-inspect synthetic cases. Recheck availability before an
+interview; this document is not a live deployment-health check.
 
 ## Five-Minute Script
 
@@ -42,7 +40,7 @@ are already active on Railway.
 | 3:45-4:30 | In another New Quote tab, parse Case B. Point to blank Gold Thickness and the review-required item. Do not save or confirm a guessed value. | "This ambiguous unit was a real failure in synthetic evaluation. Prompt changes alone were variable, so I added a text guard that leaves the thickness unknown and asks for clarification." |
 | 4:30-5:00 | Return to the quote detail and close verbally. | "I added field-level evaluations, regression comparison and checksummed backup verification. The latest recorded synthetic run passed 59 fields across ten cases. Real anonymized RFQs, automated backups and stronger operational controls are still release gates." |
 
-The new formal-export endpoint requires Manager/Admin permission, completed
+The formal-export endpoint on staging revision `b591af5` requires Manager/Admin permission, completed
 extraction review, complete formal specifications, resolved pricing review and
 Approved/Ordered business status. The previously rehearsed staging revision
 only enforced permission and extraction review. Distinguish these revisions.

@@ -13,6 +13,7 @@ created from either one shows up in the same history.
 - Interview walkthrough: [docs/INTERVIEW_DEMO.md](docs/INTERVIEW_DEMO.md)
 - Rehearsal and production-release checks: [docs/RELEASE_ACCEPTANCE.md](docs/RELEASE_ACCEPTANCE.md)
 - Recorded staging rehearsal: [docs/REHEARSAL_2026-10-05.md](docs/REHEARSAL_2026-10-05.md)
+- Latest staging deployment: [docs/STAGING_RELEASE_2026-10-05.md](docs/STAGING_RELEASE_2026-10-05.md)
 - Customer estimate/formal release policy: [docs/CUSTOMER_EXPORT_POLICY.md](docs/CUSTOMER_EXPORT_POLICY.md)
 - Vereyo-specific positioning: [docs/VEREYO_ALIGNMENT.md](docs/VEREYO_ALIGNMENT.md)
 - AI evaluation plan: [docs/AI_EVALUATION.md](docs/AI_EVALUATION.md)
@@ -217,8 +218,8 @@ can download a clearly labelled preliminary estimate after review. Formal export
 also requires complete specifications, a resolved saved pricing review and an
 Approved/Ordered business status. Missing legacy pricing reviews fail closed;
 use a verified revision instead of overwriting the original. See the
-[customer-export policy](docs/CUSTOMER_EXPORT_POLICY.md). This change is not yet
-deployed to Railway.
+[customer-export policy](docs/CUSTOMER_EXPORT_POLICY.md). Revision `b591af5` is
+deployed and verified on Railway staging; production remains unchanged.
 
 Use **Create Revision** on a saved quote to correct its specifications. This
 creates a new pending quote linked to the original and preserves its extraction

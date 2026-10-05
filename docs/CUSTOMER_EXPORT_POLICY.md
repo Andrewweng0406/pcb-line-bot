@@ -1,7 +1,8 @@
 # Customer Export Policy
 
-This policy is implemented on the development branch. It has not yet been
-deployed to Railway; the 2026-10-05 staging rehearsal describes the older behavior.
+This policy is deployed on Railway staging at revision `b591af5`, verified on
+2026-10-05. The earlier staging rehearsal describes the older behavior; see the
+[new deployment record](STAGING_RELEASE_2026-10-05.md). Production is unchanged.
 Domain-owner validation and the other production release gates still apply.
 
 ## Three Different Documents
