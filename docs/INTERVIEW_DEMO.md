@@ -22,9 +22,9 @@ inspectable estimating workflow, not a claim of production maturity.
   rerun the general seed script against shared data without reviewing its upsert
   behavior.
 
-The last recorded staging parser verification was on 2026-10-04 at commit
-`2e55836`. Recheck availability before an interview; this document is not a
-live deployment-health check.
+The staging parser revision `2e55836` was deployed on 2026-10-04 and its live
+workflow was rehearsed on 2026-10-05. Recheck availability before an interview;
+this document is not a live deployment-health check.
 
 ## Five-Minute Script
 
@@ -65,6 +65,13 @@ Expected checkpoints:
 
 No exact quote amount is promised here: pricing configuration/version and
 operator edits determine the calculated result.
+
+The 2026-10-05 staging rehearsal showed this input as an Estimate with 88%
+RFQ data completeness: Surface Finish and Pitch were still missing. Completing
+extraction review did not remove those completeness warnings or prevent formal
+export. Explain that review completion, specification completeness and business
+approval are different states. Do not describe this case as a fully specified
+manufacturing order or an enforced completeness-gated release.
 
 ## Case B - Ambiguous Unit
 
@@ -144,6 +151,7 @@ rules are domain-specific; I would validate those with domain experts."
 ## Evidence and Acceptance
 
 - [Release acceptance checklist](RELEASE_ACCEPTANCE.md)
+- [Recorded staging rehearsal](REHEARSAL_2026-10-05.md)
 - [Runnable extraction evaluation](EXTRACTION_EVALUATION.md)
 - [Backup and recovery runbook](BACKUP_RECOVERY.md)
 - [Access-control boundaries](ACCESS_CONTROL.md)

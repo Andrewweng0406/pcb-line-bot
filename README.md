@@ -12,6 +12,7 @@ created from either one shows up in the same history.
 - Use privately supplied demo credentials; passwords are not listed here.
 - Interview walkthrough: [docs/INTERVIEW_DEMO.md](docs/INTERVIEW_DEMO.md)
 - Rehearsal and production-release checks: [docs/RELEASE_ACCEPTANCE.md](docs/RELEASE_ACCEPTANCE.md)
+- Recorded staging rehearsal: [docs/REHEARSAL_2026-10-05.md](docs/REHEARSAL_2026-10-05.md)
 - Vereyo-specific positioning: [docs/VEREYO_ALIGNMENT.md](docs/VEREYO_ALIGNMENT.md)
 - AI evaluation plan: [docs/AI_EVALUATION.md](docs/AI_EVALUATION.md)
 - Runnable extraction benchmark: [docs/EXTRACTION_EVALUATION.md](docs/EXTRACTION_EVALUATION.md)
