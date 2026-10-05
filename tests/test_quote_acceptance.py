@@ -10,17 +10,17 @@ from tests.test_web_extraction_workflow import ReviewTokenParser
 from tests.test_web_quote_new import _logged_in_client
 
 
-RFQ = "6L FR4 qty 9 100x100mm thickness 1.6mm copper 1oz ENIG 5u delivery 7 days"
+RFQ = "6L FR4 qty 9 100x100mm thickness 1.6mm copper 1oz ENIG 5uinch pitch 0.4mm delivery 7 days"
 PARSED_RFQ = {
     "layer": 6, "qty": 9, "material": "FR4", "length_mm": 100, "width_mm": 100,
     "thickness": 1.6, "copper_weight": "1oz", "enig": True,
-    "gold_thickness_uin": 5, "delivery_days": 7,
+    "gold_thickness_uin": 5, "delivery_days": 7, "pitch_mm": 0.4,
 }
 FORM = {
     "layer": 8, "qty": 9, "material": "FR4", "length_mm": 100, "width_mm": 100,
     "thickness_mm": 1.6, "copper_weight": "1oz", "enig": "on",
     "enig_thickness_uinch": 5, "delivery_days": 7, "issue_ratio": 1,
-    "company_name": "Acceptance Buyer",
+    "company_name": "Acceptance Buyer", "pitch_mm": 0.4,
 }
 
 

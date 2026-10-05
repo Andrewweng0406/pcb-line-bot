@@ -72,6 +72,10 @@ def _special_comment(parsed):
 def export_formal_quote(parsed, result, metadata=None):
     """Create a customer-facing quote without relying on a checked-in xlsx template."""
     metadata = metadata or {}
+    document_kind = metadata.get("document_kind", "formal")
+    if document_kind not in {"formal", "estimate"}:
+        raise ValueError("Invalid customer document kind")
+    is_estimate = document_kind == "estimate"
 
     wb = Workbook()
     ws = wb.active
@@ -94,7 +98,10 @@ def export_formal_quote(parsed, result, metadata=None):
     ws["A1"].alignment = Alignment(horizontal="center", vertical="center")
 
     ws.merge_cells("A3:H3")
-    ws["A3"] = "PCB Manufacturing Services - Official Quotation"
+    ws["A3"] = (
+        "PRELIMINARY ESTIMATE - NOT AN OFFICIAL QUOTATION"
+        if is_estimate else "PCB Manufacturing Services - Official Quotation"
+    )
     ws["A3"].font = Font(size=14, bold=True)
     ws["A3"].alignment = Alignment(horizontal="center")
 
@@ -174,9 +181,32 @@ def export_formal_quote(parsed, result, metadata=None):
         "3. Validity: 30 days from the date of this quotation.",
         "4. Payment term: NET 30 days unless otherwise agreed.",
     ]
+    if is_estimate:
+        notes = [
+            "Estimate only. Not approved for ordering or manufacturing.",
+            "Incomplete specifications and unresolved pricing may change this amount.",
+            "No quotation validity or payment terms are established by this estimate.",
+        ]
+        blocker_labels = {
+            "export_missing_specs": "Missing specifications",
+            "export_missing_pricing_review": "Pricing review unavailable; revision required",
+            "export_pricing_not_ready": "Pricing factors require resolution",
+            "export_process_conflict": "Surface finish and priced plating options disagree",
+            "export_approval_required": "Manager approval pending",
+        }
+        for blocker in metadata.get("release_blockers", []):
+            label = blocker_labels.get(blocker["code"])
+            if label:
+                fields = ", ".join(blocker.get("fields", []))
+                notes.append(f"{label}: {fields}" if fields else label)
+        pricing = result.get("pricing_review")
+        if isinstance(pricing, dict) and isinstance(pricing.get("unpriced_factors"), list):
+            notes.extend(f"Unpriced factor: {factor}" for factor in pricing["unpriced_factors"])
     for row_index, note in enumerate(notes, start=15):
         ws.merge_cells(start_row=row_index, start_column=1, end_row=row_index, end_column=8)
         ws.cell(row=row_index, column=1, value=note)
+        ws.cell(row=row_index, column=1).alignment = Alignment(wrap_text=True, vertical="top")
+        ws.row_dimensions[row_index].height = 32
 
     widths = {
         "A": 26,
@@ -193,7 +223,8 @@ def export_formal_quote(parsed, result, metadata=None):
 
     exports_dir = settings.EXPORT_DIR
     os.makedirs(exports_dir, exist_ok=True)
-    filename = f'formal_quote_{datetime.now().strftime("%Y%m%d_%H%M%S")}_{uuid4().hex}.xlsx'
+    prefix = "estimate" if is_estimate else "formal_quote"
+    filename = f'{prefix}_{datetime.now().strftime("%Y%m%d_%H%M%S")}_{uuid4().hex}.xlsx'
     output_path = os.path.join(exports_dir, filename)
     wb.save(output_path)
 

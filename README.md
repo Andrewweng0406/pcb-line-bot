@@ -13,6 +13,7 @@ created from either one shows up in the same history.
 - Interview walkthrough: [docs/INTERVIEW_DEMO.md](docs/INTERVIEW_DEMO.md)
 - Rehearsal and production-release checks: [docs/RELEASE_ACCEPTANCE.md](docs/RELEASE_ACCEPTANCE.md)
 - Recorded staging rehearsal: [docs/REHEARSAL_2026-10-05.md](docs/REHEARSAL_2026-10-05.md)
+- Customer estimate/formal release policy: [docs/CUSTOMER_EXPORT_POLICY.md](docs/CUSTOMER_EXPORT_POLICY.md)
 - Vereyo-specific positioning: [docs/VEREYO_ALIGNMENT.md](docs/VEREYO_ALIGNMENT.md)
 - AI evaluation plan: [docs/AI_EVALUATION.md](docs/AI_EVALUATION.md)
 - Runnable extraction benchmark: [docs/EXTRACTION_EVALUATION.md](docs/EXTRACTION_EVALUATION.md)
@@ -209,7 +210,15 @@ the audit history stores original and final values, the authenticated reviewer,
 and a UTC timestamp. Approval, ordering, and formal export are blocked until all
 pending extraction fields have been confirmed. Internal Excel exports remain
 available for review. Quotes entered manually without AI extraction metadata
-continue through the existing workflow.
+have no AI confirmation gate, but still undergo the customer-export checks.
+
+Customer estimates and formal quotations are separate documents. Manager/Admin
+can download a clearly labelled preliminary estimate after review. Formal export
+also requires complete specifications, a resolved saved pricing review and an
+Approved/Ordered business status. Missing legacy pricing reviews fail closed;
+use a verified revision instead of overwriting the original. See the
+[customer-export policy](docs/CUSTOMER_EXPORT_POLICY.md). This change is not yet
+deployed to Railway.
 
 Use **Create Revision** on a saved quote to correct its specifications. This
 creates a new pending quote linked to the original and preserves its extraction

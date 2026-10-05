@@ -15,12 +15,17 @@ customer and reporting data, including recorded costs.
 | Change business status or financial fields | No | No | Yes | Yes |
 | Set a manual back-drill fee | No | No | Yes | Yes |
 | Generate formal exports | No | No | Yes | Yes |
+| Generate preliminary customer estimates | No | No | Yes | Yes |
 | Confirm historical imports | No | No | Yes | Yes |
 | Delete quotes through API | No | No | No | Yes |
 
 Financial fields are `final_price`, `actual_cost` and `competitor_price`.
 Calculated totals remain immutable regardless of role. Extraction review must
 still be completed before approval or formal export, even for an Admin.
+Customer estimates also require completed extraction review. Formal exports
+additionally require complete formal specifications, resolved saved pricing
+review and Approved/Ordered business status; no privileged-role override exists.
+See [Customer Export Policy](CUSTOMER_EXPORT_POLICY.md) for exact conditions.
 
 ## Provisioning
 

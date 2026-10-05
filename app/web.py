@@ -36,7 +36,6 @@ from app.extraction_review import (
     reconcile_review,
     confirm_review,
     clarification_draft,
-    release_pending,
 )
 from app.formal_quote_export import export_formal_quote
 from app.historical_intelligence import find_similar_quotes, historical_pricing_summary
@@ -54,7 +53,7 @@ from app.quote_outcomes import (
     normalize_lost_reason,
     normalize_outcome,
 )
-from app.quote_workflow import validate_status_transition
+from app.quote_workflow import customer_export_readiness, validate_status_transition
 from app.upload_validation import read_image_upload, read_upload
 from starlette.concurrency import run_in_threadpool
 from app.core.rate_limit import rate_limiter, client_identity
@@ -144,7 +143,7 @@ TRANSLATIONS = {
         "complete": "Complete",
         "required_before_quoting": "Required Before Quoting",
         "recommended_checks": "Recommended Checks",
-        "data_complete": "Data is complete. You can generate the formal quote.",
+        "data_complete": "RFQ completeness checks passed. Formal release checks are separate.",
         "estimate_missing": "Estimate Missing",
         "manual_cost_review": "Manual Cost Review Needed",
         "create_new_quote": "Create New Quote",
@@ -195,6 +194,18 @@ TRANSLATIONS = {
         "clarification_draft": "Customer Clarification Draft",
         "original_rfq": "Original RFQ",
         "release_blocked": "Confirm the pending extraction fields before approval or formal export.",
+        "download_estimate": "Download Estimate",
+        "formal_release_ready": "Approved for formal export",
+        "formal_release_blocked": "Formal export blocked",
+        "estimate_document_notice": "Estimate only - not an official quotation",
+        "export_pending_review": "Confirm pending extraction fields before customer export.",
+        "export_invalid_calculation": "Saved calculation is missing or inconsistent. Create a revision and recalculate.",
+        "export_unknown_currency": "An explicit three-letter currency code is required for customer export.",
+        "export_missing_specs": "Complete these specifications in a revision:",
+        "export_missing_pricing_review": "Pricing review is unavailable. Create a revision and recalculate.",
+        "export_pricing_not_ready": "Pricing is still an estimate or requires review; unresolved pricing factors block formal export.",
+        "export_process_conflict": "Surface finish and priced plating options disagree. Correct them in a revision.",
+        "export_approval_required": "Manager approval is required before formal export.",
         "create_revision": "Create Revision",
         "revision_of": "Revision Of",
         "review_required": "Review Required",
@@ -396,7 +407,7 @@ TRANSLATIONS = {
         "complete": "完整",
         "required_before_quoting": "報價前必補",
         "recommended_checks": "建議確認",
-        "data_complete": "資料完整，可以產生正式報價單。",
+        "data_complete": "詢價資料完整度檢查通過；正式放行條件另行檢查。",
         "estimate_missing": "價格初估缺少",
         "manual_cost_review": "需人工確認成本",
         "create_new_quote": "建立新報價",
@@ -447,6 +458,18 @@ TRANSLATIONS = {
         "clarification_draft": "客戶規格確認信草稿",
         "original_rfq": "原始詢價內容",
         "release_blocked": "請先確認待覆核欄位，再批准或匯出正式報價。",
+        "download_estimate": "下載估價單",
+        "formal_release_ready": "可匯出正式報價",
+        "formal_release_blocked": "正式報價尚未放行",
+        "estimate_document_notice": "僅供估價，非正式報價單",
+        "export_pending_review": "對外匯出前請先確認待覆核欄位。",
+        "export_invalid_calculation": "計算資料缺失或不一致，請建立修訂版重新計算。",
+        "export_unknown_currency": "對外匯出需要明確的幣別。",
+        "export_missing_specs": "請在修訂版補齊下列規格：",
+        "export_missing_pricing_review": "缺少價格檢查紀錄，請建立修訂版重新計算。",
+        "export_pricing_not_ready": "目前仍為估價或需要價格覆核，未解決的計價因素會阻擋正式匯出。",
+        "export_process_conflict": "表面處理與計價製程選項不一致，請建立修訂版修正。",
+        "export_approval_required": "正式匯出前需要主管核准。",
         "create_revision": "建立修訂版",
         "revision_of": "修訂來源",
         "review_required": "需要覆核",
@@ -1204,6 +1227,7 @@ def quote_detail(request: Request, quote_id: int, user=Depends(get_current_user_
             "outcome_labels": OUTCOME_LABELS,
             "lost_reason_labels": LOST_REASON_LABELS,
             "rfq_completeness": evaluate_rfq_completeness(quote),
+            "export_readiness": customer_export_readiness(quote),
             "extraction_review": review,
             "clarification_draft": clarification_draft(review),
             "similar_quotes": similar_quotes,
@@ -1320,6 +1344,15 @@ def quote_export_excel(quote_id: int, user=Depends(get_current_user_optional)):
 
 @router.get("/quotes/{quote_id}/export/formal")
 def quote_export_formal(quote_id: int, user=Depends(get_current_user_optional)):
+    return _export_customer_quote(quote_id, user, "formal")
+
+
+@router.get("/quotes/{quote_id}/export/estimate")
+def quote_export_estimate(quote_id: int, user=Depends(get_current_user_optional)):
+    return _export_customer_quote(quote_id, user, "estimate")
+
+
+def _export_customer_quote(quote_id, user, document_kind):
     if user is None:
         return RedirectResponse(url="/login", status_code=303)
     require_permission(user, "export_formal")
@@ -1338,13 +1371,17 @@ def quote_export_formal(quote_id: int, user=Depends(get_current_user_optional)):
     if quote is None or not quote.spec_json or not quote.breakdown_json:
         raise HTTPException(status_code=404, detail="Quote not found or missing spec data")
 
-    if release_pending(quote.spec_json):
-        raise HTTPException(status_code=409, detail="Confirm the pending extraction fields before exporting a formal quote.")
+    readiness = customer_export_readiness(quote)
+    blockers = readiness[f"{document_kind}_blockers"]
+    if blockers:
+        raise HTTPException(status_code=409, detail={"document_kind": document_kind, "blockers": blockers})
 
     output_path = export_formal_quote(
         quote.spec_json,
         quote.breakdown_json,
         {
+            "document_kind": document_kind,
+            "release_blockers": readiness["formal_blockers"] if document_kind == "estimate" else [],
             "quote_no": quote.quote_no,
             "currency": quote.currency or "UNKNOWN",
             "customer_name": quote.customer.company_name if quote.customer else None,

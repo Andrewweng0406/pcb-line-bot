@@ -313,27 +313,22 @@ def test_export_excel_route_downloads_when_spec_present(temp_db):
     assert response.headers["location"].startswith("/download/exports/")
 
 
-def test_export_formal_quote_route_downloads_when_spec_present(temp_db):
+def test_export_formal_quote_route_downloads_when_complete_and_approved(temp_db):
+    from app.quote_engine import calculate_quote
+    spec = {"layer": 6, "qty": 3, "material": "FR4", "length_mm": 100, "width_mm": 80,
+            "thickness_mm": 1.6, "enig": True, "enig_thickness_uinch": 10,
+            "copper_outer_oz": 1, "copper_inner_oz": 1, "delivery_days": 7, "pitch_mm": 0.4}
     temp_db.save_quote(
         "line:U1",
-        {
-            "layer": 28,
-            "qty": 3,
-            "material": "FR4_HTG",
-            "length_mm": 560,
-            "width_mm": 350,
-            "thickness_mm": 5,
-            "enig": True,
-            "enig_thickness_uinch": 10,
-            "impedance": True,
-            "copper_outer_oz": 1,
-            "copper_inner_oz": 1,
-            "special_requirements": "Please provide inspection report.",
-        },
-        {"status": "success", "total": 228095.46, "unit_price": 76031.82, "area_inch": 303.8},
+        spec,
+        calculate_quote(spec),
     )
     db = temp_db.SessionLocal()
-    quote_id = db.query(temp_db.QuoteHistory).order_by(temp_db.QuoteHistory.id.desc()).first().id
+    quote = db.query(temp_db.QuoteHistory).order_by(temp_db.QuoteHistory.id.desc()).first()
+    quote_id = quote.id
+    quote.status = "approved"
+    quote.currency = "NTD"
+    db.commit()
     db.close()
 
     client = _logged_in_client(temp_db)

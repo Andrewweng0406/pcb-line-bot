@@ -22,9 +22,15 @@ def role_client(db, role):
 
 
 def quote_id(db):
-    db.save_quote("web:1", {"layer": 6, "qty": 10, "area_inch": 10}, {"status": "success", "total": 1000, "unit_price": 100})
+    from app.quote_engine import calculate_quote
+    spec = {"layer": 6, "qty": 10, "area_inch": 10, "material": "FR4", "surface_finish": "OSP",
+            "copper_weight": "1oz", "thickness_mm": 1.6, "pitch_mm": 0.4, "delivery_days": 7}
+    db.save_quote("web:1", spec, calculate_quote(spec))
     with db.SessionLocal() as session:
-        return session.query(db.QuoteHistory).first().id
+        quote = session.query(db.QuoteHistory).first()
+        quote.currency = "NTD"
+        session.commit()
+        return quote.id
 
 
 @pytest.mark.parametrize("role", ["viewer", "staff", "manager", "admin"])
@@ -41,6 +47,7 @@ def test_role_matrix_and_web_api_parity(temp_db, role):
     assert client.patch(f"/api/quotes/{qid}", json={"status": "approved"}).status_code == (200 if manager else 403)
     assert client.post(f"/quotes/{qid}/update", data={"status": "ordered"}, follow_redirects=False).status_code == (303 if manager else 403)
     assert client.get(f"/quotes/{qid}/export/formal", follow_redirects=False).status_code == (303 if manager else 403)
+    assert client.get(f"/quotes/{qid}/export/estimate", follow_redirects=False).status_code == (303 if manager else 403)
     assert client.delete(f"/api/quotes/{qid}").status_code == (200 if role == "admin" else 403)
     with temp_db.SessionLocal() as session:
         quote = session.get(temp_db.QuoteHistory, qid)

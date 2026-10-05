@@ -25,6 +25,10 @@ inspectable estimating workflow, not a claim of production maturity.
 The staging parser revision `2e55836` was deployed on 2026-10-04 and its live
 workflow was rehearsed on 2026-10-05. Recheck availability before an interview;
 this document is not a live deployment-health check.
+The new estimate/formal-export policy is implemented on the development branch
+but not deployed to that staging revision. Rehearse this updated script locally
+or after a separately verified staging deployment; do not claim the new gates
+are already active on Railway.
 
 ## Five-Minute Script
 
@@ -33,21 +37,22 @@ this document is not a live deployment-health check.
 | 0:00-0:30 | Open Quote List. | "I built a PCB estimating workflow that turns messy RFQs into structured specifications. AI handles extraction; a deterministic rules engine handles pricing. The important part is how the system makes uncertainty reviewable." |
 | 0:30-1:20 | Open New Quote, paste Case A, click Parse with AI. | "Each extracted field carries evidence and a review state. These are evidence classifications, not calibrated model probabilities. Missing information is not silently treated as a confirmed fact." |
 | 1:20-2:20 | Inspect fields, then Calculate and Save Quote without confirming everything. Open AI Extraction Review. | "An initial calculation can be saved for internal work while review is pending. Formal export and approval are blocked until required extraction confirmations are complete. The backend enforces that too." |
-| 2:20-3:00 | Review the actual values, confirm the pending fields you have verified, and add a note. Open Status and Internal Notes, choose Approved, then Generate Formal Quote. | "The review history keeps the authenticated reviewer, time and original/final values. I can separate specification review from a Manager's business-status decision, then hand off a formal document." |
+| 2:20-3:00 | Review the actual values, confirm verified pending fields and add a note. Show Download Estimate while business approval is pending. Choose Approved, then Generate Formal Quote after every release check passes. | "An estimate is explicitly labelled and makes no formal payment or validity commitment. Official release additionally needs complete specifications, resolved pricing and Manager approval. Approval alone cannot override missing specifications." |
 | 3:00-3:45 | Switch to the prepared SYNTH-PRICE-NORMAL and SYNTH-PRICE-SPARSE tabs. Expand Price Review Evidence. | "Historical review uses earlier independent references. With enough compatible evidence, I show a transparent price band; with too little evidence, I say insufficient evidence. Similarity is not permission to pool incompatible jobs." |
 | 3:45-4:30 | In another New Quote tab, parse Case B. Point to blank Gold Thickness and the review-required item. Do not save or confirm a guessed value. | "This ambiguous unit was a real failure in synthetic evaluation. Prompt changes alone were variable, so I added a text guard that leaves the thickness unknown and asks for clarification." |
 | 4:30-5:00 | Return to the quote detail and close verbally. | "I added field-level evaluations, regression comparison and checksummed backup verification. The latest recorded synthetic run passed 59 fields across ten cases. Real anonymized RFQs, automated backups and stronger operational controls are still release gates." |
 
-Approval is shown before export as a deliberate rehearsal sequence, not as an
-existing export prerequisite. The current formal-export endpoint requires
-Manager/Admin permission and completed extraction review, but does not require
-the saved business status to be Approved. Do not claim that it does.
+The new formal-export endpoint requires Manager/Admin permission, completed
+extraction review, complete formal specifications, resolved pricing review and
+Approved/Ordered business status. The previously rehearsed staging revision
+only enforced permission and extraction review. Distinguish these revisions.
 
 ## Case A - Ordinary RFQ
 
 ```text
 6-layer FR4 PCB, quantity 10 pcs, board size 100 x 80 mm.
 Board thickness 1.6 mm, copper thickness 1 oz, lead time 7 days.
+Surface finish OSP, minimum pitch 0.4 mm.
 No ENIG, no VIP, no back drill, no BVH, no impedance control.
 ```
 
@@ -55,6 +60,7 @@ Expected checkpoints:
 
 - Layer 6, quantity 10, dimensions 100 x 80 mm and thickness 1.6 mm.
 - ENIG false; gold thickness unknown/blank. Copper must not become gold thickness.
+- Surface Finish OSP and Pitch 0.4 mm.
 - Absent optional requirements remain unknown at extraction time. The form may
   expose standard options; inspect them before saving.
 - The default issue ratio needs operator confirmation; do not present it as a
@@ -66,12 +72,11 @@ Expected checkpoints:
 No exact quote amount is promised here: pricing configuration/version and
 operator edits determine the calculated result.
 
-The 2026-10-05 staging rehearsal showed this input as an Estimate with 88%
-RFQ data completeness: Surface Finish and Pitch were still missing. Completing
-extraction review did not remove those completeness warnings or prevent formal
-export. Explain that review completion, specification completeness and business
-approval are different states. Do not describe this case as a fully specified
-manufacturing order or an enforced completeness-gated release.
+For an optional incomplete-estimate demonstration, omit the Surface Finish/Pitch
+line. The earlier staging rehearsal displayed that input as an Estimate with
+88% RFQ completeness but still allowed formal export. The new development policy
+blocks formal export even after approval; only a labelled estimate is available
+after review. Do not invent the missing specifications to unlock the document.
 
 ## Case B - Ambiguous Unit
 
@@ -151,6 +156,7 @@ rules are domain-specific; I would validate those with domain experts."
 ## Evidence and Acceptance
 
 - [Release acceptance checklist](RELEASE_ACCEPTANCE.md)
+- [Customer-export policy](CUSTOMER_EXPORT_POLICY.md)
 - [Recorded staging rehearsal](REHEARSAL_2026-10-05.md)
 - [Runnable extraction evaluation](EXTRACTION_EVALUATION.md)
 - [Backup and recovery runbook](BACKUP_RECOVERY.md)

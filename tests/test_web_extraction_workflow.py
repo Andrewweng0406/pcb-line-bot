@@ -15,9 +15,12 @@ class ReviewTokenParser(HTMLParser):
 
 def test_draft_gate_confirmation_and_formal_export(temp_db, monkeypatch):
     import app.web as web
+    from app.core.config import settings
+    monkeypatch.setattr(settings, "DEFAULT_CURRENCY", "NTD")
 
     client = _logged_in_client(temp_db)
-    spec = {"layer": 6, "qty": 9, "length_mm": 100, "width_mm": 100, "material": "FR4", "issue_ratio": 1}
+    spec = {"layer": 6, "qty": 9, "length_mm": 100, "width_mm": 100, "material": "FR4", "issue_ratio": 1,
+            "surface_finish": "OSP", "copper_weight": "1oz", "thickness_mm": 1.6, "pitch_mm": 0.4, "delivery_days": 7}
     review = build_extraction_review(spec, "6L FR4 qty 9 100x100mm")
     response = client.post("/quotes/new", data={**spec, "extraction_review_token": sign_review(review, 1)}, follow_redirects=False)
     assert response.status_code == 303

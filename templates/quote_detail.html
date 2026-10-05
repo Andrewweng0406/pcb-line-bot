@@ -27,16 +27,25 @@
     <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
             <h2 class="font-medium">{{ tr(request, 'release_readiness') }}</h2>
-            {% if extraction_review and extraction_review.summary.needs_review %}
-            <p class="text-sm mt-1" role="status">{{ tr(request, 'release_blocked') }} ({{ extraction_review.summary.needs_review }})</p>
-            {% else %}<p class="text-sm mt-1">{{ tr(request, 'data_review_clear') }}</p>{% endif %}
+            <p class="mt-2"><span class="badge {{ 'badge-high' if export_readiness.formal_ready else 'badge-review' }}" role="status">{{ tr(request, 'formal_release_ready' if export_readiness.formal_ready else 'formal_release_blocked') }}</span></p>
+            {% if not extraction_review or not extraction_review.summary.needs_review %}<p class="text-sm mt-2">{{ tr(request, 'data_review_clear') }}</p>{% endif %}
+            {% for blocker in export_readiness.formal_blockers %}
+            <p class="text-sm mt-2 break-words">{{ tr(request, blocker.code) }}{% if blocker.fields %} {{ blocker.fields | join(', ') }}{% endif %}</p>
+            {% endfor %}
         </div>
+        <div class="flex flex-wrap gap-3">
         {% if extraction_review and extraction_review.summary.needs_review %}
         <a href="#extraction-review" class="btn-primary px-4 py-2 text-sm">{{ tr(request, 'review_pending_fields') }}</a>
-        {% elif can(user, 'export_formal') %}
+        {% endif %}
+        {% if can(user, 'export_formal') and export_readiness.estimate_ready %}
+        <a href="/quotes/{{ quote.id }}/export/estimate" class="btn-secondary px-4 py-2 text-sm">{{ tr(request, 'download_estimate') }}</a>
+        {% endif %}
+        {% if can(user, 'export_formal') and export_readiness.formal_ready %}
         <a href="/quotes/{{ quote.id }}/export/formal" class="btn-primary px-4 py-2 text-sm">{{ tr(request, 'generate_formal_quote') }}</a>
         {% endif %}
+        </div>
     </div>
+    {% if export_readiness.estimate_ready and not export_readiness.formal_ready %}<p class="text-sm mt-3" style="color: var(--ink-muted)">{{ tr(request, 'estimate_document_notice') }}</p>{% endif %}
 </section>
 {% include '_price_review.html' %}
 

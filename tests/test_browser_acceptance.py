@@ -78,9 +78,16 @@ def test_browser_role_controls(acceptance_server, width, role, tmp_path):
     with db.SessionLocal() as session:
         session.add(db.User(email=f"role-{role}@example.com", password_hash=hash_password("test-password"), role=role))
         session.commit()
-    db.save_quote("web:1", {"layer": 6, "qty": 10, "area_inch": 10}, {"status": "success", "total": 1000, "unit_price": 100})
+    from app.quote_engine import calculate_quote
+    spec = {"layer": 6, "qty": 10, "area_inch": 10, "material": "FR4", "surface_finish": "OSP",
+            "copper_weight": "1oz", "thickness_mm": 1.6, "pitch_mm": 0.4, "delivery_days": 7}
+    db.save_quote("web:1", spec, calculate_quote(spec))
     with db.SessionLocal() as session:
-        qid = session.query(db.QuoteHistory).first().id
+        quote = session.query(db.QuoteHistory).first()
+        qid = quote.id
+        if role == "manager":
+            quote.status = "approved"
+            session.commit()
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch()
         page = browser.new_page(viewport={"width": width, "height": 900})
@@ -147,6 +154,51 @@ def test_browser_import_preview_preserves_mapping_and_layout(acceptance_server, 
         page.screenshot(path=str(tmp_path / f"import-preview-{width}.png"))
         with db.SessionLocal() as session:
             assert session.query(db.QuoteHistory).count() == 0
+        browser.close()
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_browser_incomplete_approved_quote_only_exports_estimate(acceptance_server, width, tmp_path):
+    from io import BytesIO
+    from openpyxl import load_workbook
+    from playwright.sync_api import sync_playwright
+    from app.quote_engine import calculate_quote
+
+    base, db = acceptance_server
+    spec = {"layer": 6, "qty": 10, "length_mm": 100, "width_mm": 80, "material": "FR4",
+            "thickness_mm": 1.6, "copper_weight": "1oz", "delivery_days": 7}
+    assert db.save_quote("web:1", spec, calculate_quote(spec))
+    with db.SessionLocal() as session:
+        quote = session.query(db.QuoteHistory).one()
+        qid = quote.id
+        quote.status = "approved"
+        session.commit()
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch()
+        page = browser.new_page(viewport={"width": width, "height": 900}, accept_downloads=True)
+        errors = []
+        page.on("pageerror", lambda error: errors.append(str(error)))
+        page.goto(base + "/login")
+        page.locator('input[name="email"]').fill("staff@example.com")
+        page.locator('input[name="password"]').fill("hunter2")
+        page.get_by_role("button", name="Log In", exact=True).click()
+        page.wait_for_url(base + "/")
+        page.goto(base + f"/quotes/{qid}")
+        assert page.get_by_text("Formal export blocked", exact=True).is_visible()
+        assert page.get_by_role("link", name="Generate Formal Quote", exact=True).count() == 0
+        assert page.request.get(base + f"/quotes/{qid}/export/formal").status == 409
+        with page.expect_download() as event:
+            page.get_by_role("link", name="Download Estimate", exact=True).click()
+        assert event.value.failure() is None
+        workbook = load_workbook(BytesIO(Path(event.value.path()).read_bytes()))
+        assert workbook.active["A3"].value == "PRELIMINARY ESTIMATE - NOT AN OFFICIAL QUOTATION"
+        workbook.close()
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        page.screenshot(path=str(tmp_path / f"estimate-release-{width}.png"), full_page=True)
+        assert not errors
+        with db.SessionLocal() as session:
+            quote = session.get(db.QuoteHistory, qid)
+            assert quote.status == "approved" and quote.spec_json == spec
         browser.close()
 
 

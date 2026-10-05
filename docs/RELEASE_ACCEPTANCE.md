@@ -2,6 +2,9 @@
 
 Prepared 2026-10-05. This is a procedure and evidence template, not a claim that
 the checks below have been performed today. Production remains frozen.
+The development branch now implements the [customer-export policy](CUSTOMER_EXPORT_POLICY.md).
+The older staging deployment has not been updated; verify the exact revision
+before testing the new conditions.
 
 ## Evidence Rules
 
@@ -24,15 +27,16 @@ are authorized by this checklist alone.
 | D3 | Save an AI-assisted quote with confirmations pending. | Internal calculation can be retained; approval and formal export are blocked by extraction review. | Quote number and rejected endpoint result. |
 | D4 | Inspect and confirm known pending values; add a correction note when needed. | Reviewer/time/original/final values appear; unresolved values cannot simply be confirmed. | Sanitized review-history screenshot. |
 | D5 | After completing required review, set business status to Approved as Manager. | Approval persists as a separate business status; changing status does not replace field confirmations. | Reloaded detail and API response. |
-| D6 | Generate formal export after review. | Download is nonempty, opens as a workbook, and agrees with the saved quote number, currency and calculated values. | Private export checksum and value comparison. |
+| D6 | Try an approved incomplete quote, then a complete reviewed/approved quote. | Incomplete formal export returns 409; its estimate is clearly labelled. Complete resolved pricing permits formal download with matching quote number, currency and calculated amounts. | Private workbook checksums, titles and value comparison. |
 | D7 | Parse Case B with ambiguous gold unit. | Gold thickness remains blank and needs human clarification; do not substitute a guessed unit. | Form/review screenshot and labelled result. |
 | D8 | Inspect SYNTH-PRICE-SPARSE and NORMAL. | Sparse evidence gives no verdict; normal evidence exposes eligible earlier references and formula. | Screenshots including sample counts/exclusion reasons. |
 | D9 | Create a revision of a synthetic quote. | New quote links to unchanged original; changed confirmations are invalidated. | Before/after quote IDs and original-content comparison. |
 | D10 | Rehearse at desktop and mobile widths. | Text and controls do not overlap; horizontal scrolling is confined to wide tables. | 1440px and 390px screenshots. |
 
-Formal export is currently gated by role and completed extraction review, not
-by an Approved business status. D5 followed by D6 is the rehearsal sequence;
-requiring that ordering in production needs a separately specified code change.
+On the new development revision, formal export requires role, completed review,
+complete specifications, resolved pricing and Approved/Ordered business status.
+An estimate does not require business approval but retains review/calculation
+guards. These additional conditions are not active on the older staging deployment.
 Manually created quotes without extraction metadata use a different workflow;
 do not use them to claim the AI review guard has been tested.
 
@@ -91,7 +95,7 @@ scope limitation before a separately authorized production deployment.
 | Recovery | Verified recent DB snapshot and file archive, active daily/weekly provider schedule, completed native backup and disposable restore evidence. | Manual snapshots/restores verified; automatic schedule blocked by OAuth grant. |
 | Access and secrets | Review legacy Manager membership; replace public demo credentials before real data; confirm secret handling and intended single-company access. | Real-data access review pending; no tenant isolation. |
 | Operational limits | Specify replica count, verify intended limiter mode/proxy handling, storage quotas/retention and error alert routing. | Redis disabled; distributed limiting, retention/quota policy and alerts not verified. |
-| Domain decisions | Validate pricing rules/version/currency with a domain owner; decide if business approval must precede formal export and how unpriced factors are handled. | Technical controls exist; business sign-off is not established by tests. |
+| Domain decisions | Validate pricing rules/version/currency and required-field policy with a domain owner; verify the new approval/completeness/unpriced-factor export gates on the target revision. | New export policy implemented on development branch after rehearsal; no deployment or domain-owner sign-off yet. |
 
 Do not enable infrastructure, create services or restore data merely to make a
 checklist entry green. Resolve permission/cost/scope decisions separately.
