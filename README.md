@@ -7,16 +7,17 @@ created from either one shows up in the same history.
 
 ## Live Demo
 
-- URL: https://web-production-803c7.up.railway.app/login
-- Email: `owner@example.com`
-- Password: `hunter2`
+- Rehearsal: https://web-staging-ee69.up.railway.app/login
+- Production (frozen): https://web-production-803c7.up.railway.app/login
+- Use privately supplied demo credentials; passwords are not listed here.
 - Interview walkthrough: [docs/INTERVIEW_DEMO.md](docs/INTERVIEW_DEMO.md)
+- Rehearsal and production-release checks: [docs/RELEASE_ACCEPTANCE.md](docs/RELEASE_ACCEPTANCE.md)
 - Vereyo-specific positioning: [docs/VEREYO_ALIGNMENT.md](docs/VEREYO_ALIGNMENT.md)
 - AI evaluation plan: [docs/AI_EVALUATION.md](docs/AI_EVALUATION.md)
 - Runnable extraction benchmark: [docs/EXTRACTION_EVALUATION.md](docs/EXTRACTION_EVALUATION.md)
 - Latest progress and outstanding release gates: [docs/PROGRESS_2026-10-04.md](docs/PROGRESS_2026-10-04.md)
 
-This demo account is intended for interview review only. Rotate the password
+Demo accounts are intended for interview review only. Rotate the password
 or replace the account before using the deployment for real customer data.
 
 ## Features

@@ -1,180 +1,154 @@
 # Interview Demo Guide
 
-Use this guide for a 3-5 minute walkthrough of the PCB Quote System. The goal
-is to show an end-to-end workflow, not every feature.
+A five-minute English rehearsal for the PCB Quote System. Demonstrate an
+inspectable estimating workflow, not a claim of production maturity.
 
-For a company-specific framing against Vereyo, see
-[VEREYO_ALIGNMENT.md](VEREYO_ALIGNMENT.md).
+## Environment and Safety
 
-For production AI trust and evaluation talking points, see
-[AI_EVALUATION.md](AI_EVALUATION.md).
+- Rehearse on [staging](https://web-staging-ee69.up.railway.app/login).
+- Production is frozen. Do not create, revise, approve, import, seed or delete
+  production records during rehearsal.
+- Use privately supplied credentials for an existing Manager account. Do not
+  show passwords, API keys, environment variables or customer data on screen.
+- Use synthetic inputs only. New rehearsal quotes stay in staging; retain their
+  quote numbers in your private rehearsal notes instead of deleting records.
+- Confirm English is selected. Open Quote List, a normal price-review fixture
+  and a sparse fixture in separate tabs before starting.
+- Fixture names are more stable than numeric IDs. Find `SYNTH-PRICE-NORMAL`,
+  `SYNTH-PRICE-HIGH` and `SYNTH-PRICE-SPARSE` in Quote List.
+- If fixtures are absent, prepare them only in an explicitly selected local or
+  staging environment using `scripts/seed_price_review_demo.py`. This writes
+  synthetic records; it is preparation, not part of a read-only demo. Do not
+  rerun the general seed script against shared data without reviewing its upsert
+  behavior.
 
-## Live Demo
+The last recorded staging parser verification was on 2026-10-04 at commit
+`2e55836`. Recheck availability before an interview; this document is not a
+live deployment-health check.
 
-- URL: https://web-production-803c7.up.railway.app/login
-- Staging: https://web-staging-ee69.up.railway.app/login
-- Email: `owner@example.com`
-- Password: `hunter2`
+## Five-Minute Script
 
-Use the seeded `DEMO-RFQ-*` records for stable dashboard/history screens, then
-create one new quote live to show the interaction.
-Staging has its own PostgreSQL data, environment-scoped volumes, and session
-signing key. Use staging for destructive demo experiments. Existing production
-quotes without extraction metadata retain their original workflow; create a
-new AI-assisted quote to demonstrate the review controls in production.
+| Time | On-screen action | Say |
+|---|---|---|
+| 0:00-0:30 | Open Quote List. | "I built a PCB estimating workflow that turns messy RFQs into structured specifications. AI handles extraction; a deterministic rules engine handles pricing. The important part is how the system makes uncertainty reviewable." |
+| 0:30-1:20 | Open New Quote, paste Case A, click Parse with AI. | "Each extracted field carries evidence and a review state. These are evidence classifications, not calibrated model probabilities. Missing information is not silently treated as a confirmed fact." |
+| 1:20-2:20 | Inspect fields, then Calculate and Save Quote without confirming everything. Open AI Extraction Review. | "An initial calculation can be saved for internal work while review is pending. Formal export and approval are blocked until required extraction confirmations are complete. The backend enforces that too." |
+| 2:20-3:00 | Review the actual values, confirm the pending fields you have verified, and add a note. Open Status and Internal Notes, choose Approved, then Generate Formal Quote. | "The review history keeps the authenticated reviewer, time and original/final values. I can separate specification review from a Manager's business-status decision, then hand off a formal document." |
+| 3:00-3:45 | Switch to the prepared SYNTH-PRICE-NORMAL and SYNTH-PRICE-SPARSE tabs. Expand Price Review Evidence. | "Historical review uses earlier independent references. With enough compatible evidence, I show a transparent price band; with too little evidence, I say insufficient evidence. Similarity is not permission to pool incompatible jobs." |
+| 3:45-4:30 | In another New Quote tab, parse Case B. Point to blank Gold Thickness and the review-required item. Do not save or confirm a guessed value. | "This ambiguous unit was a real failure in synthetic evaluation. Prompt changes alone were variable, so I added a text guard that leaves the thickness unknown and asks for clarification." |
+| 4:30-5:00 | Return to the quote detail and close verbally. | "I added field-level evaluations, regression comparison and checksummed backup verification. The latest recorded synthetic run passed 59 fields across ten cases. Real anonymized RFQs, automated backups and stronger operational controls are still release gates." |
 
-## Demo Story
+Approval is shown before export as a deliberate rehearsal sequence, not as an
+existing export prerequisite. The current formal-export endpoint requires
+Manager/Admin permission and completed extraction review, but does not require
+the saved business status to be Approved. Do not claim that it does.
 
-This app helps a PCB sales or pricing team turn messy RFQ input into a
-structured quote, track commercial outcomes, and reuse historical pricing
-context. The same FastAPI backend supports the internal web dashboard and the
-LINE bot, so quotes from either channel land in one database.
-
-If interviewing with Vereyo, frame it as the same workflow pattern in a
-different domain: Vereyo turns construction plans into estimates, while this
-system turns PCB RFQs into structured, auditable quotes.
-
-## Walkthrough
-
-1. Log in
-   - Open the Railway demo URL.
-   - Mention session-cookie auth and invite-code registration.
-
-2. Dashboard
-   - Point out today's quote count, total quote count, average quote amount,
-     and `Recent RFQs`.
-   - Open `DEMO-RFQ-001` or `DEMO-RFQ-003`.
-
-3. Quote detail
-   - Show the customer quote summary, unit price, lead time, and spec summary.
-   - Show internal pricing summary and applied pricing factors.
-   - Open `Commercial Outcome` to show won/lost tracking.
-   - Show `Historical Intelligence` and expand a specification comparison.
-   - Point out the current/historical values and exclusion reasons.
-   - Explain why quoted prices, won-order accepted prices and recorded actual
-     costs have independent sample counts. Fewer than five valid independent
-     records means `Insufficient evidence`, not a suggested price.
-
-4. Create a new quote
-   - Go to `New Quote`.
-   - Paste the sample RFQ below into AI Form Assist.
-   - Click `Parse with AI`.
-   - Review the AI Extraction Review panel. Explain that explicit fields are
-     treated differently from inferred/defaulted/missing fields.
-   - Review the generated fields, then click `Calculate and Save Quote`.
-
-5. Exports
-   - On the quote detail page, open `AI Extraction Review` to show the audit
-     trail for source, confidence, and review-required fields.
-   - Confirm the pending fields and add a note for corrections/conflicts.
-   - Show the reviewer, timestamp, original value, and final value in history.
-   - Show `Generate Formal Quote` unlocking after review.
-   - Show `Download Internal Excel` if asked about finance/operations handoff.
-
-6. Architecture close
-   - FastAPI + Jinja dashboard.
-   - Shared quote engine for web and LINE bot.
-   - PostgreSQL on Railway.
-   - Persistent Railway volume for exports/uploads/logs.
-   - Seed script for repeatable demo data.
-   - Integrity-checked snapshots and an empty-target-only recovery drill.
-
-If asked about production readiness, distinguish persistence from recovery:
-Railway volumes preserve data across deploys, while the recovery runbook adds
-checksummed snapshots and a tested restore path. Native Railway backup schedules
-still require backup-write permission; do not claim they are enabled until the
-schedule read-back shows active entries.
-
-## Price Review Scenarios
-
-In local or staging only, run `python scripts/seed_price_review_demo.py`.
-The fixtures use `synthetic-price-v1` and explicit synthetic labels; none are
-customer transactions and existing records are preserved.
-
-1. Open `SYNTH-PRICE-NORMAL`: five earlier references put the quoted price inside
-   the historical band. Expand **Price Review Evidence** to inspect the median,
-   MAD, formula and references. The later high-price case is excluded.
-2. Open `SYNTH-PRICE-HIGH`: the unit price is 60% above the historical median.
-   Show the area/quantity differences and explain why their price impact is not
-   calculated. The flag asks staff to review pricing inputs and commercial terms.
-3. Open `SYNTH-PRICE-SPARSE`: only two earlier references exist. The system shows
-   **Insufficient evidence** and provides no band or deviation judgment.
-
-The band is the median plus/minus the greater of 20% of the median or
-`3 * 1.4826 * MAD`. This is a transparent review policy, not a validated market
-forecast. Accepted prices and actual costs are not pooled into the quoted-price
-rule. Assessment results are recalculated from saved data, not retained as an
-immutable audit event.
-
-## Extraction Review Scenario
-
-Open `DEMO-RFQ-005` in staging or the local preview. Its synthetic RFQ specifies `4L`
-but also references `drawing revision A: 6 layers`. The layer field is flagged
-as a conflict, with both matching snippets retained. Formal export is blocked.
-
-Open **Customer Clarification Draft** to show the questions staff can copy and
-edit. Internal issue ratio confirmation is deliberately excluded from the
-customer email. Add a note such as "Customer confirmed revision B: 4 layers",
-select the pending fields, and confirm them. The audit history records the
-authenticated reviewer and timestamp, and formal export becomes available.
-
-To demonstrate correction, choose **Create Revision**, change the layer count,
-select its confirmation checkbox, and enter the customer's revision reference
-in the review note. Save the new quote and show its link to the unchanged
-original. Previously confirmed values that change require confirmation again.
-
-Evidence matching currently covers supported patterns in a single RFQ text.
-Do not describe it as cross-document comparison, image conflict detection, or
-calibrated model confidence. Image-derived fields require human verification.
-
-## Sample RFQ To Paste
+## Case A - Ordinary RFQ
 
 ```text
-12-layer Megtron 6 PCB, 110 x 75 mm, quantity 8 pcs, issue ratio 2.0.
-Board thickness 2.0 mm, ENIG 10u", via-in-pad resin plugging, back drill,
-0.4 mm pitch, 3.5 mil line/space, 7 mil minimum hole, double lamination,
-10 internal layers, requested lead time 10 working days.
+6-layer FR4 PCB, quantity 10 pcs, board size 100 x 80 mm.
+Board thickness 1.6 mm, copper thickness 1 oz, lead time 7 days.
+No ENIG, no VIP, no back drill, no BVH, no impedance control.
 ```
 
-Expected story:
+Expected checkpoints:
 
-- This is a complex HDI-style RFQ.
-- The parser extracts layer count, material, size, quantity, surface finish,
-  process flags, and lead time.
-- The pricing engine applies setup fee, area-based board charge, process fees,
-  and multipliers.
-- Historical intelligence helps the salesperson compare against similar work.
+- Layer 6, quantity 10, dimensions 100 x 80 mm and thickness 1.6 mm.
+- ENIG false; gold thickness unknown/blank. Copper must not become gold thickness.
+- Absent optional requirements remain unknown at extraction time. The form may
+  expose standard options; inspect them before saving.
+- The default issue ratio needs operator confirmation; do not present it as a
+  customer-specified value.
+- Inspect every field you confirm. Do not check all boxes simply to unlock export.
+  A rehearsal note can explain the synthetic RFQ and the independently verified
+  internal issue-ratio policy. Unresolved fields stay unresolved.
 
-## Backup Sample RFQ
+No exact quote amount is promised here: pricing configuration/version and
+operator edits determine the calculated result.
 
-Use this if the AI parser is unavailable or slow:
+## Case B - Ambiguous Unit
 
 ```text
-8-layer FR-4 PCB, 92 x 64 mm, 12 pcs, 1.6 mm thickness, ENIG 8u",
-via-in-pad, 0.45 mm pitch, 4 mil line/space, 8 mil minimum hole,
-6 internal layers, delivery in 7 working days.
+6 layers FR4, quantity 10, size 100 x 80 mm.
+ENIG gold thickness 5u; the thickness unit is not specified.
 ```
 
-## Talking Points
+Gold Thickness must remain blank and require human clarification. A value of
+5 micro-inches is not established by the source. Do not claim the text guard
+detects every ambiguity or reads image content.
 
-- I kept the app English-first for interviews, but the UI can switch to
-  Chinese and the parsers still accept Chinese RFQ input.
-- The quote engine is deterministic and testable; AI is used to structure RFQ
-  input, not to invent prices.
-- The AI Extraction Review layer marks fields as explicit, inferred, default,
-  image-extracted, or missing, so operators know what to trust and what to
-  verify.
-- Railway uses PostgreSQL plus a mounted persistent volume, so database data
-  and generated files survive deploys.
-- Demo data is seeded by `scripts/seed_demo_data.py`, which is idempotent.
-- AI is treated as an extraction layer. Production readiness comes from
-  field-level evals, human review, deterministic pricing, and correction loops.
+For the optional correction demonstration, obtain a synthetic clarification
+that explicitly says "5 uinch", enter that value in the form, select its
+confirmation checkbox and record the clarification in the review note. This is
+a human correction, not evidence that the original AI guess was correct.
 
-## If Something Goes Wrong
+## Case C - Insufficient History
 
-- If login fails, confirm the demo account:
-  `owner@example.com` / `hunter2`
-- If the AI parse button fails, manually fill the required fields from the
-  backup RFQ and save the quote.
-- If exports are slow, keep the story focused on the quote detail page and
-  mention that exports are written to the persistent Railway volume.
+Open `SYNTH-PRICE-SPARSE`. The synthetic fixture deliberately has only two
+earlier compatible references, below the five-sample policy. Expect
+Insufficient evidence and no asserted price-band verdict.
+
+Do not alter reference eligibility or add fake won/cost outcomes to make the
+screen look more complete. Quoted, accepted and actual-cost evidence have
+separate eligibility and sample counts. Explain exclusion reasons.
+
+If time permits, `SYNTH-PRICE-HIGH` illustrates a price-review flag. The band is
+a transparent policy, not a validated market prediction, and specification
+differences are not automatically priced by that historical comparison.
+
+## Revision Demonstration - Optional
+
+On a synthetic rehearsal quote, choose Create Revision. Change one previously
+confirmed specification and supply its confirmation and a correction note.
+Save the new record and show its link to the original. Check that the original
+was not overwritten and changed values require fresh confirmation.
+
+## Failure Fallbacks
+
+| Failure | Response |
+|---|---|
+| AI unavailable, timeout or rate limit | Do not retry repeatedly. Keep the current form, acknowledge the failure, then show an existing synthetic reviewed quote. Manual entry is a separate path and does not prove AI review guards worked. |
+| Missing fixtures | Use a prepared local/staging fixture or skip the historical-band screen. Do not seed production or invent evidence. |
+| No Manager access | Show the available Staff workflow. Explain the permission boundary; do not promote an account during the demo. |
+| Export fails | Keep the quote detail and review history visible. Describe the intended handoff as unverified in this rehearsal, not as a successful download. |
+| Missing gold unit | Leave it unresolved or demonstrate a documented synthetic clarification. Never confirm a blank value. |
+
+## Short Answers
+
+**Why not train an LLM?**
+
+"My immediate problems are domain labels, measurable extraction failures and
+operator workflow. I use an existing model and improve the surrounding
+validation and evaluation before considering training."
+
+**What makes this more than an AI wrapper?**
+
+"The system has deterministic pricing, server-side permissions, review gates,
+correction history, conservative historical evidence and repeatable evaluation.
+An API returning JSON alone would not give an operator those controls."
+
+**Is it production-ready?**
+
+"It is a staged single-company pilot. Native automatic backups are still
+blocked by integration permissions; real-document evaluation is pending.
+Redis is not enabled on staging, so distributed rate limiting is not verified.
+There is no tenant isolation, soft-delete recovery or external tamper-proof
+audit sink. I distinguish tested behavior from release requirements."
+
+**How does this relate to another estimating domain?**
+
+"The transferable pattern is extraction, validation, human correction,
+deterministic estimation and historical feedback. The field vocabulary and cost
+rules are domain-specific; I would validate those with domain experts."
+
+## Evidence and Acceptance
+
+- [Release acceptance checklist](RELEASE_ACCEPTANCE.md)
+- [Runnable extraction evaluation](EXTRACTION_EVALUATION.md)
+- [Backup and recovery runbook](BACKUP_RECOVERY.md)
+- [Access-control boundaries](ACCESS_CONTROL.md)
+- [Company-specific framing](VEREYO_ALIGNMENT.md)
+
+Do not display private backup/evaluation payloads during the interview.
+Automated browser acceptance uses controlled parser outputs; its passing result
+is workflow evidence, not independent live-model accuracy.
