@@ -1,10 +1,12 @@
 # Release Acceptance Checklist
 
 Prepared 2026-10-05. This is a procedure and evidence template, not a claim that
-the checks below have been performed today. Production remains frozen.
+every check below has passed. The user subsequently requested a production pilot
+update; see its [verification record](PRODUCTION_RELEASE_2026-10-05.md).
 Staging revision `b591af5` now implements the [customer-export policy](CUSTOMER_EXPORT_POLICY.md).
 See the [verified deployment record](STAGING_RELEASE_2026-10-05.md); verify the
-exact revision before repeating the checks. Production has not been updated.
+exact revision before repeating the checks. The same application is now on
+production; synthetic write acceptance remains confined to staging/local tests.
 
 ## Evidence Rules
 
@@ -36,7 +38,7 @@ are authorized by this checklist alone.
 On staging revision `b591af5`, formal export requires role, completed review,
 complete specifications, resolved pricing and Approved/Ordered business status.
 An estimate does not require business approval but retains review/calculation
-guards. These additional conditions are not deployed to production.
+guards. The same conditions are now deployed to production.
 Manually created quotes without extraction metadata use a different workflow;
 do not use them to claim the AI review guard has been tested.
 
@@ -86,16 +88,18 @@ for a disposable restore drill; never restore over staging/production for testin
 
 These are human sign-off requirements, not an implemented automatic release gate.
 Every required gate must pass or have an explicitly documented owner-approved
-scope limitation before a separately authorized production deployment.
+scope limitation before a separately authorized production deployment. The
+recorded production update is a user-requested pilot deployment, not sign-off
+on the outstanding commercial/domain, privacy or operational gates.
 
-| Gate | Required evidence | Last recorded state, 2026-10-04 |
+| Gate | Required evidence | Last recorded evidence |
 |---|---|---|
-| Exact deployment and rollback | Verified target revision, SUCCESS for its exact deployment ID, preserved prior artifact; assess additive-schema compatibility before rollback. | Staging parser revision 2e55836 verified; no production release authorized. |
+| Exact deployment and rollback | Verified target revision, SUCCESS for its exact deployment ID, recorded prior artifact; assess additive-schema compatibility before rollback. | Production deployment b8c9108e-d060-4816-bad5-8aecee8f6859 verified SUCCESS on 2026-10-05; prior deployment and additive schema recorded. |
 | Real RFQ quality | Independently labelled anonymized documents, field-level failures and critical-error review; business owner defines acceptable risk. | Pending; only ten synthetic cases/59 fields were evaluated. |
-| Recovery | Verified recent DB snapshot and file archive, active daily/weekly provider schedule, completed native backup and disposable restore evidence. | Manual snapshots/restores verified; automatic schedule blocked by OAuth grant. |
+| Recovery | Verified recent DB snapshot and file archive, active daily/weekly provider schedule, completed native backup and disposable restore evidence. | Production pre/post snapshots, file archives and isolated restores verified on 2026-10-05; provider schedule read returned [], so automatic backups remain unset. |
 | Access and secrets | Review legacy Manager membership; replace public demo credentials before real data; confirm secret handling and intended single-company access. | Real-data access review pending; no tenant isolation. |
 | Operational limits | Specify replica count, verify intended limiter mode/proxy handling, storage quotas/retention and error alert routing. | Redis disabled; distributed limiting, retention/quota policy and alerts not verified. |
-| Domain decisions | Validate pricing rules/version/currency and required-field policy with a domain owner; verify the new approval/completeness/unpriced-factor export gates on the target revision. | Export policy subsequently verified on staging b591af5; no production deployment or domain-owner sign-off yet. |
+| Domain decisions | Validate pricing rules/version/currency and required-field policy with a domain owner; verify the new approval/completeness/unpriced-factor export gates on the target revision. | Technical gates verified on staging and production; pilot promotion requested by user, not independent domain-price validation. |
 
 Do not enable infrastructure, create services or restore data merely to make a
 checklist entry green. Resolve permission/cost/scope decisions separately.

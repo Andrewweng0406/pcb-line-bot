@@ -8,12 +8,13 @@ created from either one shows up in the same history.
 ## Live Demo
 
 - Rehearsal: https://web-staging-ee69.up.railway.app/login
-- Production (frozen): https://web-production-803c7.up.railway.app/login
+- Production: https://web-production-803c7.up.railway.app/login
 - Use privately supplied demo credentials; passwords are not listed here.
 - Interview walkthrough: [docs/INTERVIEW_DEMO.md](docs/INTERVIEW_DEMO.md)
 - Rehearsal and production-release checks: [docs/RELEASE_ACCEPTANCE.md](docs/RELEASE_ACCEPTANCE.md)
 - Recorded staging rehearsal: [docs/REHEARSAL_2026-10-05.md](docs/REHEARSAL_2026-10-05.md)
 - Latest staging deployment: [docs/STAGING_RELEASE_2026-10-05.md](docs/STAGING_RELEASE_2026-10-05.md)
+- Latest production deployment: [docs/PRODUCTION_RELEASE_2026-10-05.md](docs/PRODUCTION_RELEASE_2026-10-05.md)
 - Customer estimate/formal release policy: [docs/CUSTOMER_EXPORT_POLICY.md](docs/CUSTOMER_EXPORT_POLICY.md)
 - Vereyo-specific positioning: [docs/VEREYO_ALIGNMENT.md](docs/VEREYO_ALIGNMENT.md)
 - AI evaluation plan: [docs/AI_EVALUATION.md](docs/AI_EVALUATION.md)
@@ -218,8 +219,9 @@ can download a clearly labelled preliminary estimate after review. Formal export
 also requires complete specifications, a resolved saved pricing review and an
 Approved/Ordered business status. Missing legacy pricing reviews fail closed;
 use a verified revision instead of overwriting the original. See the
-[customer-export policy](docs/CUSTOMER_EXPORT_POLICY.md). Revision `b591af5` is
-deployed and verified on Railway staging; production remains unchanged.
+[customer-export policy](docs/CUSTOMER_EXPORT_POLICY.md). The `b591af5`
+application is deployed and verified on both Railway staging and production.
+This remains a pilot; see the production record for remaining release limits.
 
 Use **Create Revision** on a saved quote to correct its specifications. This
 creates a new pending quote linked to the original and preserves its extraction

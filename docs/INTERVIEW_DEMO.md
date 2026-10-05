@@ -6,7 +6,7 @@ inspectable estimating workflow, not a claim of production maturity.
 ## Environment and Safety
 
 - Rehearse on [staging](https://web-staging-ee69.up.railway.app/login).
-- Production is frozen. Do not create, revise, approve, import, seed or delete
+- Do not create, revise, approve, import, seed or delete
   production records during rehearsal.
 - Use privately supplied credentials for an existing Manager account. Do not
   show passwords, API keys, environment variables or customer data on screen.
@@ -27,6 +27,9 @@ Revision `b591af5` was subsequently deployed and its new estimate/formal gates
 verified on staging the same day. See the [deployment record](STAGING_RELEASE_2026-10-05.md)
 for three ready-to-inspect synthetic cases. Recheck availability before an
 interview; this document is not a live deployment-health check.
+The same application has since been promoted to production by explicit user
+request. Keep rehearsals on staging; production was verified without saved test
+quotes or generated exports. See the [production record](PRODUCTION_RELEASE_2026-10-05.md).
 
 ## Five-Minute Script
 

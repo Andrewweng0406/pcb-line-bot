@@ -1,8 +1,9 @@
 # Customer Export Policy
 
-This policy is deployed on Railway staging at revision `b591af5`, verified on
-2026-10-05. The earlier staging rehearsal describes the older behavior; see the
-[new deployment record](STAGING_RELEASE_2026-10-05.md). Production is unchanged.
+This policy is deployed on Railway staging and production with the `b591af5`
+application, verified on 2026-10-05. The earlier staging rehearsal describes the
+older behavior; see the [staging record](STAGING_RELEASE_2026-10-05.md) and
+[production record](PRODUCTION_RELEASE_2026-10-05.md).
 Domain-owner validation and the other production release gates still apply.
 
 ## Three Different Documents
@@ -57,7 +58,9 @@ conversion or independent validation of a business's currency configuration.
 
 ## Existing Records and Limits
 
-There is no schema migration, data rewrite or automatic credential change.
+The export-policy change itself requires no schema migration or data rewrite.
+The production promotion also brought earlier additive role/import-key migrations
+from the tested branch; original field values and credentials were preserved.
 Create Revision preserves the original and produces a fresh calculation/review.
 Use it to supply verified missing specifications or regenerate missing legacy
 pricing evidence. Revision status starts Pending and needs separate approval.
