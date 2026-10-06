@@ -239,6 +239,11 @@ checks cover supported patterns within one RFQ; cross-document comparison and
 image conflict detection are not implemented. Signed extraction payloads are
 bound to the current user and expire after 24 hours.
 
+For hands-on staging practice, use the [20 synthetic RFQs and answer keys](docs/SYNTHETIC_RFQ_PRACTICE.md).
+The pack includes basic, intermediate and high-risk review cases, with individual
+text files and an evaluation-compatible JSONL dataset. It is not real RFQ accuracy
+evidence and does not seed production data.
+
 ### Historical comparison and evidence
 
 Quote detail and authenticated history APIs separate similarity discovery from

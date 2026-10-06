@@ -1,0 +1,5 @@
+SYNTHETIC RFQ 02 - Explicit ENIG in micro-inches
+No real customer data. For testing only; not a purchase order.
+
+RFQ: 4 layers, FR4, 25 individual boards, 80 x 60 mm, board thickness 1.6 mm. Outer copper 1 oz, inner copper 0.5 oz. Surface finish ENIG; gold thickness 3 uinch. Minimum pitch 0.5 mm. Delivery 10 days. No VIP, no BVH, no back drill; no impedance control.
+

@@ -1,0 +1,5 @@
+SYNTHETIC RFQ 03 - OSP with missing process flags
+No real customer data. For testing only; not a purchase order.
+
+Please quote 6 layers FR4, 40 boards, finished size 100 x 70 mm, thickness 1.8 mm. Copper 1oz. Surface finish OSP. Minimum pitch 0.4 mm; lead time 12 days.
+

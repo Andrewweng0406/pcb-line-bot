@@ -1,0 +1,5 @@
+SYNTHETIC RFQ 15 - Ambiguous bare gold unit
+No real customer data. For testing only; not a purchase order.
+
+6 layers FR4, quantity 10 boards, 100 x 80 mm, thickness 1.6 mm, copper 1oz. ENIG gold thickness 5u. Pitch 0.5 mm. Lead time 7 days. The gold unit was omitted; it may mean micro-inches or micrometers.
+

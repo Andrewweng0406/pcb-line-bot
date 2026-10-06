@@ -1,0 +1,5 @@
+SYNTHETIC RFQ 05 - Urgent low-volume order
+No real customer data. For testing only; not a purchase order.
+
+New version: 4 layers FR4, quantity 5 boards, 45 x 35 mm, thickness 1.0 mm, copper 1oz. Surface finish HASL. Pitch 0.65 mm. Required lead time 3 days. No ENIG. No impedance control.
+

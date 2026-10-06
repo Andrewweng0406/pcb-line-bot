@@ -1,0 +1,5 @@
+SYNTHETIC RFQ 13 - Missing quantity and delivery
+No real customer data. For testing only; not a purchase order.
+
+Please quote 4 layers FR4. Finished board size 80 x 50 mm, thickness 1.6 mm, copper 1oz, ENIG gold 3 uinch, pitch 0.5 mm. Quantity and lead time are not supplied yet; please ask us before quoting.
+

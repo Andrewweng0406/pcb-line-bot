@@ -1,0 +1,5 @@
+SYNTHETIC RFQ 18 - Dimensions without a unit
+No real customer data. For testing only; not a purchase order.
+
+4 layers FR4, quantity 10 boards. Size is written as 100 x 80, with no dimension unit in the drawing or email. The author has not confirmed mm or inches. Do not assume a unit. Board thickness explicitly 1.6 mm, copper 1oz, OSP, pitch 0.5 mm, lead time 10 days.
+

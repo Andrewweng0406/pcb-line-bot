@@ -1,0 +1,5 @@
+SYNTHETIC RFQ 04 - Preserve exact material grade
+No real customer data. For testing only; not a purchase order.
+
+8-layer board using M6 FR4-HTG. Quantity 12 boards. Finished size 120 x 90 mm, thickness 2.0 mm. Copper 1oz. ENIG gold 5 uinch. Pitch 0.5 mm. Lead time 14 days.
+

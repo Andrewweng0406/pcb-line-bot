@@ -1,0 +1,5 @@
+SYNTHETIC RFQ 10 - Convert board inches to millimeters
+No real customer data. For testing only; not a purchase order.
+
+4 layers FR4, quantity 18 individual boards. Finished board dimensions: length 4 inches, width 2 inches. Board thickness 1.6 mm, copper 1oz, surface finish OSP. Minimum pitch 0.5 mm. Delivery 10 days.
+

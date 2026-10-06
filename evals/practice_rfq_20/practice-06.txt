@@ -1,0 +1,5 @@
+SYNTHETIC RFQ 06 - Explicit Hard Gold
+No real customer data. For testing only; not a purchase order.
+
+Please quote 4 layers FR4, quantity 30 boards, finished size 90 x 55 mm, thickness 1.6 mm, copper 1oz. Surface finish Hard Gold, gold thickness 20 uinch. Pitch 0.8 mm; lead time 15 days. No ENIG.
+

@@ -91,6 +91,52 @@ def test_synthetic_dataset_is_valid_and_private_reports_are_restricted(tmp_path)
     assert json.loads(path.read_text())["summary"] == "no input content"
 
 
+def test_practice_dataset_has_twenty_matching_sources_and_difficulty_coverage():
+    cases = load_cases("evals/practice_rfq_20.jsonl")
+    assert len(cases) == 20
+    assert [c["id"] for c in cases] == [f"practice-{n:02d}" for n in range(1, 21)]
+    assert {level: sum(c["difficulty"] == level for c in cases)
+            for level in ("basic", "intermediate", "review")} == {
+                "basic": 8, "intermediate": 6, "review": 6}
+    sources = Path("evals/practice_rfq_20")
+    assert len(list(sources.glob("*.txt"))) == 20
+    for c in cases:
+        assert c["input"]["type"] == "text"
+        assert (sources / f"{c['id']}.txt").read_text().rstrip() == c["input"]["text"]
+        assert c["input"]["text"].startswith("SYNTHETIC RFQ")
+        assert c["manual_review"]
+
+
+def test_practice_labels_preserve_ambiguity_and_explicit_unit_conversions():
+    cases = {c["id"]: c for c in load_cases("evals/practice_rfq_20.jsonl")}
+    for case_id, fields in {
+        "practice-13": ["qty", "delivery_days"],
+        "practice-14": ["surface_finish", "enig", "enig_thickness_uinch"],
+        "practice-15": ["enig_thickness_uinch"],
+        "practice-16": ["qty"],
+        "practice-17": ["surface_finish", "enig", "hard_gold"],
+        "practice-18": ["length_mm", "width_mm"],
+        "practice-19": ["thickness_mm", "surface_finish", "delivery_days"],
+        "practice-20": ["qty"],
+    }.items():
+        assert all(cases[case_id]["expected"][field] is None for field in fields)
+    assert cases["practice-09"]["expected"]["enig_thickness_uinch"] == pytest.approx(0.127 * 39.37)
+    assert cases["practice-10"]["expected"]["length_mm"] == pytest.approx(4 * 25.4)
+    assert cases["practice-11"]["expected"]["qty"] == 40
+    assert cases["practice-12"]["expected"]["layer"] == 6
+
+
+def test_review_regression_variants_preserve_unknown_vs_rejected_and_board_totals():
+    cases = load_cases("evals/review_regression_variants.jsonl")
+    assert len(cases) == 6
+    by_id = {c["id"]: c for c in cases}
+    assert by_id["variant-negative-hard-gold"]["expected"]["hard_gold"] is False
+    assert by_id["variant-unknown-not-negative"]["expected"]["hard_gold"] is None
+    assert by_id["variant-unknown-not-negative"]["expected"]["enig"] is None
+    assert by_id["variant-unresolved-sets"]["expected"]["qty"] is None
+    assert by_id["variant-confirmed-board-total"]["expected"]["qty"] == 18
+
+
 def test_offline_cli_needs_no_api_key_and_fails_regressions(tmp_path):
     dataset = tmp_path / "dataset.jsonl"
     predictions = tmp_path / "predictions.jsonl"

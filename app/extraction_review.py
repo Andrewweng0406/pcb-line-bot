@@ -113,6 +113,10 @@ def ambiguous_gold_unit(text: str) -> bool:
     )
 
 
+def _quantity_set_evidence(text: str) -> list[str]:
+    return list(dict.fromkeys(re.findall(r"\b\d+(?:\.\d+)?\s+sets?\b", text, re.IGNORECASE)))
+
+
 VALUE_PATTERNS = {
     "layer": r"(?<!\w)(?P<value>\d+)\s*(?:layers?\b|l\b|層)",
     "qty": r"(?:\b(?:qty|quantity)\s*[:=]?\s*|數量\s*[:：]?\s*)(?P<value>\d+)",
@@ -206,6 +210,17 @@ def build_extraction_review(parsed: dict, raw_input: str = "", input_type: str =
                         "Required field was not extracted.",
                     )
                 )
+            elif input_type == "text" and (
+                (field == "hard_gold" and re.search(r"\bhard\s+gold\b", text, re.IGNORECASE))
+                or (field == "enig_thickness_uinch" and re.search(
+                    r"\bgold\b[^\d;\n]{0,32}\d+(?:\.\d+)?\s*(?:uinch\b|uin\b|um\b|micro[- ]?inches?\b|micrometers?\b|u\")",
+                    text, re.IGNORECASE,
+                ))
+            ):
+                fields.append(_review_item(
+                    field, None, "missing", "missing",
+                    "RFQ text mentions this specification but no value was extracted; verify the source.",
+                ))
             continue
 
         evidence, supported, conflict = _evidence(field, value, text)
@@ -219,6 +234,12 @@ def build_extraction_review(parsed: dict, raw_input: str = "", input_type: str =
                     "Extracted from uploaded image; verify against the drawing/spec.",
                 )
             )
+        elif field == "qty" and _quantity_set_evidence(text):
+            evidence = _quantity_set_evidence(text)
+            fields.append(_review_item(
+                field, value, "conflict", "low",
+                "RFQ includes a quantity in sets; confirm the individual-board total and pricing basis.",
+            ))
         elif conflict:
             fields.append(_review_item(field, value, "conflict", "low", "RFQ values disagree with each other or with the extracted value."))
         elif supported:

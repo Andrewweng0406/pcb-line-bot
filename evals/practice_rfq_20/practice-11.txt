@@ -1,0 +1,5 @@
+SYNTHETIC RFQ 11 - Individual boards versus panels
+No real customer data. For testing only; not a purchase order.
+
+Please quote 40 individual boards, NOT 40 panels. Each panel holds 4 boards; panel count is 10. Single-board size is 50 x 40 mm; panel envelope is 110 x 90 mm. Use SINGLE-BOARD quantity and dimensions for this quote. 4 layers FR4, thickness 1.6 mm, copper 1oz, OSP finish, pitch 0.5 mm, lead time 10 days.
+

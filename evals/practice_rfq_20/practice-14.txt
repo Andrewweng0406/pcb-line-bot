@@ -1,0 +1,5 @@
+SYNTHETIC RFQ 14 - Copper alone must not imply gold
+No real customer data. For testing only; not a purchase order.
+
+6 layers FR4, quantity 10 boards, finished dimensions 100 x 80 mm, board thickness 1.6 mm. Copper thickness 35 um. Surface finish and gold thickness have not been specified. Lead time 7 days. Process options have not been decided.
+

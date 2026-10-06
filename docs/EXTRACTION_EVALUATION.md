@@ -4,6 +4,14 @@ This harness measures the existing extraction pipeline; it never saves quotes or
 
 ## Run
 
+An additional [20-case practice pack](SYNTHETIC_RFQ_PRACTICE.md) is available at
+`evals/practice_rfq_20.jsonl`, with individual English RFQ text files and an answer
+key. It includes deliberately difficult abstention cases and is separate from
+the original ten-case smoke dataset. Its [first live run](SYNTHETIC_RFQ_RESULTS_2026-10-05.md)
+passed 17/20 cases. The [local candidate validation](SYNTHETIC_RFQ_FIX_VALIDATION_2026-10-05.md)
+records fixes, intermediate failures and a 20/20 repeat plus six variants. These
+candidate changes are not deployed and do not establish real RFQ accuracy.
+
 Recorded predictions can be graded without credentials, application configuration or network calls:
 
 ```sh

@@ -1,0 +1,5 @@
+SYNTHETIC RFQ 01 - Complete HASL prototype
+No real customer data. For testing only; not a purchase order.
+
+Please quote a new-version PCB prototype. 2 layers, FR4, quantity 10 individual boards. Finished board size 50 x 40 mm; thickness 1.6 mm; copper 1oz; surface finish HASL. Minimum pitch 0.8 mm. Lead time 7 days. No ENIG, no Hard Gold, no VIP, no back drill, no BVH, no impedance control.
+

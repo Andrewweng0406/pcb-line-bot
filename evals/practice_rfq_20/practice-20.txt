@@ -1,0 +1,5 @@
+SYNTHETIC RFQ 20 - Unresolved per-board versus per-panel quantity
+No real customer data. For testing only; not a purchase order.
+
+RFQ: 8 layers FR4, finished single-board size 60 x 45 mm, thickness 2.0 mm, copper 1oz, ENIG gold 3 uinch, pitch 0.35 mm, lead time 15 days. Quantity is written as 20 sets. A set may be one board or a panel containing 6 boards; purchasing has not decided. Do not convert sets into boards until confirmed.
+

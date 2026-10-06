@@ -1,0 +1,5 @@
+SYNTHETIC RFQ 17 - Unresolved finish conflict
+No real customer data. For testing only; not a purchase order.
+
+Agreed: 6 layers FR4, quantity 20 boards, 90 x 60 mm, thickness 1.6 mm, copper 1oz, pitch 0.4 mm, lead time 12 days. Drawing says ENIG. Purchasing note says Hard Gold. No final finish or gold thickness is approved. Treat the finish as unresolved; do not select either process.
+

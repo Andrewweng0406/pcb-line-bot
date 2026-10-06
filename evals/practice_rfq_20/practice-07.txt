@@ -1,0 +1,5 @@
+SYNTHETIC RFQ 07 - Explicit positive processes
+No real customer data. For testing only; not a purchase order.
+
+10 layers FR4, 8 boards, 110 x 85 mm, thickness 2.0 mm. Outer copper 1 oz and inner copper 0.5 oz. ENIG gold 3 uinch. Pitch 0.35 mm. Lead time 18 days. VIP yes, BVH yes, back drill yes, impedance yes.
+

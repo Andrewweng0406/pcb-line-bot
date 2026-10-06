@@ -1,0 +1,5 @@
+SYNTHETIC RFQ 16 - Unresolved quantity conflict
+No real customer data. For testing only; not a purchase order.
+
+RFQ summary says quantity 10 boards. The attached purchasing note says quantity 100 boards. Neither source has been approved and neither supersedes the other. Please do not choose a quantity until purchasing confirms. Other agreed specs: 4 layers FR4, 80 x 60 mm, thickness 1.6 mm, copper 1oz, OSP, pitch 0.5 mm, delivery 10 days.
+

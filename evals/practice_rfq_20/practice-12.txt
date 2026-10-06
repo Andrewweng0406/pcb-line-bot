@@ -1,0 +1,5 @@
+SYNTHETIC RFQ 12 - Explicit replacement of old version
+No real customer data. For testing only; not a purchase order.
+
+Final RFQ, revision B supersedes revision A. OLD revision A: 4 layers, quantity 10, size 80 x 60 mm. FINAL revision B only: 6 layers FR4, quantity 25 boards, size 100 x 70 mm, thickness 1.8 mm, copper 1oz, ENIG gold 3 uinch, pitch 0.4 mm, delivery 12 days. This is a new version.
+

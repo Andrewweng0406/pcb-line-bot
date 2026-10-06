@@ -1,0 +1,5 @@
+SYNTHETIC RFQ 09 - Convert explicit gold micrometers
+No real customer data. For testing only; not a purchase order.
+
+RFQ for 6 layers FR4, 15 boards, 100 x 80 mm, thickness 1.6 mm. Surface finish ENIG. Gold thickness 0.127 um. Copper thickness 35 um. Delivery 9 days.
+
