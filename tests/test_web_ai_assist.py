@@ -219,8 +219,23 @@ def test_ai_assist_marks_hard_gold_from_photo(temp_db, monkeypatch):
 
     assert response.status_code == 200
     assert 'name="surface_finish" value="Hard Gold"' in response.text
-    assert 'name="enig" checked' in response.text
+    assert 'name="enig" checked' not in response.text
     assert 'name="hard_gold" checked' in response.text
+
+
+def test_ai_assist_preserves_explicit_no_enig_with_hard_gold(temp_db, monkeypatch):
+    import app.web as web_module
+    monkeypatch.setattr(web_module, "parse_pcb_text", lambda text: {
+        "layer": 6, "qty": 10, "surface_finish": "Hard Gold",
+        "hard_gold": True, "enig": False, "enig_thickness_uinch": 20,
+    })
+    response = _logged_in_client(temp_db).post("/quotes/new/ai-assist", data={
+        "spec_text": "6 layers qty 10. Hard Gold, gold thickness 20 uinch. No ENIG.",
+    })
+    assert response.status_code == 200
+    assert 'name="enig" checked' not in response.text
+    assert 'name="hard_gold" checked' in response.text
+    assert 'name="enig_thickness_uinch" value="20"' in response.text
 
 
 def test_ai_assist_prefers_photo_over_text_when_both_given(temp_db, monkeypatch):

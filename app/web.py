@@ -1080,7 +1080,6 @@ async def ai_assist(
         if isinstance(surface_finish, str) and surface_finish.strip().lower() == "hard gold":
             parsed["surface_finish"] = "Hard Gold"
             parsed["hard_gold"] = True
-            parsed["enig"] = True
         if parsed.get("copper_outer_oz") and parsed.get("copper_inner_oz") and not parsed.get("copper_weight"):
             if parsed["copper_outer_oz"] == parsed["copper_inner_oz"]:
                 parsed["copper_weight"] = f'{parsed["copper_outer_oz"]:g}oz'
