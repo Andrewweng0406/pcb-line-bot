@@ -35,7 +35,8 @@ DEBUG=false python3 scripts/evaluate_extraction.py evals/practice_rfq_20.jsonl \
 
 The first live run is recorded in [evaluation results](SYNTHETIC_RFQ_RESULTS_2026-10-05.md):
 17/20 cases passed. A [subsequent local fix and repeat](SYNTHETIC_RFQ_FIX_VALIDATION_2026-10-05.md)
-passed 20/20 plus six wording variants; it has not been deployed. Conflict abstention, instruction
+passed 20/20 plus six wording variants; the fixes are now [on staging](STAGING_REVIEW_FIX_2026-10-05.md),
+not production. Conflict abstention, instruction
 injection and inch conversion deliberately probe possible gaps. Do not weaken
 labels to match model output; investigate failures. Numeric gold conversion uses
 39.37 micro-inches per micrometer and the harness's existing tolerance. No prices,

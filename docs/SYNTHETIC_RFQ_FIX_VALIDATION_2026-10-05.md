@@ -1,6 +1,8 @@
 # Synthetic RFQ Fix Validation - 2026-10-05
 
-Local candidate only: no staging/production deployment, database migration,
+This records the local candidate evaluation. The changes were subsequently
+[deployed and verified on staging](STAGING_REVIEW_FIX_2026-10-05.md), with an
+additional web-form correction and 357-test run. No production deployment,
 credential change, production quote write or production export. See the
 [unchanged production deployment record](PRODUCTION_RELEASE_2026-10-05.md).
 

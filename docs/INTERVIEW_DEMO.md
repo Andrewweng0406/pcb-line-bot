@@ -30,6 +30,10 @@ interview; this document is not a live deployment-health check.
 The same application has since been promoted to production by explicit user
 request. Keep rehearsals on staging; production was verified without saved test
 quotes or generated exports. See the [production record](PRODUCTION_RELEASE_2026-10-05.md).
+Staging has since advanced to the [review-fix release](STAGING_REVIEW_FIX_2026-10-05.md).
+Synthetic quote #21 exercises real text parsing, quantity-basis review, separate
+approval and both customer document downloads. Production does not have these
+new extraction/form fixes or this synthetic quote.
 
 ## Five-Minute Script
 

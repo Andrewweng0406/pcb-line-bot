@@ -1,7 +1,8 @@
 # Customer Export Policy
 
-This policy is deployed on Railway staging and production with the `b591af5`
-application, verified on 2026-10-05. The earlier staging rehearsal describes the
+This policy originated in `b591af5` and is deployed on Railway staging and
+production, verified on 2026-10-05. Staging additionally has newer
+[extraction/form fixes](STAGING_REVIEW_FIX_2026-10-05.md). The earlier staging rehearsal describes the
 older behavior; see the [staging record](STAGING_RELEASE_2026-10-05.md) and
 [production record](PRODUCTION_RELEASE_2026-10-05.md).
 Domain-owner validation and the other production release gates still apply.
